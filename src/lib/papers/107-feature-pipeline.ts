@@ -21,7 +21,8 @@ export const content = `
   contribute meaningful signal for gold intraday trading. The pipeline is implemented in a single function,
   the main feature builder function, which accepts M1
   OHLCV DataFrames for all six instruments and returns a fully aligned feature matrix. The features are
-  registered in an official feature column registry (107 entries as of February 2026), which serves
+  registered in an official feature column registry (105 core entries as of February 2026, plus 2 Alpha101
+  features &mdash; alpha024 and alpha083 &mdash; added conditionally when ENABLE_ALPHA101=True, totaling 107), which serves
   as both the canonical feature set and the cache invalidation key.
 </p>
 
@@ -96,7 +97,7 @@ export const content = `
 
 <h2>3. Feature Groups</h2>
 
-<h3>3.1 Original Features (9 features)</h3>
+<h3>3.1 Original Features (10 features)</h3>
 
 <p>
   The foundational feature set, designed to capture core price dynamics and temporal structure. These were
@@ -136,74 +137,78 @@ export const content = `
   </tr>
   <tr>
     <td>5</td>
+    <td>resid_z60_dxy</td>
+    <td>AR(1) residual z-score (DXY)</td>
+    <td>Z-score of the residual from a 60-bar rolling linear regression of XAUUSD against DXY. Captures gold-specific deviations from the dollar relationship.</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>resid_z60_nas100</td>
+    <td>AR(1) residual z-score (NAS100)</td>
+    <td>Z-score of the residual from a 60-bar rolling linear regression of XAUUSD against NAS100. Captures gold-specific deviations from the equity relationship.</td>
+  </tr>
+  <tr>
+    <td>7</td>
     <td>er60</td>
     <td>Efficiency ratio (60-bar)</td>
     <td>$\\frac{|\\text{close}_t - \\text{close}_{t-60}|}{\\sum_{i=t-59}^{t} |\\text{close}_i - \\text{close}_{i-1}|}$. Ranges [0, 1]. High values indicate trending (price moved far relative to path length); low values indicate choppy/mean-reverting.</td>
   </tr>
   <tr>
-    <td>6</td>
+    <td>8</td>
     <td>tod_sin</td>
     <td>Time-of-day (sine)</td>
     <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Cyclical encoding of time that the model can use to learn session-dependent patterns without discrete session boundaries.</td>
   </tr>
   <tr>
-    <td>7</td>
+    <td>9</td>
     <td>tod_cos</td>
     <td>Time-of-day (cosine)</td>
     <td>$\\cos\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Paired with tod_sin to provide a complete cyclical encoding. <strong>Note: INVERTED</strong> (original AUC was 0.476; inverted to 0.524). The cosine component peaked at midnight UTC, which anti-correlates with direction during the Asian session.</td>
   </tr>
   <tr>
-    <td>8</td>
+    <td>10</td>
     <td>leadcorr_nas100</td>
     <td>Lead-lag correlation with NAS100</td>
     <td>Rolling 60-bar Pearson correlation between XAUUSD and NAS100 returns. Captures the time-varying risk-on/risk-off relationship. Not predictive as a lagged feature (see companion paper), but informative as a regime indicator.</td>
   </tr>
-  <tr>
-    <td>9</td>
-    <td>dow_sin</td>
-    <td>Day-of-week (sine encoding)</td>
-    <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{day\\_of\\_week}}{5}\\right)$. Captures weekly seasonality (e.g., Monday positioning, Friday book-squaring). Combined with tod_sin/cos provides full intraweek temporal context.</td>
-  </tr>
 </table>
 
-<h3>3.2 OG Extended Features (17 features)</h3>
+<h3>3.2 OG Extended Features (26 features)</h3>
 
 <p>
-  Extensions to the original set, adding multi-horizon returns, cross-asset correlations, and volatility structure.
+  Extensions to the original set, adding multi-horizon returns, cross-asset correlations, betas, and volatility structure.
   These features provide the model with a richer view of price dynamics at multiple timescales:
 </p>
 
 <ul>
-  <li><strong>Multi-horizon returns (4):</strong> Log returns computed at 1-minute, 5-minute, 30-minute, and
-    120-minute horizons. Each horizon captures different dynamics: 1m returns are dominated by microstructure
-    noise but have significant AR(1) structure; 5m returns capture short-term momentum; 30m and 120m returns
-    capture intra-session trends. The model learns to weight these horizons differently via the VSN.</li>
-  <li><strong>Volatility (2):</strong> Rolling realized volatility at 30-bar and 120-bar windows, computed as
-    the standard deviation of log returns multiplied by &radic;(annualization factor). The 30-bar window
-    captures recent volatility spikes; the 120-bar window captures session-level volatility regime.</li>
-  <li><strong>MA distances (2):</strong> Normalized distance from 30-bar and 200-bar moving averages. The 30-bar
-    distance captures short-term mean-reversion potential; the 200-bar distance captures the position within
+  <li><strong>Returns (6):</strong> Log returns computed at 1-minute, 5-minute, 30-minute, 60-minute, and
+    120-minute horizons, plus 30-bar rolling realized volatility (vol_30m). Each horizon captures different dynamics: 1m returns are dominated by microstructure
+    noise but have significant AR(1) structure; 5m returns capture short-term momentum; 30m, 60m, and 120m returns
+    capture intra-session trends. The model learns to weight these horizons differently via the VSN.
+    Features: ret_1m, ret_5m, ret_30m, ret_60m, ret_120m, vol_30m.</li>
+  <li><strong>MA distances (3):</strong> Normalized distance from 15-bar, 30-bar, and 290-bar moving averages. The 15-bar
+    distance captures very short-term mean-reversion potential; the 30-bar captures short-term; the 290-bar distance captures the position within
     the broader intraday trend. Distance is normalized by the MA value to produce a percentage rather than
-    an absolute dollar distance.</li>
-  <li><strong>Cross-asset correlations (3):</strong> Rolling 60-bar Pearson correlation of XAUUSD returns with
-    XAGUSD, DXY, and NAS100 returns. These are not predictive as lagged features (confirmed by our
+    an absolute dollar distance.
+    Features: dist_ma_15, dist_ma_30, dist_ma_290.</li>
+  <li><strong>Cross-asset correlations (6):</strong> Rolling Pearson correlation of XAUUSD returns with
+    XAGUSD and DXY at three horizons (30, 60, 120 bars). These are not predictive as lagged features (confirmed by our
     cross-asset lead-lag study) but serve as regime indicators: a breakdown in the normally strong
     gold-silver correlation, or an inversion of the gold-dollar correlation, signals a regime change
-    that affects optimal trading behavior.</li>
-  <li><strong>Cross-asset betas (3):</strong> Rolling 60-bar regression beta of XAUUSD returns against DXY,
-    NAS100, and US500 returns. The beta measures gold's sensitivity to each instrument. <strong>Note: all
-    three beta features (beta_xag_to_xau_30, beta_xag_to_xau_60, beta_xag_to_xau_120) required
+    that affects optimal trading behavior.
+    Features: corr_xau_xag_30, corr_xau_xag_60, corr_xau_xag_120, corr_xau_dxy_30, corr_xau_dxy_60, corr_xau_dxy_120.</li>
+  <li><strong>Cross-asset betas (7):</strong> Rolling regression beta of XAUUSD returns against XAG at four horizons
+    (5, 30, 60, 120 bars) and DXY at three horizons (30, 60, 120 bars). The beta measures gold's sensitivity to each instrument. <strong>Note: the
+    three XAG beta features (beta_xag_to_xau_30, beta_xag_to_xau_60, beta_xag_to_xau_120) required
     inversion</strong> &mdash; their natural orientation had AUC below 0.500, meaning that higher beta
     (more sensitivity to cross-assets) actually predicted <em>opposite</em> gold direction. After
-    inversion, AUC values improved to 0.509&ndash;0.517.</li>
-  <li><strong>XAU core (2):</strong> xaucore is the residual return after removing cross-asset
-    beta exposures: $r_{\text{gold}} - \beta_{\text{DXY}} \cdot r_{\text{DXY}} - \beta_{\text{NAS}} \cdot r_{\text{NAS}}$. This isolates gold-specific
-    returns from cross-asset factor exposure. xaucore_z is the z-score of xaucore over a
-    60-bar window. Positive xaucore_z indicates gold is outperforming what cross-asset factors predict,
-    potentially due to gold-specific flows (physical demand, central bank buying, ETF inflows).</li>
-  <li><strong>Volume ratio (1):</strong> Current bar tick volume divided by 60-bar rolling mean tick volume.
-    Values &gt; 1.5 indicate unusually high activity (session opens, news events); values &lt; 0.5 indicate
-    quiet periods. Volume ratio is a key input to the liquidity-sensitive features in the Extended group.</li>
+    inversion, AUC values improved to 0.519&ndash;0.525 (1 &minus; original AUC).
+    Features: beta_xag_to_xau_5, beta_xag_to_xau_30, beta_xag_to_xau_60, beta_xag_to_xau_120, beta_xau_to_dxy_30, beta_xau_to_dxy_60, beta_xau_to_dxy_120.</li>
+  <li><strong>XAU core (4):</strong> xaucore is the residual return after removing cross-asset
+    beta exposures: $r_{\text{gold}} - \beta_{\text{DXY}} \cdot r_{\text{DXY}} - \beta_{\text{NAS}} \cdot r_{\text{NAS}}$. Computed at four horizons (5, 30, 60, 120 bars), this isolates gold-specific
+    returns from cross-asset factor exposure at multiple timescales. Positive xaucore indicates gold is outperforming what cross-asset factors predict,
+    potentially due to gold-specific flows (physical demand, central bank buying, ETF inflows).
+    Features: xaucore_5, xaucore_30, xaucore_60, xaucore_120.</li>
 </ul>
 
 <h3>3.3 Level and Channel Features (17 features)</h3>
@@ -220,22 +225,22 @@ export const content = `
     close prices. The the level features function function returns 13 values per bar (extended from the
     original 10 in February 2026):
     <ul>
-      <li>dist_nearest_above: Distance (in ATR units) to the nearest level above current price</li>
-      <li>dist_nearest_below: Distance (in ATR units) to the nearest level below current price</li>
-      <li>level_density: Count of levels within 0.5 ATR of current price (congestion indicator)</li>
-      <li>nearest_above_touches: Number of times price has touched the nearest level above (more touches = stronger resistance)</li>
-      <li>nearest_below_touches: Number of times price has touched the nearest level below</li>
-      <li>nearest_above_bounces: Times price reversed after touching the level above (bounce rate)</li>
-      <li>nearest_below_bounces: Times price reversed after touching the level below</li>
-      <li>nearest_above_breakout: Binary flag: has price ever broken through the level above?</li>
-      <li>nearest_below_breakout: Binary flag: has price ever broken through the level below?</li>
-      <li>time_since_last_touch_above: Bars since the nearest above level was last touched</li>
-      <li>time_since_last_touch_below: Bars since the nearest below level was last touched</li>
-      <li>level_strength_above: Composite score: touches &times; bounce_rate / (1 + breakouts)</li>
-      <li>level_strength_below: Composite score for the level below</li>
+      <li>dist_nearest: Distance to the nearest KMeans level</li>
+      <li>dist_support: Distance to the nearest level below current price</li>
+      <li>dist_resistance: Distance to the nearest level above current price</li>
+      <li>dist_nearest_norm: Distance to nearest level, normalized by ATR</li>
+      <li>dist_support_norm: Distance to support, normalized by ATR</li>
+      <li>dist_resistance_norm: Distance to resistance, normalized by ATR</li>
+      <li>level_rank: Ordinal rank of the nearest level among all K levels</li>
+      <li>near_level_flag: Binary flag: within 0.5 ATR of any level</li>
+      <li>touch_count_6h: Number of times price has touched any level in the last 6 hours</li>
+      <li>bounce_count: Number of bounces off levels (reversals after touch)</li>
+      <li>touch_velocity: Speed of approach to the nearest level</li>
+      <li>false_breakout_count: Number of false breakouts through levels in the last 24 hours</li>
+      <li>time_since_last_touch: Minutes since the last interaction with any level</li>
     </ul>
-    The three features added in the February 2026 extension (time_since_last_touch and level_strength for
-    above/below, plus an additional density metric) improved the model's ability to distinguish between
+    The three features added in the February 2026 extension (bounce_count, false_breakout_count,
+    time_since_last_touch) improved the model's ability to distinguish between
     fresh levels (recently formed, actively tested) and stale levels (not touched in hours, likely irrelevant).
   </li>
   <li><strong>Quantile regression channels (4):</strong> Fit quantile regression lines at Q=[0.1, 0.5, 0.9]
@@ -298,7 +303,7 @@ export const content = `
   themselves provide sufficient temporal context without precise-minute indicators.
 </p>
 
-<h3>3.5 Extended Features (59 features)</h3>
+<h3>3.5 Extended Features (47 features)</h3>
 
 <p>
   The largest feature group, organized into 14 sub-families. Each sub-family targets a specific aspect of
@@ -326,9 +331,9 @@ export const content = `
   </tr>
   <tr>
     <td><strong>Multi-TF Momentum</strong></td>
-    <td>5</td>
-    <td>rsi_14, mom_5, mom_15, mom_60, mom_240, mom_divergence</td>
-    <td>RSI computed via the rolling RSI function (window=14) captures overbought/oversold conditions. Four-horizon momentum provides the model with a multi-scale trend view. Momentum divergence ($	ext{mom}_5 - 	ext{mom}_{60}$) flags when short-term momentum opposes long-term &mdash; often a reversal precursor.</td>
+    <td>3</td>
+    <td>rsi_14, mom_divergence, mom_60</td>
+    <td>RSI computed via the rolling RSI function (window=14) captures overbought/oversold conditions. Momentum at the 60-bar horizon and momentum divergence ($	ext{mom}_5 - 	ext{mom}_{60}$) flags when short-term momentum opposes long-term &mdash; often a reversal precursor.</td>
   </tr>
   <tr>
     <td><strong>Regime Indicators</strong></td>
@@ -338,33 +343,33 @@ export const content = `
   </tr>
   <tr>
     <td><strong>Volatility Proxies</strong></td>
-    <td>5</td>
-    <td>parkinson_vol, gk_vol, vol_of_vol, vol_zscore, vol_ratio_short_long</td>
-    <td>Parkinson volatility uses high-low range (more efficient than close-to-close). Garman-Klass (_garman_klass_vol) uses full OHLC. Vol-of-vol (volatility of volatility) captures clustering. Vol z-score and vol ratio (30-bar/120-bar) capture the current volatility regime relative to recent history.</td>
+    <td>3</td>
+    <td>parkinson_vol, gk_vol, vol_of_vol</td>
+    <td>Parkinson volatility uses high-low range (more efficient than close-to-close). Garman-Klass (_garman_klass_vol) uses full OHLC. Vol-of-vol (volatility of volatility) captures clustering.</td>
   </tr>
   <tr>
     <td><strong>Volatility Clustering</strong></td>
-    <td>3</td>
-    <td>vol_autocorr_10, vol_regime, vol_breakout_flag</td>
-    <td>Volatility autocorrelation at 10-bar lag quantifies clustering strength (typically 0.6&ndash;0.8 for gold M1, confirming strong GARCH-like behavior). Vol regime is ordinal (expanding/stable/contracting). Vol breakout flags bars where volatility exceeds 2&sigma; above its 120-bar mean.</td>
+    <td>2</td>
+    <td>vol_autocorr_10, vol_breakout_flag</td>
+    <td>Volatility autocorrelation at 10-bar lag quantifies clustering strength (typically 0.6&ndash;0.8 for gold M1, confirming strong GARCH-like behavior). Vol breakout flags bars where volatility exceeds 2&sigma; above its 120-bar mean.</td>
   </tr>
   <tr>
     <td><strong>Risk-On/Off</strong></td>
-    <td>4</td>
-    <td>gold_equity_corr_regime, vix_level, vix_change, risk_on_score</td>
-    <td>Gold-equity correlation regime captures whether gold is trading as a risk asset (positive correlation with equities) or a safe haven (negative correlation). VIX level and change capture fear gauge dynamics. Risk-on score is a composite of equity performance, VIX level, and gold-equity correlation.</td>
+    <td>3</td>
+    <td>gold_equity_corr_regime, vix_level, vix_change</td>
+    <td>Gold-equity correlation regime captures whether gold is trading as a risk asset (positive correlation with equities) or a safe haven (negative correlation). VIX level and change capture fear gauge dynamics.</td>
   </tr>
   <tr>
     <td><strong>Lead-Lag Improvements</strong></td>
-    <td>4</td>
-    <td>dxy_lag5_ret, nas_lag5_ret, xag_lag5_ret, composite_lead</td>
-    <td>Despite our finding that 1-bar lagged returns have no predictive power, we retain 5-bar lagged returns as features because they capture a slightly different dynamic: the 5-minute lag allows for slower information transmission channels (e.g., option hedging flows). Composite lead is a weighted combination. Their AUC is marginal (0.505&ndash;0.510) but they contribute to the model's regime awareness.</td>
+    <td>3</td>
+    <td>dxy_lag5_ret, nas_lag5_ret, xag_lag5_ret</td>
+    <td>Despite our finding that 1-bar lagged returns have no predictive power, we retain 5-bar lagged returns as features because they capture a slightly different dynamic: the 5-minute lag allows for slower information transmission channels (e.g., option hedging flows). Their AUC is marginal (0.505&ndash;0.510) but they contribute to the model's regime awareness.</td>
   </tr>
   <tr>
     <td><strong>Candle Patterns</strong></td>
-    <td>4</td>
-    <td>body_range_ratio, upper_wick_ratio, lower_wick_ratio, doji_flag</td>
-    <td>Body-to-range ratio measures conviction (high ratio = strong directional bar, low ratio = indecision). Wick ratios quantify rejection from high/low prices. Doji flag (body &lt; 10% of range) indicates extreme indecision, often preceding breakouts.</td>
+    <td>3</td>
+    <td>body_range_ratio, upper_wick_ratio, lower_wick_ratio</td>
+    <td>Body-to-range ratio measures conviction (high ratio = strong directional bar, low ratio = indecision). Wick ratios quantify rejection from high/low prices.</td>
   </tr>
   <tr>
     <td><strong>Liquidity Windows</strong></td>
@@ -380,21 +385,21 @@ export const content = `
   </tr>
   <tr>
     <td><strong>S/R Improvements</strong></td>
-    <td>4</td>
-    <td>round_number_5, round_number_10, prev_day_hl_dist, pivot_point_dist</td>
-    <td>Round number proximity (distance to nearest $5 and $10 levels) captures psychological support/resistance. Previous-day high/low distance provides key structural levels. Pivot point distance (classic floor-trader pivots) captures institutional reference levels.</td>
+    <td>3</td>
+    <td>round_number_10, prev_day_hl_dist, pivot_point_dist</td>
+    <td>Round number proximity (distance to nearest $10 levels) captures psychological support/resistance. Previous-day high/low distance provides key structural levels. Pivot point distance (classic floor-trader pivots) captures institutional reference levels.</td>
   </tr>
   <tr>
     <td><strong>Multi-Scale Analysis</strong></td>
-    <td>5</td>
-    <td>fractal_dim_60, dfa_60, wavelet_energy_ratio, multiscale_entropy, hurst_60</td>
-    <td>Fractal dimension (_rolling_fractal_dimension, Higuchi method) measures price path complexity [1,2]. DFA (_rolling_dfa, Detrended Fluctuation Analysis) quantifies long-range dependence. Wavelet energy ratio captures the distribution of variance across frequency bands. Multi-scale entropy measures complexity at multiple embedding dimensions. Hurst exponent is shared with Regime Indicators.</td>
+    <td>4</td>
+    <td>fractal_dim_60, dfa_60, wavelet_energy_ratio, multiscale_entropy</td>
+    <td>Fractal dimension (_rolling_fractal_dimension, Higuchi method) measures price path complexity [1,2]. DFA (_rolling_dfa, Detrended Fluctuation Analysis) quantifies long-range dependence. Wavelet energy ratio captures the distribution of variance across frequency bands. Multi-scale entropy measures complexity at multiple embedding dimensions. Note: Hurst exponent is counted under Regime Indicators.</td>
   </tr>
   <tr>
-    <td><strong>Self-Similarity &amp; Alpha101</strong></td>
-    <td>8</td>
-    <td>autocorr_lag1, autocorr_lag5, autocorr_lag15, autocorr_lag60, partial_autocorr, self_similarity_idx, alpha024, alpha083</td>
-    <td>Autocorrelation at four lags captures the AR structure at different horizons. Partial autocorrelation isolates the direct (not mediated) lag effect. Self-similarity index measures how well the recent return distribution matches the longer-term distribution (a form of stationarity test). Alpha024 and alpha083 are the two surviving Kakushadze (2016) factors (see companion paper).</td>
+    <td><strong>Self-Similarity</strong></td>
+    <td>6</td>
+    <td>autocorr_lag1, autocorr_lag5, autocorr_lag15, autocorr_lag60, partial_autocorr, self_similarity_idx</td>
+    <td>Autocorrelation at four lags captures the AR structure at different horizons. Partial autocorrelation isolates the direct (not mediated) lag effect. Self-similarity index measures how well the recent return distribution matches the longer-term distribution (a form of stationarity test). Note: alpha024 and alpha083 (the two surviving Kakushadze 2016 factors) are added conditionally when ENABLE_ALPHA101=True, bringing the total from 105 to 107.</td>
   </tr>
 </table>
 
@@ -448,20 +453,20 @@ export const content = `
   </tr>
   <tr>
     <td>beta_xag_to_xau_30</td>
-    <td>0.488</td>
-    <td>0.512</td>
+    <td>0.475</td>
+    <td>0.525</td>
     <td>Higher gold-silver beta (more sensitivity) predicted <em>opposite</em> gold direction, possibly because high beta indicates regime stress.</td>
   </tr>
   <tr>
     <td>beta_xag_to_xau_60</td>
-    <td>0.483</td>
-    <td>0.517</td>
+    <td>0.476</td>
+    <td>0.524</td>
     <td>Same dynamic as 30-bar beta, stronger at longer horizon.</td>
   </tr>
   <tr>
     <td>beta_xag_to_xau_120</td>
-    <td>0.489</td>
-    <td>0.511</td>
+    <td>0.481</td>
+    <td>0.519</td>
     <td>Same pattern, weaker at the longest horizon as the relationship stabilizes.</td>
   </tr>
 </table>
@@ -714,42 +719,42 @@ export const content = `
     <th>Key Signals</th>
   </tr>
   <tr>
-    <td rowspan="2"><strong>Original (9)</strong></td>
+    <td rowspan="2"><strong>Original (10)</strong></td>
     <td>Price dynamics</td>
-    <td>5</td>
-    <td>Acceleration, MA distance, residual z-score, efficiency ratio</td>
+    <td>7</td>
+    <td>Acceleration, MA distance, residual z-scores (XAU, DXY, NAS100), efficiency ratio</td>
   </tr>
   <tr>
     <td>Temporal encoding</td>
-    <td>4</td>
-    <td>Time-of-day (sin/cos), day-of-week, lead correlation</td>
-  </tr>
-  <tr>
-    <td rowspan="4"><strong>OG Extended (17)</strong></td>
-    <td>Multi-horizon returns</td>
-    <td>4</td>
-    <td>1m, 5m, 30m, 120m log returns</td>
-  </tr>
-  <tr>
-    <td>Volatility</td>
     <td>3</td>
-    <td>Realized vol (30/120 bar), volume ratio</td>
+    <td>Time-of-day (sin/cos), lead correlation</td>
   </tr>
   <tr>
-    <td>MA structure</td>
-    <td>2</td>
-    <td>Distance from MA-30 and MA-200</td>
+    <td rowspan="4"><strong>OG Extended (26)</strong></td>
+    <td>Returns</td>
+    <td>6</td>
+    <td>ret_1m, ret_5m, ret_30m, ret_60m, ret_120m, vol_30m</td>
   </tr>
   <tr>
-    <td>Cross-asset</td>
-    <td>8</td>
-    <td>Correlations, betas, xaucore, xaucore_z</td>
+    <td>MA distances</td>
+    <td>3</td>
+    <td>dist_ma_15, dist_ma_30, dist_ma_290</td>
+  </tr>
+  <tr>
+    <td>Correlations &amp; betas</td>
+    <td>13</td>
+    <td>corr_xau_xag/dxy at 30/60/120, beta_xag 5/30/60/120, beta_dxy 30/60/120</td>
+  </tr>
+  <tr>
+    <td>XAU core</td>
+    <td>4</td>
+    <td>xaucore_5, xaucore_30, xaucore_60, xaucore_120</td>
   </tr>
   <tr>
     <td rowspan="2"><strong>Level &amp; Channel (17)</strong></td>
     <td>KMeans levels</td>
     <td>13</td>
-    <td>Distances, touch/bounce/breakout, density, time-since-touch, level strength</td>
+    <td>Distances (nearest/support/resistance, raw + ATR-normalized), level rank, near-level flag, touch/bounce counts, touch velocity, false breakouts, time-since-touch</td>
   </tr>
   <tr>
     <td>Quantile channels</td>
@@ -763,7 +768,7 @@ export const content = `
     <td>Asian/London/NY/overlap flags, vol_session_ratio</td>
   </tr>
   <tr>
-    <td rowspan="14"><strong>Extended (59)</strong></td>
+    <td rowspan="14"><strong>Extended (47)</strong></td>
     <td>Price-volume interaction</td>
     <td>4</td>
     <td>Volume-weighted returns, OBV, PV correlation</td>
@@ -775,8 +780,8 @@ export const content = `
   </tr>
   <tr>
     <td>Multi-TF momentum</td>
-    <td>5</td>
-    <td>RSI, momentum at 4 horizons, divergence</td>
+    <td>3</td>
+    <td>RSI, momentum, divergence</td>
   </tr>
   <tr>
     <td>Regime indicators</td>
@@ -785,28 +790,28 @@ export const content = `
   </tr>
   <tr>
     <td>Volatility proxies</td>
-    <td>5</td>
-    <td>Parkinson, Garman-Klass, vol-of-vol, vol z, vol ratio</td>
+    <td>3</td>
+    <td>Parkinson, Garman-Klass, vol-of-vol</td>
   </tr>
   <tr>
     <td>Volatility clustering</td>
-    <td>3</td>
-    <td>Vol autocorrelation, regime, breakout flag</td>
+    <td>2</td>
+    <td>Vol autocorrelation, breakout flag</td>
   </tr>
   <tr>
     <td>Risk-on/off</td>
-    <td>4</td>
-    <td>Gold-equity corr regime, VIX level/change, risk score</td>
+    <td>3</td>
+    <td>Gold-equity corr regime, VIX level/change</td>
   </tr>
   <tr>
     <td>Lead-lag improvements</td>
-    <td>4</td>
-    <td>DXY/NAS100/XAG lagged returns, composite lead</td>
+    <td>3</td>
+    <td>DXY/NAS100/XAG lagged returns</td>
   </tr>
   <tr>
     <td>Candle patterns</td>
-    <td>4</td>
-    <td>Body ratio, wick ratios, doji, engulfing</td>
+    <td>3</td>
+    <td>Body ratio, wick ratios</td>
   </tr>
   <tr>
     <td>Liquidity windows</td>
@@ -820,76 +825,76 @@ export const content = `
   </tr>
   <tr>
     <td>S/R improvements</td>
-    <td>4</td>
+    <td>3</td>
     <td>Round number proximity, prev day H/L, pivot</td>
   </tr>
   <tr>
     <td>Multi-scale analysis</td>
-    <td>5</td>
-    <td>Fractal dimension, DFA, wavelets, entropy, Hurst</td>
+    <td>4</td>
+    <td>Fractal dimension, DFA, wavelets, entropy</td>
   </tr>
   <tr>
-    <td>Self-similarity &amp; Alpha101</td>
-    <td>8</td>
-    <td>Autocorrelations, self-similarity, alpha024, alpha083</td>
+    <td>Self-similarity</td>
+    <td>6</td>
+    <td>Autocorrelations (4 lags), partial autocorr, self-similarity</td>
   </tr>
   <tr>
-    <td colspan="2"><strong>Total</strong></td>
-    <td><strong>107</strong></td>
-    <td></td>
+    <td colspan="2"><strong>Core Total</strong></td>
+    <td><strong>105</strong></td>
+    <td>+ 2 Alpha101 features (alpha024, alpha083) when ENABLE_ALPHA101=True = <strong>107</strong></td>
   </tr>
 </table>
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
   <rect width="700" height="200" fill="#ffffff" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Feature Composition (107 Total)</text>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Feature Composition (105 core + 2 Alpha101 = 107 Total)</text>
   <!-- Stacked horizontal bar -->
-  <!-- Total width = 600px (from x=50 to x=650), each feature = 600/107 = 5.61px -->
-  <!-- Original: 9 => 50.5px | OG Extended: 17 => 95.3px | Level & Channel: 17 => 95.3px | Session: 5 => 28px | Extended: 59 => 331px -->
+  <!-- Total width = 600px (from x=50 to x=650), each feature = 600/105 = 5.71px -->
+  <!-- Original: 10 => 57px | OG Extended: 26 => 149px | Level & Channel: 17 => 97px | Session: 5 => 29px | Extended: 47 => 268px -->
   <!-- Row y=55 to y=110 (height 55) -->
-  <!-- Original: 9 features -->
-  <rect x="50" y="55" width="50" height="55" rx="0" fill="#0d9488"/>
-  <!-- OG Extended: 17 features -->
-  <rect x="100" y="55" width="96" height="55" rx="0" fill="#14b8a6"/>
+  <!-- Original: 10 features -->
+  <rect x="50" y="55" width="57" height="55" rx="0" fill="#0d9488"/>
+  <!-- OG Extended: 26 features -->
+  <rect x="107" y="55" width="149" height="55" rx="0" fill="#14b8a6"/>
   <!-- Level & Channel: 17 features -->
-  <rect x="196" y="55" width="96" height="55" rx="0" fill="#2dd4bf"/>
+  <rect x="256" y="55" width="97" height="55" rx="0" fill="#2dd4bf"/>
   <!-- Session & Timing: 5 features -->
-  <rect x="292" y="55" width="28" height="55" rx="0" fill="#5eead4"/>
-  <!-- Extended: 59 features -->
-  <rect x="320" y="55" width="330" height="55" rx="0" fill="#059669"/>
+  <rect x="353" y="55" width="29" height="55" rx="0" fill="#5eead4"/>
+  <!-- Extended: 47 features -->
+  <rect x="382" y="55" width="268" height="55" rx="0" fill="#059669"/>
   <!-- Rounded corners on first and last -->
   <rect x="50" y="55" width="10" height="55" fill="#0d9488"/>
-  <rect x="50" y="55" width="50" height="55" rx="4" fill="#0d9488"/>
-  <rect x="320" y="55" width="330" height="55" rx="0" fill="#059669"/>
+  <rect x="50" y="55" width="57" height="55" rx="4" fill="#0d9488"/>
+  <rect x="382" y="55" width="268" height="55" rx="0" fill="#059669"/>
   <rect x="640" y="55" width="10" height="55" rx="4" fill="#059669"/>
   <!-- Count labels inside bars -->
-  <text x="75" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">9</text>
-  <text x="148" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">17</text>
-  <text x="244" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">17</text>
-  <text x="306" y="87" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">5</text>
-  <text x="485" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">59</text>
+  <text x="79" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">10</text>
+  <text x="182" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">26</text>
+  <text x="305" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">17</text>
+  <text x="368" y="87" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">5</text>
+  <text x="516" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">47</text>
   <!-- Labels below bar -->
-  <text x="75" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Original</text>
-  <text x="148" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">OG Extended</text>
-  <text x="244" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Level &amp; Channel</text>
-  <text x="306" y="130" text-anchor="middle" fill="#1a1a2e" font-size="9" font-weight="500">Session</text>
-  <text x="485" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Extended</text>
+  <text x="79" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Original</text>
+  <text x="182" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">OG Extended</text>
+  <text x="305" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Level &amp; Channel</text>
+  <text x="368" y="130" text-anchor="middle" fill="#1a1a2e" font-size="9" font-weight="500">Session</text>
+  <text x="516" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Extended</text>
   <!-- Extended sub-sections breakdown -->
-  <text x="485" y="148" text-anchor="middle" fill="#374151" font-size="9">PV(4) Tick(3) Mom(5) Regime(4) Vol(8) Risk(4) Lead(4) Candle(4) Liq(3) Cal(3) S/R(4) Scale(5) Self(8)</text>
+  <text x="516" y="148" text-anchor="middle" fill="#374151" font-size="9">PV(4) Tick(3) Mom(3) Regime(4) Vol(3) VolClust(2) Risk(3) Lead(3) Candle(3) Liq(3) Cal(3) S/R(3) Scale(4) Self(6)</text>
   <!-- Legend -->
   <rect x="120" y="170" width="12" height="12" rx="2" fill="#0d9488"/>
-  <text x="136" y="180" fill="#374151" font-size="10">Original (9)</text>
+  <text x="136" y="180" fill="#374151" font-size="10">Original (10)</text>
   <rect x="220" y="170" width="12" height="12" rx="2" fill="#14b8a6"/>
-  <text x="236" y="180" fill="#374151" font-size="10">OG Extended (17)</text>
+  <text x="236" y="180" fill="#374151" font-size="10">OG Extended (26)</text>
   <rect x="340" y="170" width="12" height="12" rx="2" fill="#2dd4bf"/>
   <text x="356" y="180" fill="#374151" font-size="10">Level &amp; Channel (17)</text>
   <rect x="470" y="170" width="12" height="12" rx="2" fill="#5eead4"/>
   <text x="486" y="180" fill="#374151" font-size="10">Session (5)</text>
   <rect x="555" y="170" width="12" height="12" rx="2" fill="#059669"/>
-  <text x="571" y="180" fill="#374151" font-size="10">Extended (59)</text>
+  <text x="571" y="180" fill="#374151" font-size="10">Extended (47)</text>
 </svg>
-<p class="figure-caption">Figure 1: Feature composition across the five major groups. The Extended group (59 features) is the largest, spanning 14 sub-families of market microstructure, regime, and cross-asset features.</p>
+<p class="figure-caption">Figure 1: Feature composition across the five major groups. The Extended group (47 features) is the largest, spanning 14 sub-families of market microstructure, regime, and cross-asset features. The 105 core features plus 2 conditionally-added Alpha101 features total 107.</p>
 </div>
 
 <div style="margin: 2rem 0;">
@@ -909,7 +914,7 @@ export const content = `
 
 <div style="margin: 2rem 0;">
   <img src="/charts/gold/xauusd_close_vs_ar1_24h.png" alt="XAUUSD close price versus AR(1) model prediction" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
-  <p class="figure-caption">Figure 6: XAUUSD close price versus AR(1) model prediction over a 24-hour window. The residual from this regression (the AR(1) residual z-score) is one of the original 9 features in the pipeline and captures short-term deviations from the linear trend.</p>
+  <p class="figure-caption">Figure 6: XAUUSD close price versus AR(1) model prediction over a 24-hour window. The residual from this regression (the AR(1) residual z-score) is one of the original 10 features in the pipeline and captures short-term deviations from the linear trend.</p>
 </div>
 
 <h2>9. Conclusion</h2>
@@ -940,7 +945,7 @@ export const content = `
 
 <div class="finding-box">
   <p>
-    <strong>Key Finding:</strong> Of the 107 features, the Extended group (59 features) contributes the largest
+    <strong>Key Finding:</strong> Of the 107 features, the Extended group (47 features) contributes the largest
     share of marginal AUC, with volatility proxies, regime indicators, and multi-scale analysis being the
     highest-value families. Cross-asset features provide critical regime context but limited direct predictive
     power. The Alpha101 screening (101 candidates, 2 survivors) demonstrates that feature sourcing from

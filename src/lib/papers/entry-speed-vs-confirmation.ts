@@ -35,7 +35,7 @@ export const content = `
 <p>
   The mechanism is straightforward: in a market with a mean TP target of ~$2.50, even small amounts of
   adverse price movement consume a disproportionate fraction of the expected profit. If the mean slippage
-  from a 5-second delay is $1.32, that delay alone erases 53% of the expected profit on the trade.
+  from a 5-second delay is $1.38, that delay alone erases 55.2% of the expected profit on the trade.
 </p>
 
 <h3>1.3 Contribution</h3>
@@ -796,14 +796,14 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
     <td>Break (pending STOP)</td>
     <td><strong>+$39,277</strong></td>
     <td><strong>1.59</strong></td>
-    <td>57.2%</td>
+    <td>66.5%</td>
     <td>+$1.87</td>
   </tr>
   <tr>
     <td>Confirmation (bar close)</td>
     <td>+$26,631</td>
     <td>1.34</td>
-    <td>54.8%</td>
+    <td>60.5%</td>
     <td>+$1.27</td>
   </tr>
 </table>
@@ -1037,18 +1037,18 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
   </tr>
   <tr>
     <td>3 s</td>
-    <td>$1.05</td>
-    <td>42%</td>
+    <td>$1.11</td>
+    <td>44%</td>
   </tr>
   <tr>
     <td>5 s</td>
-    <td>$1.32</td>
-    <td>53%</td>
+    <td>$1.38</td>
+    <td>55%</td>
   </tr>
   <tr>
     <td>10 s</td>
-    <td>$1.82</td>
-    <td>73%</td>
+    <td>$1.85</td>
+    <td>74%</td>
   </tr>
   <tr>
     <td>15 s</td>
@@ -1068,7 +1068,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 </table>
 
 <p>
-  At a mean TP of approximately $2.50, slippage of $1.05&ndash;$1.82 consumes 42&ndash;73% of the
+  At a mean TP of approximately $2.50, slippage of $1.11&ndash;$1.85 consumes 44&ndash;74% of the
   expected profit. By 15 seconds, slippage has consumed 94% of the TP, rendering the trade nearly
   breakeven in expectation. By 30 seconds, mean slippage <em>exceeds</em> the TP target, making
   the trade negative-expectation regardless of win rate. This explains why sustain filters, despite
@@ -1077,7 +1077,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   The slippage function is approximately concave: the marginal cost of delay is highest in the first
-  few seconds (~$0.52/sec for 0&ndash;1s, ~$0.26/sec for 1&ndash;3s, ~$0.14/sec for 3&ndash;5s)
+  few seconds (~$0.52/sec for 0&ndash;1s, ~$0.30/sec for 1&ndash;3s, ~$0.14/sec for 3&ndash;5s)
   and gradually flattens. This is consistent with the microstructure interpretation: the initial
   reversal impulse is strongest in the first seconds after the break, then decelerates as the
   order-flow imbalance dissipates.
@@ -1107,20 +1107,20 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
     <text x="640" y="250" text-anchor="middle" fill="#6b7280" font-size="11">10s</text>
     <!-- Axis title -->
     <text x="360" y="272" text-anchor="middle" fill="#374151" font-size="11">Delay after break</text>
-    <!-- Line path: (0,$0)=80,230  (3,$1.05)=248,135.5  (5,$1.32)=360,110.8  (10,$1.82)=640,65.8 -->
-    <polyline points="80,230 248,135 360,111 640,66" fill="none" stroke="#059669" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- Line path: (0,$0)=80,230  (3,$1.11)=248,130  (5,$1.38)=360,105.8  (10,$1.85)=640,63.5 -->
+    <polyline points="80,230 248,130 360,106 640,64" fill="none" stroke="#059669" stroke-width="2.5" stroke-linejoin="round"/>
     <!-- Dots -->
     <circle cx="80" cy="230" r="5" fill="#059669"/>
-    <circle cx="248" cy="135" r="5" fill="#059669"/>
-    <circle cx="360" cy="111" r="5" fill="#059669"/>
-    <circle cx="640" cy="66" r="5" fill="#059669"/>
+    <circle cx="248" cy="130" r="5" fill="#059669"/>
+    <circle cx="360" cy="106" r="5" fill="#059669"/>
+    <circle cx="640" cy="64" r="5" fill="#059669"/>
     <!-- Value labels -->
     <text x="80" y="222" text-anchor="middle" fill="#1a1a2e" font-size="10">\$0.00</text>
-    <text x="248" y="127" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.05</text>
-    <text x="360" y="103" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.32</text>
-    <text x="640" y="58" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.82</text>
+    <text x="248" y="122" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.11</text>
+    <text x="360" y="98" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.38</text>
+    <text x="640" y="56" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.85</text>
   </svg>
-  <p class="figure-caption">Figure 11: Mean entry slippage as a function of delay after break. At 5 seconds, slippage of $1.32 consumes 53% of the mean TP target.</p>
+  <p class="figure-caption">Figure 11: Mean entry slippage as a function of delay after break. At 5 seconds, slippage of $1.38 consumes 55.2% of the mean TP target.</p>
 </div>
 
 <h2>10. Discussion</h2>
@@ -1207,7 +1207,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   The marginal cost of delay is highest in the first seconds: $0.52/sec for the first second, declining
-  to ~$0.10/sec by 10&ndash;15 seconds. At a mean TP of $2.50, a 5-second delay consumes 53% of the
+  to ~$0.10/sec by 10&ndash;15 seconds. At a mean TP of $2.50, a 5-second delay consumes 55.2% of the
   expected profit, and a 15-second delay consumes 94%. By 30 seconds, mean slippage exceeds the TP target
   entirely, making the trade negative-expectation.
 </p>

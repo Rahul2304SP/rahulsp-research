@@ -258,10 +258,10 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
     <text x="85" y="135" text-anchor="end" fill="#374151" font-size="12">US500</text>
     <rect x="350" y="120" width="68" height="24" rx="3" fill="#059669" opacity="0.6"/>
     <text x="424" y="137" fill="#1a1a2e" font-size="11">+0.16</text>
-    <!-- USDJPY: -0.15, bar width = 0.15*428 = 64, extends left, y=156 -->
+    <!-- USDJPY: -0.12, bar width = 0.12*428 = 51, extends left, y=156 -->
     <text x="85" y="171" text-anchor="end" fill="#374151" font-size="12">USDJPY</text>
-    <rect x="286" y="156" width="64" height="24" rx="3" fill="#dc2626" opacity="0.7"/>
-    <text x="278" y="173" text-anchor="end" fill="#1a1a2e" font-size="11">&minus;0.15</text>
+    <rect x="299" y="156" width="51" height="24" rx="3" fill="#dc2626" opacity="0.7"/>
+    <text x="291" y="173" text-anchor="end" fill="#1a1a2e" font-size="11">&minus;0.12</text>
     <!-- DXY: -0.28, bar width = 0.28*428 = 120, extends left, y=192 -->
     <text x="85" y="207" text-anchor="end" fill="#374151" font-size="12">DXY</text>
     <rect x="230" y="192" width="120" height="24" rx="3" fill="#dc2626"/>

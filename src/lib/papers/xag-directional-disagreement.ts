@@ -324,17 +324,17 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   <rect x="130" y="95" width="80" height="150" rx="4" fill="#059669"/>
   <text x="170" y="88" text-anchor="middle" fill="#059669" font-size="12" font-weight="600">59.2%</text>
   <text x="170" y="262" text-anchor="middle" fill="#374151" font-size="10">0-4</text>
-  <!-- 5-8: 55.8% -->
-  <rect x="240" y="122" width="80" height="123" rx="4" fill="#059669" opacity="0.7"/>
-  <text x="280" y="115" text-anchor="middle" fill="#059669" font-size="12" font-weight="600">55.8%</text>
+  <!-- 5-8: 55.1% -->
+  <rect x="240" y="127" width="80" height="118" rx="4" fill="#059669" opacity="0.7"/>
+  <text x="280" y="120" text-anchor="middle" fill="#059669" font-size="12" font-weight="600">55.1%</text>
   <text x="280" y="262" text-anchor="middle" fill="#374151" font-size="10">5-8</text>
-  <!-- 9-12: 51.3% -->
-  <rect x="350" y="157" width="80" height="88" rx="4" fill="#d97706"/>
-  <text x="390" y="150" text-anchor="middle" fill="#d97706" font-size="12" font-weight="600">51.3%</text>
+  <!-- 9-12: 51.8% -->
+  <rect x="350" y="153" width="80" height="92" rx="4" fill="#d97706"/>
+  <text x="390" y="146" text-anchor="middle" fill="#d97706" font-size="12" font-weight="600">51.8%</text>
   <text x="390" y="262" text-anchor="middle" fill="#374151" font-size="10">9-12</text>
-  <!-- 13-16: 47.6% -->
-  <rect x="460" y="186" width="80" height="59" rx="4" fill="#dc2626" opacity="0.7"/>
-  <text x="500" y="179" text-anchor="middle" fill="#dc2626" font-size="12" font-weight="600">47.6%</text>
+  <!-- 13-16: 48.3% -->
+  <rect x="460" y="181" width="80" height="64" rx="4" fill="#dc2626" opacity="0.7"/>
+  <text x="500" y="174" text-anchor="middle" fill="#dc2626" font-size="12" font-weight="600">48.3%</text>
   <text x="500" y="262" text-anchor="middle" fill="#374151" font-size="10">13-16</text>
   <!-- 17-20: 44.1% -->
   <rect x="570" y="213" width="80" height="32" rx="4" fill="#dc2626"/>
@@ -348,7 +348,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   <rect x="560" y="290" width="8" height="8" fill="#dc2626" rx="1"/>
   <text x="572" y="298" fill="#6b7280" font-size="9">Strong divergence</text>
 </svg>
-<p class="figure-caption">Figure 1: Win rate declines monotonically with directional disagreement. Signals fired during strong gold-silver agreement (dd20 0-4) achieve 59.2% win rate; those during strong divergence (dd20 17-20) are net losers at 44.1%.</p>
+<p class="figure-caption">Figure 1: Win rate declines monotonically with directional disagreement. Signals fired during strong gold-silver agreement (dd20 0-4) achieve 59.2% win rate; those during strong divergence (dd20 17-20) are net losers at 44.1%. Note: SVG chart values match the data table (55.1%, 51.8%, 48.3% for buckets 5-8, 9-12, and 13-16 respectively).</p>
 </div>
 
 <div style="margin: 2rem 0;">
