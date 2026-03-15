@@ -40,21 +40,19 @@ export const content = `
 
 <p>
   All 101 alphas were implemented following the original Kakushadze (2016) specifications. The original
-  paper provides formulae in a compact notation using operators like <code>rank()</code>,
-  <code>correlation()</code>, <code>delta()</code>, <code>ts_min()</code>, <code>ts_max()</code>,
-  <code>ts_argmax()</code>, <code>SignedPower()</code>, <code>IndNeutralize()</code>, and
-  <code>Ts_Rank()</code>. Each operator was implemented as a vectorized function operating on
-  pandas Series/DataFrames.
+  paper provides formulae in a compact notation using operators like rank, correlation, delta,
+  ts_min, ts_max, ts_argmax, SignedPower, IndNeutralize, and Ts_Rank. Each operator was implemented
+  as a vectorized function operating on pandas Series/DataFrames.
 </p>
 
 <p>
   Where formulas reference cross-sectional rank or industry classification, we adapted the computation
-  to a single-instrument time-series context: <code>rank()</code> operations were replaced with rolling
+  to a single-instrument time-series context: rank operations were replaced with rolling
   percentile ranks over a 500-bar lookback window, which maps each value to its position within the
-  recent distribution [0, 1]. <code>IndNeutralize()</code> (industry neutralization) operations were
+  recent distribution [0, 1]. Industry neutralization operations were
   dropped entirely, as they require a universe of stocks classified by sector &mdash; a meaningless
   operation for a single instrument. Volume-weighted average price (VWAP) was computed from M1 OHLCV
-  data using the standard <code>(high + low + close) / 3 * volume</code> approximation, noting that
+  data using the standard $(H + L + C) / 3 \\times V$ approximation, noting that
   M1 "volume" in the gold OTC market is tick volume (count of price updates), not traded notional.
 </p>
 
@@ -63,12 +61,12 @@ export const content = `
 </p>
 
 <ul>
-  <li><strong>Alphas using <code>returns</code>:</strong> Computed as log returns of close prices (the original
+  <li><strong>Alphas using returns:</strong> Computed as log returns of close prices (the original
     paper is ambiguous about simple vs. log returns, but log returns are standard for M1 data).</li>
-  <li><strong>Alphas using <code>cap</code> (market capitalization):</strong> Set to a constant, since
+  <li><strong>Alphas using market capitalization:</strong> Set to a constant, since
     gold has no meaningful capitalization equivalent. This effectively neutralizes any alpha that
     discriminates on market cap &mdash; approximately 8 alphas are affected.</li>
-  <li><strong>Alphas using <code>adv{d}</code> (average daily volume):</strong> Replaced with rolling
+  <li><strong>Alphas using average daily volume:</strong> Replaced with rolling
     mean tick volume over d bars (not d days, since we operate on M1 frequency).</li>
   <li><strong>Lookback parameters:</strong> Used as-is (in bars). A lookback of 20 bars means 20 minutes
     at M1, not 20 days. This is a deliberate choice: re-calibrating lookbacks would introduce
@@ -131,9 +129,9 @@ export const content = `
   Surviving alphas were not discretized or binned. They were applied as continuous features within the broader
   107-feature pipeline, allowing the downstream model (a Transformer or SSM-based architecture) to learn nonlinear
   interactions with other feature groups. Features are stored in the feature cache as
-  <code>{prefix}alpha024</code> and <code>{prefix}alpha083</code>, where the prefix depends on the
-  instrument context. Computation of all 101 alphas is controlled by the <code>ENABLE_ALPHA101</code>
-  flag &mdash; when disabled, the two surviving alphas are excluded from OFFICIAL_FEATURE_COLS and
+  alpha024 and alpha083 (with the appropriate instrument prefix), where the prefix depends on the
+  instrument context. Computation of all 101 alphas is controlled by a configuration flag
+  &mdash; when disabled, the two surviving alphas are excluded from the official feature list and
   the feature count drops from 107 to 105. Both surviving alphas are added to the feature cache
   alongside all other features and participate in the standard cache invalidation protocol.
 </p>
@@ -246,6 +244,11 @@ export const content = `
 <p class="figure-caption">Figure 1: AUC distribution of all 101 Alpha101 factors evaluated on XAUUSD M1 data. The distribution is tightly centered around 0.500 (random), with only 4 factors exceeding the survival threshold.</p>
 </div>
 
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/feature_auc_2d.png" alt="Feature predictive power (AUC) distribution" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: Feature predictive power (AUC) distribution across all tested features, including the Alpha101 factors. The tight clustering around 0.500 for most Alpha101 factors contrasts with the wider spread of domain-specific features.</p>
+</div>
+
 <h3>3.2 Top 10 Alphas by AUC</h3>
 
 <p>
@@ -353,7 +356,7 @@ export const content = `
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
   <rect width="700" height="180" fill="#ffffff" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Alpha101 Screening Funnel</text>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 3: Alpha101 Screening Funnel</text>
   <!-- Block 1: 101 tested (widest) -->
   <rect x="40" y="50" width="200" height="80" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
   <text x="140" y="82" text-anchor="middle" fill="#1a1a2e" font-size="22" font-weight="700">101</text>
@@ -382,7 +385,12 @@ export const content = `
   <!-- Survival rate -->
   <text x="350" y="170" text-anchor="middle" fill="#374151" font-size="11">Overall survival rate: 1.98%</text>
 </svg>
-<p class="figure-caption">Figure 2: The Alpha101 screening funnel. Of 101 factors tested, only 4 exceeded the AUC survival threshold, and only 2 provided non-redundant information after forward selection.</p>
+<p class="figure-caption">Figure 3: The Alpha101 screening funnel. Of 101 factors tested, only 4 exceeded the AUC survival threshold, and only 2 provided non-redundant information after forward selection.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/feature_performance.png" alt="Feature performance ranking across models" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 4: Feature performance ranking across models, showing where the two surviving Alpha101 factors (alpha024 and alpha083) rank among the full 107-feature pipeline.</p>
 </div>
 
 <h2>4. Surviving Alphas</h2>
@@ -404,7 +412,7 @@ $$\\alpha_{024} = \\begin{cases} -1 \\cdot (\\text{close} - \\min(\\text{close},
   <strong>Step-by-step worked example:</strong> Consider a window where the 100-bar SMA has moved from
   $2,650 to $2,655 over the last 100 M1 bars. The growth rate delta_sma = (2655 - 2650) / 2650 = 0.0019
   (0.19%), which is well below the 0.05 (5%) threshold. In this slow-growth regime, the factor computes
-  <code>-1 * (close - min(close, 100))</code>. If the current close is $2,658 and the 100-bar low is
+  $-1 \\times (C - \\min(C, 100))$. If the current close is $2,658 and the 100-bar low is
   $2,648, then alpha024 = -1 * (2658 - 2648) = -10. The negative sign means: the further price is from
   the recent low, the more the factor bets on <em>reversion downward</em>. If price were instead at $2,649
   (near the low), alpha024 = -1, a weak reversion signal.
@@ -412,7 +420,7 @@ $$\\alpha_{024} = \\begin{cases} -1 \\cdot (\\text{close} - \\min(\\text{close},
 
 <p>
   In the fast-growth case (delta_sma &ge; 0.05, which at M1 frequency is rare and corresponds to a
-  very sharp intraday move), the factor switches to <code>-1 * delta(close, 3)</code>, a simple 3-bar
+  very sharp intraday move), the factor switches to $-1 \\times \\Delta(C, 3)$, a simple 3-bar
   contrarian momentum signal: if price rose over the last 3 bars, bet on reversal.
 </p>
 
@@ -477,7 +485,7 @@ but for single-instrument use we use the raw continuous value.</p>
 <h3>5.1 Cross-Sectional Dependence</h3>
 
 <p>
-  Approximately 40 of the 101 alphas rely on <code>rank()</code> or <code>IndNeutralize()</code>
+  Approximately 40 of the 101 alphas rely on cross-sectional rank or industry neutralization
   operations that compute a stock's relative position within a universe. These operations are the
   core mechanism for many equity alpha factors: a stock's absolute return matters less than its
   return <em>relative to sector peers</em>. For a single instrument, these operations collapse
@@ -486,7 +494,7 @@ but for single-instrument use we use the raw continuous value.</p>
 </p>
 
 <p>
-  Consider alpha001: <code>rank(Ts_ArgMax(SignedPower(((returns < 0) ? stddev(returns, 20) : close), 2.), 5))</code>.
+  Consider alpha001, which computes the rank of the temporal argmax of signed-power-transformed conditional values over a 5-bar window.
   In a universe of 500 stocks, this ranks each stock by the timing of its maximum signed-power value
   over 5 days. The <em>ranking</em> produces a uniform distribution [0, 1] that identifies outlier
   stocks. For a single instrument, the rank is always 0 or 1 (there is nothing to rank against),
@@ -602,18 +610,17 @@ but for single-instrument use we use the raw continuous value.</p>
 </p>
 
 <ul>
-  <li><strong>Computation:</strong> Controlled by the <code>ENABLE_ALPHA101</code> flag. When enabled,
+  <li><strong>Computation:</strong> Controlled by a configuration flag. When enabled,
     all 101 alphas are computed (for monitoring and re-evaluation), but only alpha024 and alpha083 are
     included in the model input.</li>
-  <li><strong>Storage:</strong> Cached in Parquet format alongside all other features. Cache keys include
-    <code>{prefix}alpha024</code> and <code>{prefix}alpha083</code>. Cache invalidation is triggered
-    if the alpha computation changes (tracked via the OFFICIAL_FEATURE_COLS signature hash).</li>
-  <li><strong>Feature list:</strong> Added to <code>OFFICIAL_FEATURE_COLS</code>, bringing the total
+  <li><strong>Storage:</strong> Cached in Parquet format alongside all other features. Cache invalidation
+    is triggered if the alpha computation changes (tracked via the feature list signature hash).</li>
+  <li><strong>Feature list:</strong> Added to the official feature registry, bringing the total
     from 105 to 107. The model input layer automatically adjusts to the feature count.</li>
   <li><strong>Inversion check:</strong> Neither alpha024 nor alpha083 required inversion (both have
     AUC &gt; 0.500 in their natural orientation).</li>
   <li><strong>XAU prefix:</strong> When cross-asset features are computed, XAUUSD OHLCV columns are
-    renamed with the <code>xau_</code> prefix. Alpha computations occur after this renaming, using
+    renamed with the "xau_" prefix. Alpha computations occur after this renaming, using
     the prefixed column names.</li>
 </ul>
 

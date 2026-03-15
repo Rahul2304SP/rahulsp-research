@@ -67,44 +67,15 @@ export const content = `
   The algorithm proceeds as follows:
 </p>
 
-<pre><code>def _detect_forming_run(bars, min_body_pct, min_consec):
-    # Step 1: Check if the current (forming) bar qualifies
-    bar = bars[-1]
-    body = abs(bar.close - bar.open)
-    body_pct = body / bar.open * 100
-    if body_pct < min_body_pct:
-        return None
-    direction = 1 if bar.close > bar.open else -1
-
-    # Step 2: Count backwards through preceding closed bars
-    consec = 1  # current bar counts
-    total_body = body
-    for i in range(len(bars) - 2, -1, -1):
-        prev = bars[i]
-        prev_body = abs(prev.close - prev.open)
-        prev_pct = prev_body / prev.open * 100
-        prev_dir = 1 if prev.close > prev.open else -1
-        if prev_dir != direction or prev_pct < min_body_pct:
-            break
-        consec += 1
-        total_body += prev_body
-
-    # Step 3: Check minimum consecutive requirement
-    if consec < min_consec:
-        return None
-
-    return {
-        "direction": direction,       # +1 (bullish run) or -1 (bearish run)
-        "consec": consec,             # number of consecutive bars
-        "total_body_pct": total_body / bars[-1].open * 100,
-        "last_bar_time": bar.time,    # for dedup tracking
-        "entry_mode": "midbar"
-    }</code></pre>
+<ol>
+  <li>Examine the currently forming bar (the most recent bar). Compute the body percentage as $\\text{body\\%} = \\frac{|C - O|}{O} \\times 100$. If this falls below the minimum body threshold, no signal is generated. Otherwise, classify the bar direction as bullish (+1) if the close exceeds the open, or bearish (&minus;1) otherwise.</li>
+  <li>Count backwards through preceding closed bars. For each bar whose direction matches the forming bar and whose body percentage meets the threshold, increment the consecutive bar count and accumulate the total body size. Stop at the first bar that breaks the pattern.</li>
+  <li>If the consecutive count is below the minimum required (2 or 3, depending on configuration), no signal is generated. Otherwise, return the signal with the run direction, consecutive count, cumulative body percentage, the forming bar's timestamp (for deduplication tracking), and the entry mode tagged as "mid-bar."</li>
+</ol>
 
 <p>
-  The body percentage calculation &mdash; $\\text{body\\%} = \\frac{|\\text{close} - \\text{open}|}{\\text{open}} \\times 100$ &mdash;
-  normalises the body size relative to the instrument price, making the threshold meaningful across
-  different price levels. For XAUUSD trading near $2,600, a body_pct threshold of 0.03% corresponds to
+  The body percentage calculation normalises the body size relative to the instrument price, making the threshold meaningful across
+  different price levels. For XAUUSD trading near $2,600, a body threshold of 0.03% corresponds to
   approximately $0.78, while 0.05% corresponds to approximately $1.30. These thresholds filter out
   doji-like bars with negligible directional commitment.
 </p>
@@ -120,54 +91,32 @@ export const content = `
     <th>Interpretation</th>
   </tr>
   <tr>
-    <td><code>min_body_pct</code></td>
+    <td>Minimum body percentage</td>
     <td>0.03%, 0.05%</td>
     <td>Minimum body as percentage of open price for each bar in the run</td>
   </tr>
   <tr>
-    <td><code>min_consec</code></td>
+    <td>Minimum consecutive bars</td>
     <td>2, 3</td>
     <td>Minimum number of consecutive same-direction bars required</td>
   </tr>
 </table>
 
 <p>
-  The entry mode is tagged as <code>"midbar"</code> in the trade log, allowing post-hoc separation of
+  The entry mode is tagged as "mid-bar" in the trade log, allowing post-hoc separation of
   mid-bar entries from confirmation entries in performance analysis.
 </p>
 
 <h3>2.2 Confirmation Run Detection (Path 2 &mdash; Fallback)</h3>
 
 <p>
-  The secondary detection path fires on <em>closed</em> bars only. It examines <code>bars[-2]</code>
-  as the last bar of the potential run and <code>bars[-1]</code> as the confirmation bar that has already
+  The secondary detection path fires on <em>closed</em> bars only. It examines the second-to-last bar
+  as the last bar of the potential run and the most recent bar as the confirmation bar that has already
   broken the pattern (i.e., closed in the opposite direction or with insufficient body). The counting
-  logic is identical to Path 1 but shifted by one bar:
+  logic is identical to Path 1 but shifted by one bar: starting from the second-to-last bar, it counts
+  backwards through preceding bars that match in direction and meet the body threshold. If the consecutive
+  count meets the minimum, a signal is returned with the entry mode tagged as "confirmation."
 </p>
-
-<pre><code>def _detect_consecutive_run(bars, min_body_pct, min_consec):
-    # Examine bars[-2] as the potential last run bar
-    bar = bars[-2]
-    body_pct = abs(bar.close - bar.open) / bar.open * 100
-    if body_pct < min_body_pct:
-        return None
-    direction = 1 if bar.close > bar.open else -1
-
-    # Count backwards from bars[-3], bars[-4], ...
-    consec = 1
-    for i in range(len(bars) - 3, -1, -1):
-        prev = bars[i]
-        prev_pct = abs(prev.close - prev.open) / prev.open * 100
-        prev_dir = 1 if prev.close > prev.open else -1
-        if prev_dir != direction or prev_pct < min_body_pct:
-            break
-        consec += 1
-
-    if consec < min_consec:
-        return None
-
-    return {"direction": direction, "consec": consec,
-            "last_bar_time": bar.time, "entry_mode": "confirmation"}</code></pre>
 
 <p>
   This path exists as a safety net: it catches signals where the mid-bar detection (Path 1) missed the
@@ -180,25 +129,19 @@ export const content = `
 
 <p>
   Both paths can potentially fire on the same signal, creating a double-trade risk. Consider the scenario:
-  Path 1 detects a forming run at <code>bars[-1]</code> with <code>last_bar_time = T</code>. On the next
-  polling cycle, the bar has closed and Path 2 detects the same run using <code>bars[-2]</code>, also
-  with <code>last_bar_time = T</code>.
+  Path 1 detects a forming run on the most recent bar at time $T$. On the next polling cycle, the bar
+  has closed and Path 2 detects the same run shifted by one position, also referencing time $T$.
 </p>
 
 <p>
-  The deduplication mechanism maintains a set <code>_forming_run_last_bar_times</code> that records the
-  <code>last_bar_time</code> of every signal processed by Path 1. When Path 2 fires, it checks whether
-  <code>bars[-2].time</code> exists in this set. If it does, the signal is suppressed:
-</p>
-
-<pre><code># Path 2 dedup check (added after dedup bug fix, 2026-03-09)
-if bars[-2].time in self._forming_run_last_bar_times:
-    return  # already traded by Path 1</code></pre>
+  The deduplication mechanism maintains a set of bar timestamps for every signal processed by Path 1.
+  When Path 2 fires, it checks whether the second-to-last bar's timestamp exists in this set. If it
+  does, the signal is suppressed as a duplicate.</p>
 
 <p>
   A dedup bug was discovered on 2026-03-09 where both paths fired on the same run because the mid-bar
-  detection tracked <code>bars[-1].time</code> while confirmation checked <code>bars[-2].time</code>, and
-  these were different bars (the run bar had shifted by one position). The fix ensures Path 2 checks the
+  detection tracked the most recent bar's timestamp while confirmation checked the second-to-last bar's
+  timestamp, and these referred to different bar positions. The fix ensures Path 2 checks the
   correct bar time against the dedup set. All data after ticket 118153099 (row 351 in the trade log) uses
   the corrected dedup logic.
 </p>
@@ -213,25 +156,12 @@ if bars[-2].time in self._forming_run_last_bar_times:
   STOP is placed as a SELL_STOP below the last close. A bearish run produces a BUY_STOP above the last close.
 </p>
 
-<pre><code># STOP order placement logic
-stop_price = bars[-1].close  # last run bar close = reversal level
-
-if signal_direction == 1:  # BUY (after bearish run)
-    # BUY_STOP must be above current ask
-    if stop_price > current_ask:
-        order_type = ORDER_TYPE_BUY_STOP
-    else:
-        # Price already past level — use market order fallback
-        order_type = ORDER_TYPE_BUY
-        price = current_ask
-
-elif signal_direction == -1:  # SELL (after bullish run)
-    # SELL_STOP must be below current bid
-    if stop_price < current_bid:
-        order_type = ORDER_TYPE_SELL_STOP
-    else:
-        order_type = ORDER_TYPE_SELL
-        price = current_bid</code></pre>
+<p>
+  The stop price is set to the last run bar's close (the reversal level). For a BUY signal (after a bearish run),
+  a BUY STOP order is placed if the stop price is above the current ask; otherwise, a market BUY order
+  is used as a fallback since price has already passed the level. For a SELL signal (after a bullish run),
+  a SELL STOP is placed if the stop price is below the current bid; otherwise, a market SELL order is used.
+</p>
 
 <p>
   The critical advantage of the STOP order is that it delegates fill execution to the MT5 server, which
@@ -241,7 +171,7 @@ elif signal_direction == -1:  # SELL (after bullish run)
 </p>
 
 <p>
-  STOP orders that are not filled within <code>STOP_ORDER_EXPIRY_BARS = 3</code> bars are automatically
+  STOP orders that are not filled within 3 bars are automatically
   cancelled. If the price has already passed the stop level at order placement time (e.g., price moved
   during the polling interval), the system falls back to an immediate market order. This fallback ensures
   no signal is entirely missed, though the fill price will be worse than the ideal break level.
@@ -264,19 +194,19 @@ elif signal_direction == -1:  # SELL (after bullish run)
   <tr>
     <td>Market orders (BUY/SELL)</td>
     <td>Immediate or Cancel</td>
-    <td><code>ORDER_FILLING_IOC</code></td>
+    <td>ORDER_FILLING_IOC</td>
     <td>Fill available volume, cancel remainder</td>
   </tr>
   <tr>
     <td>Pending STOP orders</td>
     <td>Return</td>
-    <td><code>ORDER_FILLING_RETURN</code></td>
+    <td>ORDER_FILLING_RETURN</td>
     <td>Place unfilled remainder as new order</td>
   </tr>
 </table>
 
 <p>
-  A helper function <code>_get_filling_mode()</code> exists in the codebase that queries the broker's
+  A helper function for automatic filling mode detection exists in the codebase that queries the broker's
   supported modes, but it was found to return incorrect values for this specific broker (it tested FOK
   first, which is not supported). The production system bypasses this function and uses hardcoded filling
   modes at three locations in the execution code (market order entry, STOP order placement, and breakeven
@@ -386,7 +316,7 @@ elif signal_direction == -1:  # SELL (after bullish run)
 
 <p>
   Config 996 uses XAG-scaled lot sizing (see companion paper on directional disagreement). The base lot
-  scales by a tier multiplier derived from <code>dir_disagree_20</code> and <code>xag_last_bar_reversed</code>,
+  scales by a tier multiplier derived from the directional disagreement metric ($d_{20}$) and the XAG last-bar reversal flag,
   producing effective lots between 0.5x and 1.5x of the base.
 </p>
 
@@ -413,19 +343,19 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 + \\text{TP}_{\\text{pct
 
 $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct}}), \\quad \\text{SL}_{\\text{price}} = \\text{entry} \\times (1 + \\text{SL}_{\\text{pct}})$$
 
-<p>A timeout exit closes at market after <code>timeout_bars</code> (default 3) completed bars.</p>
+<p>A timeout exit closes at market after the configured number of completed bars (default 3).</p>
 
 <p>
-  The <code>tp_fraction</code> parameter controls what percentage of the run body the TP captures.
+  The TP fraction parameter controls what percentage of the run body the TP captures.
   A value of 0.25 means the TP targets 25% of the total run body &mdash; a conservative target reflecting
   the empirical finding that most reversals retrace only a fraction of the preceding run. The
-  <code>sl_multiplier</code> sets the SL as a multiple of the TP distance, creating asymmetric risk/reward
+  SL multiplier sets the SL as a multiple of the TP distance, creating asymmetric risk/reward
   ratios (e.g., 2.0x means the SL is twice the TP distance).
 </p>
 
 <p>
   For the 0.05%, 3+ config (magic 990), with a typical 3-bar run totalling 0.20% body on a $2,600 price:
-  <code>tp_pct = 0.20 &times; 0.20 / 100 = 0.0004</code>, giving TP = $2,600 &times; 1.0004 = $2,601.04
+  $\\text{TP}_{\\text{pct}} = 0.20 \\times 0.20 / 100 = 0.0004$, giving TP = $2,600 &times; 1.0004 = $2,601.04
   and SL = $2,600 &times; (1 - 0.0016) = $2,595.84. This produces a TP of ~$1.04 and SL of ~$4.16, for
   an R:R of 1:4.
 </p>
@@ -442,11 +372,11 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
   the reversal), exit at the bar close. This captures the immediate reversal profit.</li>
   <li><strong>Breakeven modification:</strong> After at least 1 completed bar (revised from 2 in the March 2026
   fix), if price has moved favourably, the stop-loss is modified to entry price using MT5's
-  <code>TRADE_ACTION_SLTP</code>. The breakeven threshold is set to entry price exactly (revised from
+  the MT5 SL/TP modification action. The breakeven threshold is set to entry price exactly (revised from
   entry &plusmn; spread/2 in the fix).</li>
   <li><strong>Safety stop-loss:</strong> A hard SL placed $20 from entry price prevents catastrophic loss in
   flash crash scenarios.</li>
-  <li><strong>Timeout:</strong> After <code>revbe_max_wait = 3</code> bars (revised from <code>max_wait + 1</code>
+  <li><strong>Timeout:</strong> After 3 bars (revised from the previous off-by-one calculation
   in the fix), exit at market regardless of position.</li>
 </ol>
 
@@ -485,8 +415,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 <p>
   Three fixes were applied on 2026-03-09 (marker: row 326, ticket 118101074): (1) breakeven timing
   reduced from &ge;2 to &ge;1 completed bars, (2) breakeven threshold changed from entry &plusmn; spread/2
-  to exact entry price, and (3) timeout boundary corrected from <code>max_wait + 1</code> to
-  <code>max_wait</code> bars. Post-fix performance showed material improvement, though TPSL mode
+  to exact entry price, and (3) timeout boundary corrected to the intended maximum wait duration. Post-fix performance showed material improvement, though TPSL mode
   remained superior in aggregate.
 </p>
 
@@ -504,22 +433,22 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
     <th>Description</th>
   </tr>
   <tr>
-    <td><code>CRASH_TICK_RATE_THRESH</code></td>
+    <td>Tick rate threshold</td>
     <td>20 ticks/sec</td>
     <td>Minimum tick arrival rate to flag abnormal activity</td>
   </tr>
   <tr>
-    <td><code>CRASH_AVG_MOVE_THRESH</code></td>
+    <td>Average move threshold</td>
     <td>$0.06/tick</td>
     <td>Minimum average mid-price move per tick</td>
   </tr>
   <tr>
-    <td><code>CRASH_WINDOW</code></td>
+    <td>Detection window</td>
     <td>10 seconds</td>
     <td>Rolling window for tick rate and move calculations</td>
   </tr>
   <tr>
-    <td><code>CRASH_COOLDOWN</code></td>
+    <td>Cooldown period</td>
     <td>300 seconds (5 min)</td>
     <td>Suppression period after crash detection</td>
   </tr>
@@ -551,13 +480,13 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
   </tr>
   <tr>
     <td>M1 OHLCV bars</td>
-    <td>MT5 <code>copy_rates_from_pos()</code> or CSV fallback</td>
+    <td>MT5 bar history API or CSV fallback</td>
     <td>~129,600 bars</td>
     <td>time, open, high, low, close, tick_volume, spread</td>
   </tr>
   <tr>
     <td>Tick data</td>
-    <td>MT5 <code>copy_ticks_range()</code></td>
+    <td>MT5 tick history API</td>
     <td>42.9 million ticks</td>
     <td>time_msc (millisecond), bid, ask, flags</td>
   </tr>
@@ -566,7 +495,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 <p>
   Tick data is loaded in chunks of 2 million ticks to manage memory constraints. Each chunk is processed
   sequentially, with the break detection algorithm scanning forward from the signal bar's open time to
-  identify the first tick crossing <code>last_close</code>.
+  identify the first tick crossing the last bar's close price.
 </p>
 
 <h3>7.2 Signal Universe</h3>
@@ -598,7 +527,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 <ol>
   <li>
     <strong>Break entry:</strong> A pending STOP order is placed at the last bar's close price
-    (<code>last_close</code>). The MT5 server fills the order at tick granularity the instant price
+    (the last bar's close price). The MT5 server fills the order at tick granularity the instant price
     crosses the level, achieving zero polling latency. This is the fastest possible entry.
   </li>
   <li>
@@ -629,23 +558,16 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   For each of the 21,009 signals, we load all ticks within the confirmation bar (the bar immediately
-  following the last run bar) and scan for the first tick where the mid-price crosses <code>last_close</code>:
+  following the last run bar) and scan for the first tick where the mid-price crosses the last bar's close price:
 </p>
 
-<pre><code># First cross detection
-last_close = signal_bar.close
-mid_prices = (ticks["bid"] + ticks["ask"]) / 2
-
-for i, tick in enumerate(ticks_in_bar):
-    mid = (tick.bid + tick.ask) / 2
-    if signal_direction == 1 and mid > last_close:
-        first_cross_time = tick.time_msc
-        break
-    elif signal_direction == -1 and mid < last_close:
-        first_cross_time = tick.time_msc
-        break
-
-time_to_break = first_cross_time - bar_open_time  # milliseconds</code></pre>
+<p>
+  The algorithm computes the mid-price at each tick as $\\text{mid} = (\\text{bid} + \\text{ask}) / 2$
+  and scans forward from the bar's open time. For a BUY signal, the first tick where the mid-price
+  exceeds the last bar's close is recorded as the break event. For a SELL signal, the first tick where
+  the mid-price falls below the last bar's close is recorded. The time to break is the elapsed time
+  in milliseconds between the bar's open and the first cross event.
+</p>
 
 <h3>8.2 Break Timing Statistics</h3>
 
@@ -710,32 +632,24 @@ time_to_break = first_cross_time - bar_open_time  # milliseconds</code></pre>
 
 <p>
   After the first cross, we measure the <strong>sustain rate</strong>: the percentage of ticks that remain
-  on the "correct" (reversal) side of <code>last_close</code> within a window of W seconds:
+  on the "correct" (reversal) side of the last bar's close price within a window of W seconds:
 </p>
 
-<pre><code># Sustain rate calculation
-ticks_after_cross = ticks[first_cross_idx:]
-window_ticks = [t for t in ticks_after_cross
-                if t.time_msc <= first_cross_time + W * 1000]
-
-on_correct_side = 0
-for tick in window_ticks:
-    mid = (tick.bid + tick.ask) / 2
-    if signal_direction == 1 and mid > last_close:
-        on_correct_side += 1
-    elif signal_direction == -1 and mid < last_close:
-        on_correct_side += 1
-
-sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
+<p>
+  The sustain rate is computed by examining all ticks within $W$ seconds of the first cross event. For
+  each tick, the mid-price is classified as being on the "correct" (reversal) side or the "incorrect" side
+  of the last bar's close price. The sustain rate is the percentage of ticks on the correct side:
+  $\\text{sustain rate} = \\frac{\\text{ticks on correct side}}{\\text{total ticks in window}} \\times 100$.
+</p>
 
 <p>
   We also compute two additional tick-level metrics:
 </p>
 
 <ul>
-  <li><strong>Break depth:</strong> The maximum penetration beyond <code>last_close</code> at each window size.
-  <code>depth_Ws = max(|mid - last_close|)</code> for all ticks within W seconds of the first cross.</li>
-  <li><strong>Break speed:</strong> The rate of penetration, computed as <code>depth_5s / 5.0</code> (USD per second).
+  <li><strong>Break depth:</strong> The maximum penetration beyond the last bar's close price at each window size,
+  defined as the maximum absolute mid-price deviation from the close level across all ticks within $W$ seconds of the first cross.</li>
+  <li><strong>Break speed:</strong> The rate of penetration, computed as the 5-second break depth divided by 5.0 (USD per second).
   Mean break speed across all signals: $0.264/sec.</li>
 </ul>
 
@@ -772,7 +686,32 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
     <!-- X axis label -->
     <text x="360" y="252" text-anchor="middle" fill="#374151" font-size="11">Window size</text>
   </svg>
-  <p class="figure-caption">Figure 3: Mean sustain rate declines from 73.1% at 1 second to 65.1% at 10 seconds, reflecting the rapid dissipation of the microstructure imbalance driving the reversal.</p>
+  <p class="figure-caption">Figure 5: Mean sustain rate declines from 73.1% at 1 second to 65.1% at 10 seconds, reflecting the rapid dissipation of the microstructure imbalance driving the reversal.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/rolling_winrate.png" alt="Rolling win rate over the study period" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 6: Rolling win rate over the study period, demonstrating the stability of the break entry edge across different market conditions.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/study_01_spread_dynamics.png" alt="Bid-ask spread dynamics during signal windows" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 7: Bid-ask spread dynamics during signal windows. Spread widening at the break instant contributes to execution costs.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/study_02_autocorrelation.png" alt="Tick autocorrelation structure" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 8: Tick autocorrelation structure, showing the rapid decay of serial dependence that underpins the transient nature of the retracement edge.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/heatmap_hold_5s.png" alt="Tick consolidation: 5-second hold analysis" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 9: Tick consolidation analysis with a 5-second hold window, showing sustain rates across different signal quality thresholds.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/heatmap_hold_60s.png" alt="Tick consolidation: 60-second hold analysis" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 10: Tick consolidation analysis with a 60-second hold window. The deterioration in sustain rates over longer horizons confirms the transient nature of the edge.</p>
 </div>
 
 <p>
@@ -835,6 +774,21 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
     <text x="220" y="192" text-anchor="middle" fill="#6b7280" font-size="10">\$0</text>
   </svg>
   <p class="figure-caption">Figure 1: Break entry via pending STOP order outperforms confirmation entry by $12,646. The confirmation bar itself has negative expected value.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/fig01_equity_by_config.png" alt="Equity curves by strategy configuration" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: Equity curves by strategy configuration across the full 90-day evaluation period, showing the relative performance of each magic number.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/fig03_combined_equity.png" alt="Combined equity curve across all configurations" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 3: Combined equity curve across all configurations, demonstrating the aggregate profitability of the break entry approach.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/fig02_yearly_heatmap.png" alt="Yearly performance heatmap by configuration" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 4: Yearly performance heatmap by configuration, showing consistency of returns across different strategy variants.</p>
 </div>
 
 <h3>9.2 The Confirmation Bar: Drag, Not Edge</h3>
@@ -1071,7 +1025,7 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Entry Slippage vs Delay (seconds)</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 11: Entry Slippage vs Delay (seconds)</text>
     <!-- Chart area: x=80..640, y=50..230 -->
     <!-- Grid lines -->
     <line x1="80" y1="230" x2="640" y2="230" stroke="#e5e7eb" stroke-width="1"/>
@@ -1106,7 +1060,7 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
     <text x="360" y="103" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.32</text>
     <text x="640" y="58" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.82</text>
   </svg>
-  <p class="figure-caption">Figure 2: Mean entry slippage as a function of delay after break. At 5 seconds, slippage of $1.32 consumes 53% of the mean TP target.</p>
+  <p class="figure-caption">Figure 11: Mean entry slippage as a function of delay after break. At 5 seconds, slippage of $1.32 consumes 53% of the mean TP target.</p>
 </div>
 
 <h2>10. Discussion</h2>
@@ -1133,13 +1087,13 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 <p>
   The retracement signal's edge derives from order-flow imbalance. After N consecutive same-direction
   bars, the short-term order book is tilted: stop-losses accumulate on the trend side, and mean-reversion
-  limit orders queue on the reversal side. The break of <code>last_close</code> triggers stop-loss
+  limit orders queue on the reversal side. The break of the last bar's close price triggers stop-loss
   cascades that provide initial momentum to the reversal, while mean-reversion orders add depth.
 </p>
 
 <p>
   This imbalance is self-correcting. As stops fire and limit orders fill, the order book re-equilibrates.
-  The 73.1%-to-65.1% decline in sustain rate from 1s to 10s directly measures the rate of this
+  The 73.1% to 65.1% decline in sustain rate from 1s to 10s directly measures the rate of this
   re-equilibration. By the time a sustain filter has collected enough evidence to make a quality judgment,
   the order-flow imbalance that created the edge has substantially dissipated.
 </p>
@@ -1184,7 +1138,7 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 <h2>11. Conclusion</h2>
 
 <p>
-  A pure pending STOP order at <code>last_close</code> is the optimal entry mechanism for
+  A pure pending STOP order at the last bar's close price is the optimal entry mechanism for
   retracement scalping on XAUUSD M1 bars. The break entry achieves a profit factor of 1.59 and
   +$39,277 over 90 days, outperforming all confirmation and sustain-based alternatives. Every
   second of delay costs approximately $0.26 in mean entry slippage, and no post-hoc filter tested

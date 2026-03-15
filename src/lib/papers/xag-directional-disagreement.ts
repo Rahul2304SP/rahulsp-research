@@ -51,7 +51,7 @@ export const content = `
 <h3>2.1 Definition</h3>
 
 <p>
-  The directional disagreement metric, <code>dir_disagree_20</code> (abbreviated dd20), counts the number of
+  The directional disagreement metric, $d_{20}$ (abbreviated dd20), counts the number of
   bars in the trailing 20 M1 bars where gold and silver moved in opposite directions. The computation algorithm
   is as follows:
 </p>
@@ -71,19 +71,19 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 
 <ul>
   <li><strong>Direction from body, not close-to-close:</strong> The direction is computed as
-  <code>sign(close - open)</code>, not <code>sign(close[t] - close[t-1])</code>. This measures
+  $\\text{sign}(C - O)$, not $\\text{sign}(C_t - C_{t-1})$. This measures
   each bar's internal directional commitment rather than its position relative to the prior close.
   A bar that opens at $2,600 and closes at $2,601 is "up" regardless of where the previous bar closed.</li>
-  <li><strong>Doji handling:</strong> When <code>close == open</code>, <code>sign(0) = 0</code>, which
+  <li><strong>Doji handling:</strong> When $C = O$, the sign function returns 0, which
   is always unequal to +1 or &minus;1. Doji bars in either instrument therefore always count as
   disagreements. This is intentional: a doji indicates directional indecision, which is a legitimate
   form of divergence.</li>
   <li><strong>Fallback for sparse XAG data:</strong> If fewer than 15 of the 20 XAU bars can be matched
-  to an XAG bar by timestamp, the metric returns <code>dd20 = -1</code> with tier "??" and a neutral
+  to an XAG bar by timestamp, the metric returns $d_{20} = -1$ with tier "??" and a neutral
   multiplier of 1.0x. This prevents unreliable readings during XAG data gaps (common during Asian session
   when silver spreads widen to $0.05&ndash;$0.10 and some brokers thin their feeds).</li>
   <li><strong>Scaling for partial matches:</strong> If 17 of 20 bars match and 6 disagree, the raw count
-  of 6 is scaled to <code>6 &times; 20 / 17 &approx; 7</code> to make the metric comparable across
+  of 6 is scaled to $\\lfloor 6 \\times 20 / 17 \\rfloor \\approx 7$ to make the metric comparable across
   different match rates.</li>
 </ul>
 
@@ -151,33 +151,14 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   the direction the gold scalper is about to trade:
 </p>
 
-<pre><code>def compute_xag_last_reversed(xag_bars, run_direction):
-    """
-    Check if the most recent XAG bar reversed relative to the gold run.
-
-    Parameters:
-        xag_bars: XAGUSD M1 bars, keyed by timestamp
-        run_direction: +1 (bullish gold run) or -1 (bearish gold run)
-                       The scalper trades OPPOSITE to run_direction.
-
-    Returns:
-        xag_last_reversed: 1 if XAG already reversing, 0 otherwise
-    """
-    last_xau_bar_time = xau_bars[-1].time
-    last_xag_bar = xag_by_time.get(last_xau_bar_time)
-
-    if last_xag_bar is None:
-        return 0  # no data, assume no reversal
-
-    xag_dir = sign(last_xag_bar.close - last_xag_bar.open)
-
-    # The scalper trades OPPOSITE to run_direction.
-    # So we check if XAG is already moving in the trade direction.
-    # XAG "reversed" = XAG moved opposite to the gold RUN direction
-    #                = XAG moved in the TRADE direction
-    xag_last_reversed = 1 if xag_dir == -run_direction else 0
-
-    return xag_last_reversed</code></pre>
+<p>
+  The computation proceeds as follows:
+</p>
+<ol>
+  <li>Look up the most recent XAGUSD bar matching the timestamp of the latest XAUUSD bar. If no matching bar is available (e.g., due to a data gap), default to 0 (no reversal detected).</li>
+  <li>Determine the direction of the matched XAG bar: $\\text{dir}_{\\text{XAG}} = \\text{sign}(C_{\\text{XAG}} - O_{\\text{XAG}})$.</li>
+  <li>Since the scalper trades opposite to the gold run direction, a "reversal" means XAG is already moving in the intended trade direction. Formally, the XAG reversal flag equals 1 if $\\text{dir}_{\\text{XAG}} = -\\text{dir}_{\\text{run}}$, and 0 otherwise.</li>
+</ol>
 
 <h3>3.2 Interpretation</h3>
 
@@ -189,8 +170,8 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 </p>
 
 <p>
-  The XAG reversal signal adds conviction beyond what dd20 provides. dd20 measures the <em>general coherence</em>
-  of the gold-silver relationship over 20 minutes, while <code>xag_last_reversed</code> provides a
+  The XAG reversal signal adds conviction beyond what $d_{20}$ provides. The disagreement metric measures the <em>general coherence</em>
+  of the gold-silver relationship over 20 minutes, while the XAG last-bar reversal flag provides a
   <em>point-in-time confirmation</em> that the reversal is already underway in the correlated asset.
 </p>
 
@@ -370,6 +351,16 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 <p class="figure-caption">Figure 1: Win rate declines monotonically with directional disagreement. Signals fired during strong gold-silver agreement (dd20 0-4) achieve 59.2% win rate; those during strong divergence (dd20 17-20) are net losers at 44.1%.</p>
 </div>
 
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/study_09_adverse_selection.png" alt="Adverse selection analysis by signal quality" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: Adverse selection analysis by signal quality. Higher directional disagreement between gold and silver is associated with worse adverse selection costs.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/scalper/study_03_order_flow.png" alt="Order flow patterns during retracement signals" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 3: Order flow patterns during retracement signals. The XAG directional agreement provides additional context for interpreting order flow dynamics.</p>
+</div>
+
 <p>
   The monotonic degradation across buckets is notable. Signals fired during strong gold-silver agreement
   (dd20 &le; 4) achieve a 59.2% win rate and profit factor of 1.87, while those fired during strong
@@ -499,7 +490,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
   <rect width="700" height="220" fill="#ffffff" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: XAG Lot Scaling Tiers</text>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 4: XAG Lot Scaling Tiers</text>
   <!-- Baseline axis -->
   <line x1="60" y1="180" x2="660" y2="180" stroke="#e5e7eb" stroke-width="1"/>
   <!-- T1: 1.5x, tallest, green -->
@@ -530,7 +521,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   <text x="40" y="215" fill="#6b7280" font-size="9" text-anchor="middle">Min</text>
   <defs><marker id="arrowGray" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6b7280"/></marker></defs>
 </svg>
-<p class="figure-caption">Figure 2: The four-tier lot scaling system. T1 (highest confidence) receives 1.5x the base lot; T4 (highest divergence) receives 0.5x, preserving capital during uncertain regimes.</p>
+<p class="figure-caption">Figure 4: The four-tier lot scaling system. T1 (highest confidence) receives 1.5x the base lot; T4 (highest divergence) receives 0.5x, preserving capital during uncertain regimes.</p>
 </div>
 
 <h3>5.2 Lot Calculation</h3>
@@ -541,15 +532,17 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   The tier multiplier adjusts within this range:
 </p>
 
-<pre><code># Lot calculation in production
-actual_lot = config.lot * xag_lot_mult
-actual_lot = max(0.01, min(actual_lot, max_lot))
+<p>
+  The final lot is computed as:
+</p>
 
-# Example: config.lot = 0.05, T1 multiplier = 1.5x
-# actual_lot = 0.05 * 1.5 = 0.075 (rounded to 0.08 for MT5 step)
+$$\\text{lot}_{\\text{actual}} = \\text{clamp}\\left(\\text{lot}_{\\text{base}} \\times m_{\\text{XAG}},\\; 0.01,\\; \\text{lot}_{\\text{max}}\\right)$$
 
-# Example: config.lot = 0.05, T4 multiplier = 0.5x
-# actual_lot = 0.05 * 0.5 = 0.025 (rounded to 0.03)</code></pre>
+<p>
+  For example, with a base lot of 0.05 and the T1 multiplier of 1.5, the actual lot is $0.05 \\times 1.5 = 0.075$
+  (rounded to 0.08 for the MT5 lot step). With the T4 multiplier of 0.5, it becomes $0.05 \\times 0.5 = 0.025$
+  (rounded to 0.03).
+</p>
 
 <p>
   The floor of 0.01 (minimum MT5 lot) ensures that even T4 signals are still traded, preserving the
@@ -668,7 +661,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
 
 <p>
   The composite multiplier is applied independently of the XAG tier multiplier. In practice, the two
-  multipliers are combined: <code>effective_lot = base_lot &times; xag_lot_mult &times; composite_lot_mult</code>,
+  multipliers are combined: $\\text{lot}_{\\text{eff}} = \\text{lot}_{\\text{base}} \\times m_{\\text{XAG}} \\times m_{\\text{composite}}$,
   clamped to [0.01, max_lot]. The composite score provides a second, orthogonal dimension of confidence
   scaling that responds to instrument-specific conditions rather than cross-asset coherence.
 </p>
@@ -678,23 +671,48 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
 <h3>7.1 OpenTrade Dataclass</h3>
 
 <p>
-  All XAG and composite scoring data is stored in the <code>OpenTrade</code> dataclass that tracks each
-  active position. The relevant fields:
+  All XAG and composite scoring data is stored in the open trade record that tracks each
+  active position. Each trade stores the following fields alongside the standard position data
+  (ticket, entry price, direction, etc.):
 </p>
 
-<pre><code>@dataclass
-class OpenTrade:
-    # ... standard fields (ticket, entry_price, direction, etc.) ...
-
-    # XAG directional disagreement fields
-    xag_dd20: int           # dd20 value at signal time (0-20, or -1)
-    xag_last_reversed: int  # 1 if XAG last bar reversed, 0 otherwise
-    xag_tier: str           # "T1", "T2", "T3", "T4", or "??"
-    xag_lot_mult: float     # tier multiplier (0.5, 0.75, 1.0, or 1.5)
-
-    # Composite quality fields
-    composite_score: float       # raw z-score sum
-    composite_lot_mult: float    # percentile-mapped multiplier (0.5-2.0)</code></pre>
+<table>
+  <tr>
+    <th>Field</th>
+    <th>Type</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>XAG $d_{20}$</td>
+    <td>Integer</td>
+    <td>Disagreement value at signal time (0&ndash;20, or &minus;1 for insufficient data)</td>
+  </tr>
+  <tr>
+    <td>XAG last reversed</td>
+    <td>Integer (0/1)</td>
+    <td>Whether the last XAG bar moved in the trade direction</td>
+  </tr>
+  <tr>
+    <td>XAG tier</td>
+    <td>String</td>
+    <td>Assigned tier: T1, T2, T3, T4, or ?? (unknown)</td>
+  </tr>
+  <tr>
+    <td>XAG lot multiplier</td>
+    <td>Float</td>
+    <td>Tier multiplier: 0.5, 0.75, 1.0, or 1.5</td>
+  </tr>
+  <tr>
+    <td>Composite score</td>
+    <td>Float</td>
+    <td>Raw z-score sum of the four quality components</td>
+  </tr>
+  <tr>
+    <td>Composite lot multiplier</td>
+    <td>Float</td>
+    <td>Percentile-mapped multiplier (0.5&ndash;2.0)</td>
+  </tr>
+</table>
 
 <h3>7.2 Trade Log Integration</h3>
 
@@ -711,43 +729,43 @@ class OpenTrade:
     <th>Description</th>
   </tr>
   <tr>
-    <td><code>xag_dd20</code></td>
+    <td>xag_dd20</td>
     <td>int</td>
     <td>6</td>
     <td>Disagreement count at signal time</td>
   </tr>
   <tr>
-    <td><code>xag_last_reversed</code></td>
+    <td>xag_last_reversed</td>
     <td>int</td>
     <td>1</td>
     <td>Binary XAG reversal flag</td>
   </tr>
   <tr>
-    <td><code>xag_tier</code></td>
+    <td>xag_tier</td>
     <td>str</td>
     <td>T1</td>
     <td>Lot tier assigned</td>
   </tr>
   <tr>
-    <td><code>xag_lot_mult</code></td>
+    <td>xag_lot_mult</td>
     <td>float</td>
     <td>1.5</td>
     <td>Lot multiplier applied</td>
   </tr>
   <tr>
-    <td><code>composite_score</code></td>
+    <td>composite_score</td>
     <td>float</td>
     <td>2.34</td>
     <td>Sum of 4 z-scored features</td>
   </tr>
   <tr>
-    <td><code>composite_lot_mult</code></td>
+    <td>composite_lot_mult</td>
     <td>float</td>
     <td>1.25</td>
     <td>Composite percentile multiplier</td>
   </tr>
   <tr>
-    <td><code>effective_lot</code></td>
+    <td>effective_lot</td>
     <td>float</td>
     <td>0.09</td>
     <td>Final lot sent to MT5</td>
@@ -767,28 +785,14 @@ class OpenTrade:
   The complete lot sizing pipeline in the execution loop:
 </p>
 
-<pre><code># 1. Detect retracement signal
-signal = _detect_forming_run(bars, config.min_body_pct, config.min_consec)
-
-# 2. Compute XAG metrics
-xag_dd20, xag_tier, xag_lot_mult = compute_dd20(xau_bars, xag_bars)
-xag_last_reversed = compute_xag_last_reversed(xag_bars, signal["direction"])
-
-# Re-classify tier if XAG reversed (upgrade T2 to T1)
-if xag_dd20 <= 8 and xag_last_reversed:
-    xag_tier = "T1"
-    xag_lot_mult = 1.5
-
-# 3. Compute composite score
-composite_score = compute_composite(xau_bars)
-composite_lot_mult = percentile_to_mult(composite_score)
-
-# 4. Calculate final lot
-effective_lot = config.lot * xag_lot_mult * composite_lot_mult
-effective_lot = max(0.01, min(effective_lot, max_lot))
-
-# 5. Place order
-_place_pending_entry(signal, lot=effective_lot)</code></pre>
+<ol>
+  <li><strong>Signal detection:</strong> The forming run detection algorithm identifies a valid retracement signal with the configured body threshold and minimum consecutive bar count.</li>
+  <li><strong>XAG metric computation:</strong> The $d_{20}$ value, tier assignment, and lot multiplier are computed from the trailing 20 matched bars. The XAG last-bar reversal flag is evaluated against the signal direction.</li>
+  <li><strong>Tier re-classification:</strong> If $d_{20} \\le 8$ and the XAG last bar has reversed, the tier is upgraded from T2 to T1 and the multiplier set to 1.5.</li>
+  <li><strong>Composite score:</strong> The four instrument-specific quality features are z-scored and summed, then mapped to a percentile-based lot multiplier.</li>
+  <li><strong>Final lot calculation:</strong> The effective lot is computed as $\\text{lot}_{\\text{eff}} = \\text{lot}_{\\text{base}} \\times m_{\\text{XAG}} \\times m_{\\text{composite}}$, clamped to the range [0.01, max lot].</li>
+  <li><strong>Order placement:</strong> A pending STOP entry order is placed at the reversal level with the computed effective lot size.</li>
+</ol>
 
 <h2>8. Discussion</h2>
 

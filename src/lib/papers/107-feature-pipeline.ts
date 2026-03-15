@@ -19,9 +19,9 @@ export const content = `
 <p>
   This paper serves as both a technical reference for the pipeline and an empirical guide to which feature families
   contribute meaningful signal for gold intraday trading. The pipeline is implemented in a single function,
-  <code>_build_feature_frame_from_sources(xau, xag, dxy, nas100, us500, vix, ...)</code>, which accepts M1
+  the main feature builder function, which accepts M1
   OHLCV DataFrames for all six instruments and returns a fully aligned feature matrix. The features are
-  registered in the <code>OFFICIAL_FEATURE_COLS</code> list (107 entries as of February 2026), which serves
+  registered in an official feature column registry (107 entries as of February 2026), which serves
   as both the canonical feature set and the cache invalidation key.
 </p>
 
@@ -78,14 +78,13 @@ export const content = `
 </table>
 
 <p>
-  Data loading is handled by <code>load_m1_bars(symbol)</code>, which attempts CSV first (from the
-  <code>Data Scraper/</code> directory) and falls back to MetaTrader 5's Python API. The CSV-first
+  Data loading is handled by a bar loader function, which attempts CSV first (from the
+  data directory) and falls back to MetaTrader 5's Python API. The CSV-first
   approach allows development and backtesting without a live MT5 connection, while the MT5 fallback
   enables live trading with real-time data. XAUUSD OHLCV columns are always prefixed with
-  <code>xau_</code> (producing <code>xau_open</code>, <code>xau_high</code>, <code>xau_low</code>,
-  <code>xau_close</code>, <code>xau_volume</code>) to avoid namespace collisions during cross-asset
-  merges. This renaming occurs regardless of whether cross-asset data is available, ensuring consistent
-  column names throughout the pipeline.
+  "xau_" (producing xau_open, xau_high, xau_low, xau_close, xau_volume) to avoid namespace collisions
+  during cross-asset merges. This renaming occurs regardless of whether cross-asset data is available,
+  ensuring consistent column names throughout the pipeline.
 </p>
 
 <p>
@@ -113,55 +112,55 @@ export const content = `
   </tr>
   <tr>
     <td>1</td>
-    <td><code>accelz_60_30</code></td>
+    <td>accelz_60_30</td>
     <td>Acceleration z-score</td>
     <td>Z-score of the difference between 30-bar and 60-bar momentum (second derivative of price). Captures whether momentum is accelerating or decelerating. High positive values indicate accelerating upward movement.</td>
   </tr>
   <tr>
     <td>2</td>
-    <td><code>volaccelz60_30</code></td>
+    <td>volaccelz60_30</td>
     <td>Volatility acceleration</td>
     <td>Z-score of the difference between 30-bar and 60-bar realized volatility. Detects transitions between calm and volatile regimes. A rising volaccel often precedes breakouts.</td>
   </tr>
   <tr>
     <td>3</td>
-    <td><code>dist_ma120</code></td>
+    <td>dist_ma120</td>
     <td>Distance from 120-bar MA</td>
     <td>$\\frac{\\text{close} - \\text{SMA}(\\text{close}, 120)}{\\text{SMA}(\\text{close}, 120)}$. Normalized distance from the 2-hour moving average. Mean-reversion anchor: extreme values suggest overextension.</td>
   </tr>
   <tr>
     <td>4</td>
-    <td><code>resid_z60</code></td>
+    <td>resid_z60</td>
     <td>AR(1) residual z-score</td>
-    <td>Z-score of the residual from a 60-bar rolling linear regression of close prices. Captures deviations from the recent linear trend. Computed by <code>_resid_z60(close)</code>.</td>
+    <td>Z-score of the residual from a 60-bar rolling linear regression of close prices. Captures deviations from the recent linear trend. Computed by the residual z-score function.</td>
   </tr>
   <tr>
     <td>5</td>
-    <td><code>er60</code></td>
+    <td>er60</td>
     <td>Efficiency ratio (60-bar)</td>
     <td>$\\frac{|\\text{close}_t - \\text{close}_{t-60}|}{\\sum_{i=t-59}^{t} |\\text{close}_i - \\text{close}_{i-1}|}$. Ranges [0, 1]. High values indicate trending (price moved far relative to path length); low values indicate choppy/mean-reverting.</td>
   </tr>
   <tr>
     <td>6</td>
-    <td><code>tod_sin</code></td>
+    <td>tod_sin</td>
     <td>Time-of-day (sine)</td>
     <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Cyclical encoding of time that the model can use to learn session-dependent patterns without discrete session boundaries.</td>
   </tr>
   <tr>
     <td>7</td>
-    <td><code>tod_cos</code></td>
+    <td>tod_cos</td>
     <td>Time-of-day (cosine)</td>
     <td>$\\cos\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Paired with tod_sin to provide a complete cyclical encoding. <strong>Note: INVERTED</strong> (original AUC was 0.476; inverted to 0.524). The cosine component peaked at midnight UTC, which anti-correlates with direction during the Asian session.</td>
   </tr>
   <tr>
     <td>8</td>
-    <td><code>leadcorr_nas100</code></td>
+    <td>leadcorr_nas100</td>
     <td>Lead-lag correlation with NAS100</td>
     <td>Rolling 60-bar Pearson correlation between XAUUSD and NAS100 returns. Captures the time-varying risk-on/risk-off relationship. Not predictive as a lagged feature (see companion paper), but informative as a regime indicator.</td>
   </tr>
   <tr>
     <td>9</td>
-    <td><code>dow_sin</code></td>
+    <td>dow_sin</td>
     <td>Day-of-week (sine encoding)</td>
     <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{day\\_of\\_week}}{5}\\right)$. Captures weekly seasonality (e.g., Monday positioning, Friday book-squaring). Combined with tod_sin/cos provides full intraweek temporal context.</td>
   </tr>
@@ -197,9 +196,9 @@ export const content = `
     inversion</strong> &mdash; their natural orientation had AUC below 0.500, meaning that higher beta
     (more sensitivity to cross-assets) actually predicted <em>opposite</em> gold direction. After
     inversion, AUC values improved to 0.509&ndash;0.517.</li>
-  <li><strong>XAU core (2):</strong> <code>xaucore</code> is the residual return after removing cross-asset
-    beta exposures: <code>r_gold - beta_dxy * r_dxy - beta_nas * r_nas</code>. This isolates gold-specific
-    returns from cross-asset factor exposure. <code>xaucore_z</code> is the z-score of xaucore over a
+  <li><strong>XAU core (2):</strong> xaucore is the residual return after removing cross-asset
+    beta exposures: $r_{\text{gold}} - \beta_{\text{DXY}} \cdot r_{\text{DXY}} - \beta_{\text{NAS}} \cdot r_{\text{NAS}}$. This isolates gold-specific
+    returns from cross-asset factor exposure. xaucore_z is the z-score of xaucore over a
     60-bar window. Positive xaucore_z indicates gold is outperforming what cross-asset factors predict,
     potentially due to gold-specific flows (physical demand, central bank buying, ETF inflows).</li>
   <li><strong>Volume ratio (1):</strong> Current bar tick volume divided by 60-bar rolling mean tick volume.
@@ -216,24 +215,24 @@ export const content = `
 </p>
 
 <ul>
-  <li><strong>KMeans levels (13):</strong> Computed via the <code>LevelState</code> dataclass, which maintains
+  <li><strong>KMeans levels (13):</strong> Computed via the the LevelState dataclass, which maintains
     a dynamic set of K=7 price levels computed by K-Means clustering on a 5-day (7,200-bar) lookback of
-    close prices. The <code>_level_features()</code> function returns 13 values per bar (extended from the
+    close prices. The the level features function function returns 13 values per bar (extended from the
     original 10 in February 2026):
     <ul>
-      <li><code>dist_nearest_above</code>: Distance (in ATR units) to the nearest level above current price</li>
-      <li><code>dist_nearest_below</code>: Distance (in ATR units) to the nearest level below current price</li>
-      <li><code>level_density</code>: Count of levels within 0.5 ATR of current price (congestion indicator)</li>
-      <li><code>nearest_above_touches</code>: Number of times price has touched the nearest level above (more touches = stronger resistance)</li>
-      <li><code>nearest_below_touches</code>: Number of times price has touched the nearest level below</li>
-      <li><code>nearest_above_bounces</code>: Times price reversed after touching the level above (bounce rate)</li>
-      <li><code>nearest_below_bounces</code>: Times price reversed after touching the level below</li>
-      <li><code>nearest_above_breakout</code>: Binary flag: has price ever broken through the level above?</li>
-      <li><code>nearest_below_breakout</code>: Binary flag: has price ever broken through the level below?</li>
-      <li><code>time_since_last_touch_above</code>: Bars since the nearest above level was last touched</li>
-      <li><code>time_since_last_touch_below</code>: Bars since the nearest below level was last touched</li>
-      <li><code>level_strength_above</code>: Composite score: touches &times; bounce_rate / (1 + breakouts)</li>
-      <li><code>level_strength_below</code>: Composite score for the level below</li>
+      <li>dist_nearest_above: Distance (in ATR units) to the nearest level above current price</li>
+      <li>dist_nearest_below: Distance (in ATR units) to the nearest level below current price</li>
+      <li>level_density: Count of levels within 0.5 ATR of current price (congestion indicator)</li>
+      <li>nearest_above_touches: Number of times price has touched the nearest level above (more touches = stronger resistance)</li>
+      <li>nearest_below_touches: Number of times price has touched the nearest level below</li>
+      <li>nearest_above_bounces: Times price reversed after touching the level above (bounce rate)</li>
+      <li>nearest_below_bounces: Times price reversed after touching the level below</li>
+      <li>nearest_above_breakout: Binary flag: has price ever broken through the level above?</li>
+      <li>nearest_below_breakout: Binary flag: has price ever broken through the level below?</li>
+      <li>time_since_last_touch_above: Bars since the nearest above level was last touched</li>
+      <li>time_since_last_touch_below: Bars since the nearest below level was last touched</li>
+      <li>level_strength_above: Composite score: touches &times; bounce_rate / (1 + breakouts)</li>
+      <li>level_strength_below: Composite score for the level below</li>
     </ul>
     The three features added in the February 2026 extension (time_since_last_touch and level_strength for
     above/below, plus an additional density metric) improved the model's ability to distinguish between
@@ -242,10 +241,10 @@ export const content = `
   <li><strong>Quantile regression channels (4):</strong> Fit quantile regression lines at Q=[0.1, 0.5, 0.9]
     over a 180-minute rolling window. The features are:
     <ul>
-      <li><code>channel_upper</code>: Q=0.9 regression line value (upper boundary)</li>
-      <li><code>channel_lower</code>: Q=0.1 regression line value (lower boundary)</li>
-      <li><code>channel_width</code>: <code>(upper - lower) / close</code> (normalized width)</li>
-      <li><code>channel_position</code>: <code>(close - lower) / (upper - lower)</code>, ranging [0, 1], indicating position within the channel (0 = at lower boundary, 1 = at upper boundary)</li>
+      <li>channel_upper: Q=0.9 regression line value (upper boundary)</li>
+      <li>channel_lower: Q=0.1 regression line value (lower boundary)</li>
+      <li>channel_width: $(	ext{upper} - 	ext{lower}) / C$ (normalized width)</li>
+      <li>channel_position: $(C - 	ext{lower}) / (	ext{upper} - 	ext{lower})$, ranging [0, 1], indicating position within the channel (0 = at lower boundary, 1 = at upper boundary)</li>
     </ul>
     Quantile regression is preferred over standard linear regression for channels because it captures the
     actual boundaries of price movement rather than the central tendency. The Q=0.1 and Q=0.9 lines
@@ -267,34 +266,34 @@ export const content = `
     <th>Rationale</th>
   </tr>
   <tr>
-    <td><code>session_asian</code></td>
+    <td>session_asian</td>
     <td>Binary: Asian session (00:00&ndash;08:00 UTC)</td>
     <td>Low volume, narrow ranges, strong mean reversion. The model should apply tighter stops and prefer counter-trend trades during this session.</td>
   </tr>
   <tr>
-    <td><code>session_london</code></td>
+    <td>session_london</td>
     <td>Binary: London session (07:00&ndash;16:00 UTC)</td>
     <td>Highest liquidity, London AM/PM gold fixes, pronounced trending behavior. The session where most genuine moves occur.</td>
   </tr>
   <tr>
-    <td><code>session_ny</code></td>
+    <td>session_ny</td>
     <td>Binary: New York session (13:00&ndash;22:00 UTC)</td>
     <td>Equity-correlated flows, macroeconomic data releases (NFP, CPI, FOMC). Most volatile during the London-NY overlap.</td>
   </tr>
   <tr>
-    <td><code>session_overlap</code></td>
+    <td>session_overlap</td>
     <td>Binary: London&ndash;NY overlap (13:00&ndash;16:00 UTC)</td>
     <td>The single most liquid and volatile period of the trading day. Both London and New York desks are active simultaneously. ~40% of daily gold volume concentrates here.</td>
   </tr>
   <tr>
-    <td><code>vol_session_ratio</code></td>
+    <td>vol_session_ratio</td>
     <td>Continuous: current volatility / session average volatility</td>
     <td>Normalizes volatility by session expectations. A vol_session_ratio of 2.0 during the Asian session is more noteworthy than 2.0 during the London-NY overlap.</td>
   </tr>
 </table>
 
 <p>
-  <strong>Removed feature:</strong> <code>london_open</code> (binary flag for the first 15 minutes of London
+  <strong>Removed feature:</strong> london_open (binary flag for the first 15 minutes of London
   session) was tested and removed with AUC = 0.503 &mdash; indistinguishable from noise. The session boundaries
   themselves provide sufficient temporal context without precise-minute indicators.
 </p>
@@ -316,85 +315,85 @@ export const content = `
   <tr>
     <td><strong>Price-Volume Interaction</strong></td>
     <td>4</td>
-    <td><code>vw_return_60</code>, <code>obv_slope_60</code>, <code>vol_surprise</code>, <code>pv_corr_60</code></td>
+    <td>vw_return_60, obv_slope_60, vol_surprise, pv_corr_60</td>
     <td>Volume-weighted returns capture whether price moves are backed by participation. OBV (On-Balance Volume) slope tracks cumulative buying/selling pressure. Volume surprise detects unusual activity. PV correlation measures the price-volume relationship (positive in trending, negative in distribution).</td>
   </tr>
   <tr>
     <td><strong>Tick Proxies</strong></td>
     <td>3</td>
-    <td><code>tick_direction_ratio</code>, <code>tick_intensity</code>, <code>bar_tick_vol_ratio</code></td>
+    <td>tick_direction_ratio, tick_intensity, bar_tick_vol_ratio</td>
     <td>Since true order flow is unavailable in OTC gold, we estimate it from price microstructure. Tick direction ratio counts uptick vs. downtick bars in a rolling window. Tick intensity measures the number of price changes per bar. Bar-to-tick volatility ratio detects when bar volatility diverges from tick-level volatility (indicating large single prints vs. gradual movement).</td>
   </tr>
   <tr>
     <td><strong>Multi-TF Momentum</strong></td>
     <td>5</td>
-    <td><code>rsi_14</code>, <code>mom_5</code>, <code>mom_15</code>, <code>mom_60</code>, <code>mom_240</code>, <code>mom_divergence</code></td>
-    <td>RSI computed via <code>_rolling_rsi(close, 14)</code> captures overbought/oversold conditions. Four-horizon momentum provides the model with a multi-scale trend view. Momentum divergence (<code>mom_5 - mom_60</code>) flags when short-term momentum opposes long-term &mdash; often a reversal precursor.</td>
+    <td>rsi_14, mom_5, mom_15, mom_60, mom_240, mom_divergence</td>
+    <td>RSI computed via the rolling RSI function (window=14) captures overbought/oversold conditions. Four-horizon momentum provides the model with a multi-scale trend view. Momentum divergence ($	ext{mom}_5 - 	ext{mom}_{60}$) flags when short-term momentum opposes long-term &mdash; often a reversal precursor.</td>
   </tr>
   <tr>
     <td><strong>Regime Indicators</strong></td>
     <td>4</td>
-    <td><code>hurst_60</code>, <code>trend_mr_class</code>, <code>regime_persistence</code>, <code>regime_change_rate</code></td>
+    <td>hurst_60, trend_mr_class, regime_persistence, regime_change_rate</td>
     <td>Hurst exponent (&gt;0.5 = trending, &lt;0.5 = mean-reverting) via R/S analysis. Trend/MR classification is a derived binary. Regime persistence measures how many consecutive bars have maintained the same regime. Regime change rate counts regime switches per 120-bar window.</td>
   </tr>
   <tr>
     <td><strong>Volatility Proxies</strong></td>
     <td>5</td>
-    <td><code>parkinson_vol</code>, <code>gk_vol</code>, <code>vol_of_vol</code>, <code>vol_zscore</code>, <code>vol_ratio_short_long</code></td>
-    <td>Parkinson volatility uses high-low range (more efficient than close-to-close). Garman-Klass (<code>_garman_klass_vol</code>) uses full OHLC. Vol-of-vol (volatility of volatility) captures clustering. Vol z-score and vol ratio (30-bar/120-bar) capture the current volatility regime relative to recent history.</td>
+    <td>parkinson_vol, gk_vol, vol_of_vol, vol_zscore, vol_ratio_short_long</td>
+    <td>Parkinson volatility uses high-low range (more efficient than close-to-close). Garman-Klass (_garman_klass_vol) uses full OHLC. Vol-of-vol (volatility of volatility) captures clustering. Vol z-score and vol ratio (30-bar/120-bar) capture the current volatility regime relative to recent history.</td>
   </tr>
   <tr>
     <td><strong>Volatility Clustering</strong></td>
     <td>3</td>
-    <td><code>vol_autocorr_10</code>, <code>vol_regime</code>, <code>vol_breakout_flag</code></td>
+    <td>vol_autocorr_10, vol_regime, vol_breakout_flag</td>
     <td>Volatility autocorrelation at 10-bar lag quantifies clustering strength (typically 0.6&ndash;0.8 for gold M1, confirming strong GARCH-like behavior). Vol regime is ordinal (expanding/stable/contracting). Vol breakout flags bars where volatility exceeds 2&sigma; above its 120-bar mean.</td>
   </tr>
   <tr>
     <td><strong>Risk-On/Off</strong></td>
     <td>4</td>
-    <td><code>gold_equity_corr_regime</code>, <code>vix_level</code>, <code>vix_change</code>, <code>risk_on_score</code></td>
+    <td>gold_equity_corr_regime, vix_level, vix_change, risk_on_score</td>
     <td>Gold-equity correlation regime captures whether gold is trading as a risk asset (positive correlation with equities) or a safe haven (negative correlation). VIX level and change capture fear gauge dynamics. Risk-on score is a composite of equity performance, VIX level, and gold-equity correlation.</td>
   </tr>
   <tr>
     <td><strong>Lead-Lag Improvements</strong></td>
     <td>4</td>
-    <td><code>dxy_lag5_ret</code>, <code>nas_lag5_ret</code>, <code>xag_lag5_ret</code>, <code>composite_lead</code></td>
+    <td>dxy_lag5_ret, nas_lag5_ret, xag_lag5_ret, composite_lead</td>
     <td>Despite our finding that 1-bar lagged returns have no predictive power, we retain 5-bar lagged returns as features because they capture a slightly different dynamic: the 5-minute lag allows for slower information transmission channels (e.g., option hedging flows). Composite lead is a weighted combination. Their AUC is marginal (0.505&ndash;0.510) but they contribute to the model's regime awareness.</td>
   </tr>
   <tr>
     <td><strong>Candle Patterns</strong></td>
     <td>4</td>
-    <td><code>body_range_ratio</code>, <code>upper_wick_ratio</code>, <code>lower_wick_ratio</code>, <code>doji_flag</code></td>
+    <td>body_range_ratio, upper_wick_ratio, lower_wick_ratio, doji_flag</td>
     <td>Body-to-range ratio measures conviction (high ratio = strong directional bar, low ratio = indecision). Wick ratios quantify rejection from high/low prices. Doji flag (body &lt; 10% of range) indicates extreme indecision, often preceding breakouts.</td>
   </tr>
   <tr>
     <td><strong>Liquidity Windows</strong></td>
     <td>3</td>
-    <td><code>mins_to_session_open</code>, <code>mins_to_session_close</code>, <code>london_fix_proximity</code></td>
+    <td>mins_to_session_open, mins_to_session_close, london_fix_proximity</td>
     <td>Distance (in minutes) to the nearest session open/close. Session opens attract positioning flows; session closes attract book-squaring. London fix proximity (distance to 10:30 AM and 3:00 PM London gold fixes) captures the pre-fix positioning that systematically affects gold prices.</td>
   </tr>
   <tr>
     <td><strong>Calendar Patterns</strong></td>
     <td>3</td>
-    <td><code>week_of_month</code>, <code>month_of_quarter</code>, <code>nfp_week_flag</code></td>
+    <td>week_of_month, month_of_quarter, nfp_week_flag</td>
     <td>Week-of-month captures turn-of-month effects (institutional rebalancing, pension fund flows). Month-of-quarter captures quarter-end dynamics. NFP week flag marks the first Friday of each month &plusmn;2 days, when non-farm payrolls data creates unique volatility patterns.</td>
   </tr>
   <tr>
     <td><strong>S/R Improvements</strong></td>
     <td>4</td>
-    <td><code>round_number_5</code>, <code>round_number_10</code>, <code>prev_day_hl_dist</code>, <code>pivot_point_dist</code></td>
+    <td>round_number_5, round_number_10, prev_day_hl_dist, pivot_point_dist</td>
     <td>Round number proximity (distance to nearest $5 and $10 levels) captures psychological support/resistance. Previous-day high/low distance provides key structural levels. Pivot point distance (classic floor-trader pivots) captures institutional reference levels.</td>
   </tr>
   <tr>
     <td><strong>Multi-Scale Analysis</strong></td>
     <td>5</td>
-    <td><code>fractal_dim_60</code>, <code>dfa_60</code>, <code>wavelet_energy_ratio</code>, <code>multiscale_entropy</code>, <code>hurst_60</code></td>
-    <td>Fractal dimension (<code>_rolling_fractal_dimension</code>, Higuchi method) measures price path complexity [1,2]. DFA (<code>_rolling_dfa</code>, Detrended Fluctuation Analysis) quantifies long-range dependence. Wavelet energy ratio captures the distribution of variance across frequency bands. Multi-scale entropy measures complexity at multiple embedding dimensions. Hurst exponent is shared with Regime Indicators.</td>
+    <td>fractal_dim_60, dfa_60, wavelet_energy_ratio, multiscale_entropy, hurst_60</td>
+    <td>Fractal dimension (_rolling_fractal_dimension, Higuchi method) measures price path complexity [1,2]. DFA (_rolling_dfa, Detrended Fluctuation Analysis) quantifies long-range dependence. Wavelet energy ratio captures the distribution of variance across frequency bands. Multi-scale entropy measures complexity at multiple embedding dimensions. Hurst exponent is shared with Regime Indicators.</td>
   </tr>
   <tr>
     <td><strong>Self-Similarity &amp; Alpha101</strong></td>
     <td>8</td>
-    <td><code>autocorr_lag1</code>, <code>autocorr_lag5</code>, <code>autocorr_lag15</code>, <code>autocorr_lag60</code>, <code>partial_autocorr</code>, <code>self_similarity_idx</code>, <code>alpha024</code>, <code>alpha083</code></td>
+    <td>autocorr_lag1, autocorr_lag5, autocorr_lag15, autocorr_lag60, partial_autocorr, self_similarity_idx, alpha024, alpha083</td>
     <td>Autocorrelation at four lags captures the AR structure at different horizons. Partial autocorrelation isolates the direct (not mediated) lag effect. Self-similarity index measures how well the recent return distribution matches the longer-term distribution (a form of stationarity test). Alpha024 and alpha083 are the two surviving Kakushadze (2016) factors (see companion paper).</td>
   </tr>
 </table>
@@ -442,25 +441,25 @@ export const content = `
     <th>Explanation</th>
   </tr>
   <tr>
-    <td><code>tod_cos</code></td>
+    <td>tod_cos</td>
     <td>0.476</td>
     <td>0.524</td>
     <td>Cosine component peaked at midnight UTC; gold direction during Asian session was opposite to what the raw encoding implied.</td>
   </tr>
   <tr>
-    <td><code>beta_xag_to_xau_30</code></td>
+    <td>beta_xag_to_xau_30</td>
     <td>0.488</td>
     <td>0.512</td>
     <td>Higher gold-silver beta (more sensitivity) predicted <em>opposite</em> gold direction, possibly because high beta indicates regime stress.</td>
   </tr>
   <tr>
-    <td><code>beta_xag_to_xau_60</code></td>
+    <td>beta_xag_to_xau_60</td>
     <td>0.483</td>
     <td>0.517</td>
     <td>Same dynamic as 30-bar beta, stronger at longer horizon.</td>
   </tr>
   <tr>
-    <td><code>beta_xag_to_xau_120</code></td>
+    <td>beta_xag_to_xau_120</td>
     <td>0.489</td>
     <td>0.511</td>
     <td>Same pattern, weaker at the longest horizon as the relationship stabilizes.</td>
@@ -468,7 +467,7 @@ export const content = `
 </table>
 
 <p>
-  The inversion list is tracked in <code>FEATURES_TO_INVERT</code> and included in the cache signature hash.
+  The inversion list is tracked in the feature inversion list and included in the cache signature hash.
   Any change to the inversion list triggers automatic cache invalidation and feature recomputation.
 </p>
 
@@ -480,14 +479,14 @@ export const content = `
 </p>
 
 <ul>
-  <li><code>sign_agree</code> &mdash; cross-asset sign agreement (fraction of cross-asset instruments moving
+  <li>sign_agree &mdash; cross-asset sign agreement (fraction of cross-asset instruments moving
     in the same direction as gold). AUC: 0.501. This feature measures contemporaneous agreement, which
     has no predictive value for the next bar.</li>
-  <li><code>kalman_state</code>, <code>kalman_gain</code> &mdash; outputs from a Kalman filter applied to
+  <li>kalman_state, kalman_gain &mdash; outputs from a Kalman filter applied to
     close prices. AUC: 0.499, 0.502. The Kalman filter's state estimate is essentially a smoothed price,
     and the gain measures how much the filter trusts new observations. Neither provides directional signal
     beyond what the existing MA distance and residual z-score features capture.</li>
-  <li><code>london_open</code> &mdash; binary flag for the first 15 minutes of the London session.
+  <li>london_open &mdash; binary flag for the first 15 minutes of the London session.
     AUC: 0.503. The session indicators (session_london) already capture the London session boundary;
     a precise 15-minute window adds no incremental information.</li>
 </ul>
@@ -543,7 +542,7 @@ export const content = `
 <p>
   The pipeline relies on eight core vectorized helper functions, each designed for efficiency on M1-scale
   datasets (hundreds of thousands of rows). All helpers are defined before
-  <code>_build_feature_frame_from_sources()</code> in the source file and are implemented with NumPy
+  the feature builder function in the source file and are implemented with NumPy
   vectorized operations, avoiding Python-level loops:
 </p>
 
@@ -555,50 +554,50 @@ export const content = `
     <th>Purpose</th>
   </tr>
   <tr>
-    <td><code>_rolling_rsi</code></td>
-    <td><code>(series: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_rsi</td>
+    <td>(series, window) → series</td>
     <td>[0, 100]</td>
     <td>Relative Strength Index: $\\text{RSI} = 100 - \\frac{100}{1 + \\text{RS}}$ where $\\text{RS} = \\frac{\\text{EMA}(\\text{gains}, w)}{\\text{EMA}(\\text{losses}, w)}$. Uses the Wilder smoothing method (equivalent to EMA with span=2*window-1). RSI=14 is the standard configuration used in the pipeline.</td>
   </tr>
   <tr>
-    <td><code>_rolling_atr_series</code></td>
-    <td><code>(high: Series, low: Series, close: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_atr_series</td>
+    <td>(high, low, close, window) → series</td>
     <td>[0, &infin;)</td>
-    <td>Average True Range (vectorized). Computes $\\text{TR}_t = \\max(H_t - L_t,\\, |H_t - C_{t-1}|,\\, |L_t - C_{t-1}|)$, then applies EMA smoothing: $\\text{ATR}_t = \\text{EMA}(\\text{TR}, w)$. This is the <strong>vectorized</strong> version for the feature pipeline; a separate scalar <code>_atr()</code> function exists for live execution where only the latest value is needed.</td>
+    <td>Average True Range (vectorized). Computes $\\text{TR}_t = \\max(H_t - L_t,\\, |H_t - C_{t-1}|,\\, |L_t - C_{t-1}|)$, then applies EMA smoothing: $\\text{ATR}_t = \\text{EMA}(\\text{TR}, w)$. This is the <strong>vectorized</strong> version for the feature pipeline; a separate scalar a scalar ATR function function exists for live execution where only the latest value is needed.</td>
   </tr>
   <tr>
-    <td><code>_rolling_hurst</code></td>
-    <td><code>(series: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_hurst</td>
+    <td>(series, window) → series</td>
     <td>[0, 1]</td>
     <td>Hurst exponent via Rescaled Range (R/S) analysis: $H$ is estimated from the scaling law $\\frac{R}{S} \\sim n^H$. $H > 0.5$ indicates trending (persistent) behavior; $H < 0.5$ indicates mean-reverting (anti-persistent) behavior; $H = 0.5$ indicates random walk. <strong>Minimum bar floor: 20</strong> (below this, R/S analysis is statistically unreliable).</td>
   </tr>
   <tr>
-    <td><code>_rolling_fractal_dimension</code></td>
-    <td><code>(series: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_fractal_dimension</td>
+    <td>(series, window) → series</td>
     <td>[1, 2]</td>
     <td>Higuchi fractal dimension. D=1 for a smooth curve, D=2 for space-filling noise. Values near 1.5 are typical for financial time series. Higher values indicate more complex/noisy price paths. <strong>Minimum bar floor: 12</strong> (Higuchi method requires at least 12 samples for stable k-max estimation).</td>
   </tr>
   <tr>
-    <td><code>_rolling_dfa</code></td>
-    <td><code>(series: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_dfa</td>
+    <td>(series, window) → series</td>
     <td>[0, 2]</td>
     <td>Detrended Fluctuation Analysis exponent. &alpha; &gt; 1 indicates long-range correlations (trending); &alpha; &lt; 0.5 indicates anti-correlations (mean-reverting); &alpha; = 0.5 indicates white noise. More robust than the Hurst exponent for non-stationary series.</td>
   </tr>
   <tr>
-    <td><code>_garman_klass_vol</code></td>
-    <td><code>(high: Series, low: Series, close: Series, open: Series, window: int) &rarr; Series</code></td>
+    <td>_garman_klass_vol</td>
+    <td>(high, low, close, open, window) → series</td>
     <td>[0, &infin;)</td>
     <td>Garman-Klass volatility estimator. Uses full OHLC information, making it approximately 8&times; more efficient than close-to-close volatility estimation. Formula: $\\sigma_{GK}^2 = \\frac{1}{n}\\sum_{i=1}^{n}\\left[\\frac{1}{2}\\left(\\ln\\frac{H_i}{L_i}\\right)^2 - (2\\ln 2 - 1)\\left(\\ln\\frac{C_i}{O_i}\\right)^2\\right]$, averaged over the rolling window.</td>
   </tr>
   <tr>
-    <td><code>_rolling_beta</code></td>
-    <td><code>(y: Series, x: Series, window: int) &rarr; Series</code></td>
+    <td>_rolling_beta</td>
+    <td>(y, x, window) → series</td>
     <td>(&minus;&infin;, &infin;)</td>
     <td>Rolling OLS regression beta coefficient. Computes cov(y, x) / var(x) on a rolling window. Used for cross-asset betas (gold returns regressed on DXY, NAS100, US500 returns).</td>
   </tr>
   <tr>
-    <td><code>_resid_z60</code></td>
-    <td><code>(close: Series) &rarr; Series</code></td>
+    <td>_resid_z60</td>
+    <td>(close) → series</td>
     <td>(&minus;&infin;, &infin;)</td>
     <td>Z-scored residual from a 60-bar rolling linear regression. Fits a linear trend to the last 60 close prices, computes the residual (actual - predicted), then z-scores it. Captures how far price deviates from its recent linear trend, normalized by the typical deviation magnitude.</td>
   </tr>
@@ -619,12 +618,12 @@ export const content = `
   <li><strong>Cache format:</strong> Apache Parquet with SNAPPY compression. Parquet is columnar, enabling
     efficient reading of individual feature columns without deserializing the entire frame. A 107-feature,
     180K-row cache file is approximately 40 MB compressed.</li>
-  <li><strong>Metadata:</strong> Companion <code>meta.json</code> file storing the feature signature hash,
+  <li><strong>Metadata:</strong> Companion a companion metadata file file storing the feature signature hash,
     creation timestamp, feature count, row count, and data time range. The metadata enables quick validation
     without reading the Parquet file.</li>
   <li><strong>Signature:</strong> The cache key is a composite hash of multiple configuration elements:
-    <code>OFFICIAL_FEATURES_MODE | tuple(OFFICIAL_FEATURE_COLS) | tuple(FEATURES_TO_INVERT) | ENABLE_ALPHA101 | cache_key_dict</code>.
-    The <code>cache_key_dict</code> can include additional application-specific keys (e.g., the data file
+    a composite of the features mode, official feature list, inversion list, Alpha101 flag, and any custom cache keys.
+    The cache_key_dict can include additional application-specific keys (e.g., the data file
     modification timestamp). Any change to any component of this signature triggers a full cache rebuild.</li>
 </ul>
 
@@ -635,10 +634,10 @@ export const content = `
 </p>
 
 <ul>
-  <li>A feature is added to or removed from <code>OFFICIAL_FEATURE_COLS</code></li>
-  <li>A feature is added to or removed from the <code>FEATURES_TO_INVERT</code> list</li>
+  <li>A feature is added to or removed from the official feature list</li>
+  <li>A feature is added to or removed from the the feature inversion list list</li>
   <li>The order of features changes (affects model input layer ordering)</li>
-  <li>The <code>ENABLE_ALPHA101</code> flag is toggled (adds/removes 2 features)</li>
+  <li>The the Alpha101 toggle flag is toggled (adds/removes 2 features)</li>
   <li>The underlying data source is updated (detected via file modification timestamp in cache_key_dict)</li>
   <li>Any custom cache key in cache_key_dict changes</li>
 </ul>
@@ -654,7 +653,7 @@ export const content = `
 
 <p>
   Several statistical features require a minimum number of input bars to produce mathematically stable outputs.
-  Below these thresholds, the estimators are unreliable or degenerate. The <code>_b()</code> scaling function
+  Below these thresholds, the estimators are unreliable or degenerate. The the bar-floor scaling helper scaling function
   enforces minimum bar floors before computing these features:
 </p>
 
@@ -666,13 +665,13 @@ export const content = `
     <th>Behavior Below Floor</th>
   </tr>
   <tr>
-    <td>Hurst exponent (<code>_rolling_hurst</code>)</td>
+    <td>Hurst exponent (_rolling_hurst)</td>
     <td>20</td>
     <td>R/S analysis requires partitioning the window into sub-ranges. With &lt;20 bars, the partition sizes are too small for stable R/S estimation, and the Hurst estimate degenerates toward 0.5 (random walk) regardless of the true data-generating process.</td>
     <td>Output is NaN, forward-filled from the last valid estimate</td>
   </tr>
   <tr>
-    <td>Fractal dimension (<code>_rolling_fractal_dimension</code>)</td>
+    <td>Fractal dimension (_rolling_fractal_dimension)</td>
     <td>12</td>
     <td>The Higuchi method computes curve lengths at multiple resolutions (k=1,2,...,k_max). With &lt;12 bars, k_max is too small to fit a reliable log-log regression for the dimension estimate.</td>
     <td>Output is NaN, forward-filled</td>
@@ -684,7 +683,7 @@ export const content = `
     <td>Output is 0.5 (equal energy at all scales)</td>
   </tr>
   <tr>
-    <td>DFA exponent (<code>_rolling_dfa</code>)</td>
+    <td>DFA exponent (_rolling_dfa)</td>
     <td>16</td>
     <td>DFA requires fitting linear trends to windows of multiple sizes. With &lt;16 bars, the range of window sizes is too narrow for reliable exponent estimation.</td>
     <td>Output is NaN, forward-filled</td>
@@ -692,7 +691,7 @@ export const content = `
 </table>
 
 <p>
-  The bar floors are enforced in the <code>_b()</code> helper, which wraps each statistical feature
+  The bar floors are enforced in the the bar-floor scaling helper helper, which wraps each statistical feature
   computation and replaces outputs below the floor with NaN. The NaN values are then forward-filled from
   the most recent valid estimate. This approach ensures that the model never sees garbage statistical
   estimates from insufficient data, while avoiding the loss of entire rows at the start of the dataset.
@@ -893,6 +892,26 @@ export const content = `
 <p class="figure-caption">Figure 1: Feature composition across the five major groups. The Extended group (59 features) is the largest, spanning 14 sub-families of market microstructure, regime, and cross-asset features.</p>
 </div>
 
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/feature_auc_stability_heatmap.png" alt="Feature AUC stability across time periods" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 3: Feature AUC stability heatmap across different time periods. Features with consistent AUC values across periods (uniform colour) are the most reliable; those with high variance (mixed colours) may be regime-dependent.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/regime_gate_vs_auc.png" alt="Regime gate effectiveness versus feature AUC" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 4: Regime gate effectiveness versus feature AUC. Features with high static AUC tend to also receive high gate activation in the Variable Selection Network, but some features with moderate AUC show regime-dependent gating that amplifies their conditional predictive power.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/channel_plot_full.png" alt="Quantile regression channel with price overlay" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 5: Quantile regression channel (Q=0.1 and Q=0.9) overlaid on XAUUSD price data. The channel width and the position of price within the channel are two of the 17 level and channel features in the pipeline.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/xauusd_close_vs_ar1_24h.png" alt="XAUUSD close price versus AR(1) model prediction" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 6: XAUUSD close price versus AR(1) model prediction over a 24-hour window. The residual from this regression (the AR(1) residual z-score) is one of the original 9 features in the pipeline and captures short-term deviations from the linear trend.</p>
+</div>
+
 <h2>9. Conclusion</h2>
 
 <p>
@@ -904,7 +923,7 @@ export const content = `
 
 <p>
   The pipeline supports both batch backtesting (full historical recomputation) and live execution (incremental
-  feature updates with sub-second latency). The main entry point, <code>_build_feature_frame_from_sources()</code>,
+  feature updates with sub-second latency). The main entry point, the feature builder function,
   accepts M1 OHLCV DataFrames for all six instruments and returns a fully aligned feature matrix ready for
   model ingestion. The function handles all preprocessing (column renaming, timestamp alignment, missing data
   removal) internally, presenting a clean interface to the caller.
@@ -930,10 +949,10 @@ export const content = `
 </div>
 
 <p>
-  The pipeline is maintained via the <code>OFFICIAL_FEATURE_COLS</code> registry, which serves as both the
+  The pipeline is maintained via the the official feature list registry, which serves as both the
   canonical feature list and the cache invalidation key. Adding or removing a feature requires only updating
   this list &mdash; the caching system, model input layer, and validation suite adapt automatically. The
-  minimum bar floors enforced by <code>_b()</code> ensure that statistical features are never computed on
+  minimum bar floors enforced by the bar-floor scaling helper ensure that statistical features are never computed on
   insufficient data, and the forward-fill strategy for sub-floor bars preserves row alignment without
   introducing garbage estimates into the training data.
 </p>

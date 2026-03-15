@@ -130,6 +130,11 @@ export const content = `
   <p class="figure-caption">Figure 1: GoldSSM architecture. Input features pass through a Variable Selection Network for per-timestep gating, a stack of two Mamba blocks for linear-time sequence modeling, temporal attention pooling for learned aggregation, and five regime-specialist output heads.</p>
 </div>
 
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/vsn_alignment_3d.png" alt="Variable Selection Network feature alignment in 3D" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: Variable Selection Network feature alignment visualised in 3D, showing how the VSN projects heterogeneous input features into a uniform embedding space where feature importance can be dynamically gated.</p>
+</div>
+
 <h3>2.1 Variable Selection Network (VSN)</h3>
 
 <p>
@@ -148,7 +153,7 @@ export const content = `
 
 <p>
   <strong>Value Path (Input Projection):</strong> The raw input tensor x of shape (B, T, F) where
-  F=107 is projected through a linear layer to the embedding dimension: <code>value = W_v &middot; x + b_v</code>,
+  $F{=}107$ is projected through a linear layer to the embedding dimension: $\\mathbf{v} = W_v \\cdot \\mathbf{x} + b_v$,
   producing a tensor of shape (B, T, embed_dim) where embed_dim=128. This projection maps the
   heterogeneous feature space (which mixes z-scores, binary indicators, ratios, and raw prices)
   into a uniform representation space where features can be meaningfully compared and combined.
@@ -160,7 +165,7 @@ export const content = `
   These prototypes are not input-dependent &mdash; they are learned during training and represent
   the model's prior belief about each feature's typical informativeness and role. The prototype
   matrix is projected through a selector MLP with hidden dimension VSN_HID=64:
-  <code>gate_logits = MLP(P &middot; W_p)</code>, where the MLP consists of two linear layers with
+  $\\mathbf{g} = \\text{MLP}(P \\cdot W_p)$, where the MLP consists of two linear layers with
   SiLU activation. The selector MLP transforms the static prototypes into gate logits that determine
   feature importance.
 </p>
@@ -168,7 +173,7 @@ export const content = `
 <p>
   <strong>Per-Timestep Soft Gating:</strong> The gating mechanism combines the value and prototype
   paths via element-wise multiplication after sigmoid activation:
-  <code>gated_output = sigmoid(gate_logits) &odot; value</code>. The sigmoid produces gate values
+  $\\mathbf{o} = \\sigma(\\mathbf{g}) \\odot \\mathbf{v}$. The sigmoid produces gate values
   in [0, 1] for each feature dimension at each timestep, allowing smooth interpolation between
   fully passing (gate=1) and fully suppressing (gate=0) each feature's contribution. Unlike hard
   attention or top-k selection, soft gating is fully differentiable and produces gradients for all
@@ -180,7 +185,7 @@ export const content = `
   the current market state (trending, mean-reverting, high-volatility, etc.) &mdash; conditions
   the gate biases. Specifically, the context vector ctx of shape (B, embed_dim) is projected to
   a bias vector that is added to the gate logits before the sigmoid:
-  <code>gate_logits_conditioned = gate_logits + W_ctx &middot; ctx</code>. This allows the VSN
+  $\\mathbf{g}' = \\mathbf{g} + W_{\\text{ctx}} \\cdot \\mathbf{c}$. This allows the VSN
   to modulate feature importance based on the detected regime. For example, the Hurst exponent
   (a complexity measure) should receive high gate values during trending regimes where it is
   informative, but low values during mean-reverting consolidation where it contributes noise.
@@ -252,16 +257,16 @@ $$y_t = C \\cdot h_t$$
 </p>
 
 <ul>
-  <li><strong>Input-dependent &Delta; (step size):</strong> <code>&Delta;_t = softplus(W_&Delta; &middot; x_t + b_&Delta;)</code>.
+  <li><strong>Input-dependent &Delta; (step size):</strong> $\\Delta_t = \\text{softplus}(W_\\Delta \\cdot x_t + b_\\Delta)$.
     Different inputs produce different step sizes, controlling how much the state is updated.
     A large &Delta; means "pay attention to this input and update the state significantly";
     a small &Delta; means "mostly ignore this input and retain the previous state." For financial
     data, high-volatility bars naturally produce larger &Delta; values, causing faster state updates
     during regime transitions.</li>
-  <li><strong>Input-dependent B (input matrix):</strong> <code>B_t = W_B &middot; x_t</code>.
+  <li><strong>Input-dependent B (input matrix):</strong> $B_t = W_B \\cdot x_t$.
     The input projection into the state space varies per timestep, allowing the model to selectively
     route different aspects of the input into the latent state.</li>
-  <li><strong>Input-dependent C (output matrix):</strong> <code>C_t = W_C &middot; x_t</code>.
+  <li><strong>Input-dependent C (output matrix):</strong> $C_t = W_C \\cdot x_t$.
     The readout from the state space also varies per timestep, allowing the model to extract
     different state components depending on the current context.</li>
   <li><strong>Fixed A (state matrix):</strong> The state transition matrix A remains fixed (learned
@@ -308,11 +313,11 @@ $$y_t = C_t \\cdot h_t$$
 
 <ul>
   <li><strong>Sequential JIT scan:</strong> A simple loop over T timesteps, JIT-compiled via
-    <code>torch.jit.script</code> for efficiency. Used when T &gt; 60 (MID, LONG, SLOW scales).
+    PyTorch JIT script compilation for efficiency. Used when $T > 60$ (MID, LONG, SLOW scales).
     Time complexity O(T &middot; d &middot; d_state), memory O(d_state) for the running state.</li>
   <li><strong>Parallel associative scan:</strong> Exploits the associative property of the recurrence
     to compute all timesteps in parallel on GPU, trading memory for speed. Available via
-    <code>torch._higher_order_ops.associative_scan</code> but currently disabled
+    the PyTorch associative scan operator but currently disabled
     (_PARALLEL_SCAN_MAX_T=0) due to numerical stability concerns with half-precision training.
     When enabled, would be used for T &le; 60 (SHORT scale).</li>
 </ul>
@@ -330,37 +335,37 @@ $$y_t = C_t \\cdot h_t$$
     <th>Description</th>
   </tr>
   <tr>
-    <td><code>d_model</code></td>
+    <td>$d_{\\text{model}}$</td>
     <td>128</td>
     <td>Hidden state dimension</td>
   </tr>
   <tr>
-    <td><code>d_state</code></td>
+    <td>$d_{\\text{state}}$</td>
     <td>8</td>
     <td>SSM state dimension (latent state size per channel)</td>
   </tr>
   <tr>
-    <td><code>d_conv</code></td>
+    <td>$d_{\\text{conv}}$</td>
     <td>4</td>
     <td>Local convolution width (causal, depth-wise)</td>
   </tr>
   <tr>
-    <td><code>expand</code></td>
+    <td>expand</td>
     <td>1</td>
     <td>Inner dimension expansion factor (no expansion)</td>
   </tr>
   <tr>
-    <td><code>n_layers</code></td>
+    <td>$n_{\\text{layers}}$</td>
     <td>2</td>
     <td>Stacked Mamba blocks with residual connections</td>
   </tr>
   <tr>
-    <td><code>dropout</code></td>
+    <td>dropout</td>
     <td>0.15</td>
     <td>Applied after each block (between layers and after stack)</td>
   </tr>
   <tr>
-    <td><code>VSN_HID</code></td>
+    <td>VSN hidden dimension</td>
     <td>64</td>
     <td>Selector MLP hidden dimension in VSN</td>
   </tr>
@@ -373,6 +378,11 @@ $$y_t = C_t \\cdot h_t$$
   fast state updates). The selective mechanism enables this adaptive behavior without explicit regime
   detection &mdash; the model learns the appropriate &Delta; dynamics end-to-end from the training signal.
 </p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/features/regime_gate_heatmap.png" alt="Regime gate activation heatmap" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 4: Regime gate activation heatmap showing how the VSN dynamically modulates feature importance across different market regimes. Brighter values indicate higher gate activation (feature passed through); darker values indicate suppression.</p>
+</div>
 
 <h3>2.3 Multi-Scale Streams</h3>
 
@@ -432,7 +442,7 @@ $$y_t = C_t \\cdot h_t$$
 <p>
   <strong>Multi-Scale Fusion:</strong> The four stream outputs are concatenated to form a
   (B, 512) tensor, then projected through a fusion layer:
-  <code>fused = SiLU(Linear(concat([short, mid, long, slow])))</code>, producing a (B, 128)
+  $\\mathbf{f} = \\text{SiLU}(W_{\\text{fuse}} \\cdot [\\mathbf{s}_{\\text{short}}; \\mathbf{s}_{\\text{mid}}; \\mathbf{s}_{\\text{long}}; \\mathbf{s}_{\\text{slow}}])$, producing a $(B, 128)$
   representation. The fusion layer learns how to weight and combine information from different
   temporal scales. This is preferable to averaging or attention-based fusion because the scales
   carry fundamentally different types of information &mdash; the model should learn to extract
@@ -471,7 +481,7 @@ $$y_t = C_t \\cdot h_t$$
     input itself, these queries are <em>global</em> &mdash; they represent the model's learned
     notion of "what temporal patterns matter for trading decisions."</li>
   <li><strong>Multi-Head Cross-Attention:</strong> Standard scaled dot-product attention is computed:
-    <code>Attention(Q, K=H, V=H) = softmax(Q &middot; H<sup>T</sup> / &radic;d) &middot; H</code>,
+    $\\text{Attention}(Q, K{=}H, V{=}H) = \\text{softmax}(Q \\cdot H^T / \\sqrt{d}) \\cdot H$,
     where H is the Mamba output sequence of shape (B, T, 128). This produces four attended vectors,
     each a weighted sum over all T timesteps, with weights determined by the learned queries.
     The attention uses n_heads=4 heads with d_k=32 per head.</li>
@@ -518,31 +528,31 @@ $$y_t = C_t \\cdot h_t$$
     <th>Training Loss</th>
   </tr>
   <tr>
-    <td><code>p_trade</code></td>
+    <td>$p_{\\text{trade}}$</td>
     <td>Scalar [0,1]</td>
     <td>Sigmoid</td>
     <td>Trade gating &mdash; should we trade at all? Filters out low-conviction periods.</td>
     <td>Binary cross-entropy against trade/no-trade labels</td>
   </tr>
   <tr>
-    <td><code>p_up</code></td>
+    <td>$p_{\\text{up}}$</td>
     <td>Scalar [0,1]</td>
     <td rowspan="3">Softmax (jointly over 3)</td>
     <td>Probability of upward move exceeding threshold</td>
     <td rowspan="3">Categorical cross-entropy over 3-class direction</td>
   </tr>
   <tr>
-    <td><code>p_down</code></td>
+    <td>$p_{\\text{down}}$</td>
     <td>Scalar [0,1]</td>
     <td>Probability of downward move exceeding threshold</td>
   </tr>
   <tr>
-    <td><code>p_hold</code></td>
+    <td>$p_{\\text{hold}}$</td>
     <td>Scalar [0,1]</td>
     <td>Probability of no significant move (within threshold)</td>
   </tr>
   <tr>
-    <td><code>recon</code></td>
+    <td>recon</td>
     <td>Vector (F,)</td>
     <td>Linear (no activation)</td>
     <td>Input reconstruction for anomaly detection</td>
@@ -577,7 +587,7 @@ $$y_t = C_t \\cdot h_t$$
 
 <p>
   The drop-in compatibility requirement means GoldSSM returns the same 5-tuple as TrendMRModel:
-  <code>(p_trade, p_up, p_down, p_hold, recon)</code>. This allows swapping models in production
+  $(p_{\\text{trade}}, p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}, \\text{recon})$. This allows swapping models in production
   with zero changes to the execution layer, risk management, or logging infrastructure.
 </p>
 
@@ -592,62 +602,62 @@ $$y_t = C_t \\cdot h_t$$
     <th>Rationale</th>
   </tr>
   <tr>
-    <td><code>embed_dim</code></td>
+    <td>$d_{\\text{embed}}$</td>
     <td>128</td>
     <td>Matches Transformer baseline for fair comparison; sufficient for 107 features</td>
   </tr>
   <tr>
-    <td><code>d_state</code></td>
+    <td>$d_{\\text{state}}$</td>
     <td>8</td>
     <td>Compact state; financial patterns have low intrinsic dimensionality</td>
   </tr>
   <tr>
-    <td><code>d_conv</code></td>
+    <td>$d_{\\text{conv}}$</td>
     <td>4</td>
     <td>4-bar local context; analogous to TCN frontend in Transformer</td>
   </tr>
   <tr>
-    <td><code>expand</code></td>
+    <td>expand</td>
     <td>1</td>
     <td>No inner dimension expansion; keeps parameter count low</td>
   </tr>
   <tr>
-    <td><code>n_layers</code></td>
+    <td>$n_{\\text{layers}}$</td>
     <td>2</td>
     <td>Sufficient depth for financial patterns; more layers overfit on noisy data</td>
   </tr>
   <tr>
-    <td><code>n_queries</code></td>
+    <td>$n_{\\text{queries}}$</td>
     <td>4</td>
     <td>Temporal attention pooling queries; matches number of attention heads</td>
   </tr>
   <tr>
-    <td><code>VSN_HID</code></td>
+    <td>VSN hidden dimension</td>
     <td>64</td>
     <td>Selector MLP hidden dim; small enough to avoid overfitting the gate</td>
   </tr>
   <tr>
-    <td><code>dropout</code></td>
+    <td>dropout</td>
     <td>0.15</td>
     <td>Between 0.05 (too low for noisy features) and 0.25 (impairs learning)</td>
   </tr>
   <tr>
-    <td><code>REGIME_CLUSTER_K</code></td>
+    <td>$K_{\\text{regime}}$</td>
     <td>1</td>
     <td>Single regime cluster; K=6 fragments data excessively</td>
   </tr>
   <tr>
-    <td><code>LR</code></td>
+    <td>learning rate</td>
     <td>1e-4</td>
     <td>Standard for SSMs; LR=0.01 is catastrophically high for sequence models</td>
   </tr>
   <tr>
-    <td><code>WEIGHT_DECAY</code></td>
+    <td>weight decay</td>
     <td>0.005</td>
     <td>Moderate; higher values cause hedging (p_up, p_down &rarr; 0.5)</td>
   </tr>
   <tr>
-    <td><code>warmup_epochs</code></td>
+    <td>warmup epochs</td>
     <td>3</td>
     <td>Less sensitive than Transformer (which requires 5); linear warmup schedule</td>
   </tr>
@@ -659,15 +669,12 @@ $$y_t = C_t \\cdot h_t$$
   GoldSSM accepts the same multi-scale input structure as TrendMRModel:
 </p>
 
-<pre><code>def forward(
-    self,
-    x_short: Tensor,   # (B, 30, 107)   - SHORT scale
-    x_mid: Tensor,     # (B, 60, 107)   - MID scale
-    x_long: Tensor,    # (B, 120, 107)  - LONG scale
-    x_slow: Tensor,    # (B, 240, 107)  - SLOW scale
-    ctx: Tensor,        # (B, embed_dim) - context embedding
-) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-    # Returns: (p_trade, p_up, p_down, p_hold, recon)</code></pre>
+<p>
+  The model accepts four input tensors corresponding to the four temporal scales &mdash;
+  SHORT $(B, 30, 107)$, MID $(B, 60, 107)$, LONG $(B, 120, 107)$, and SLOW $(B, 240, 107)$ &mdash;
+  plus a context embedding vector $(B, d_{\\text{embed}})$. It returns the five-element output tuple:
+  $(p_{\\text{trade}}, p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}, \\text{recon})$.
+</p>
 
 <p>
   Each scale is processed by its own VSN + Mamba stack, and the four resulting representations are
@@ -680,20 +687,19 @@ $$y_t = C_t \\cdot h_t$$
 
 <p>
   <strong>Naming Collision (Critical):</strong> A naming collision in the implementation required
-  careful attention: the common Python idiom <code>B, T, F = x.shape</code> for unpacking batch,
-  time, and feature dimensions shadows the module-level import
-  <code>import torch.nn.functional as F</code>. Throughout the GoldSSM codebase, we use
-  <code>n_feat</code> instead of <code>F</code> for the feature dimension. This is enforced by
+  careful attention: the common idiom of unpacking tensor shape into variables named B, T, F
+  shadows the module-level functional import. Throughout the GoldSSM codebase, the feature dimension
+  is named "n_feat" rather than "F" to avoid this collision. This is enforced by
   code review and a linting rule &mdash; the consequences of shadowing are subtle (the code runs
   but uses an integer where a module is expected, producing cryptic type errors).
 </p>
 
 <p>
-  <strong>JIT Compatibility:</strong> Additionally, <code>F.silu()</code> calls are replaced with
-  <code>torch.nn.functional.silu()</code> in regions near JIT-compiled code to avoid scope
-  ambiguity. The JIT compiler captures the local scope at compilation time, and if <code>F</code>
-  has been shadowed by a shape unpacking in a calling function, the compiled code will fail at
-  runtime with a misleading error about calling <code>int.silu()</code>.
+  <strong>JIT Compatibility:</strong> Additionally, activation function calls are written using
+  fully qualified module paths in regions near JIT-compiled code to avoid scope ambiguity. The JIT
+  compiler captures the local scope at compilation time, and if the functional module alias has been
+  shadowed by a shape unpacking in a calling function, the compiled code will fail at runtime with
+  a misleading type error.
 </p>
 
 <h3>3.4 Parameter Count</h3>
@@ -742,7 +748,7 @@ $$y_t = C_t \\cdot h_t$$
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Parameter Count Comparison</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 6: Parameter Count Comparison</text>
     <!-- GoldSSM bar -->
     <text x="170" y="62" text-anchor="end" fill="#374151" font-size="12">GoldSSM</text>
     <rect x="180" y="46" width="80" height="28" rx="4" fill="#059669"/>
@@ -754,7 +760,7 @@ $$y_t = C_t \\cdot h_t$$
     <!-- 6.2x label -->
     <text x="400" y="80" text-anchor="middle" fill="#059669" font-size="16" font-weight="700">6.2&times; smaller</text>
   </svg>
-  <p class="figure-caption">Figure 2: GoldSSM achieves 6.2x parameter reduction compared to the Transformer Macro Regimes baseline, primarily by replacing multi-head self-attention with the selective scan mechanism.</p>
+  <p class="figure-caption">Figure 6: GoldSSM achieves 6.2x parameter reduction compared to the Transformer Macro Regimes baseline, primarily by replacing multi-head self-attention with the selective scan mechanism.</p>
 </div>
 
 <h3>3.5 Validation</h3>
@@ -765,7 +771,7 @@ $$y_t = C_t \\cdot h_t$$
   confirms that gradients flow through the selective scan operation (which uses a custom CUDA kernel
   in the optimized path, or a JIT-compiled Python loop in the fallback path) without numerical issues.
   The test generates random inputs at each scale, runs a full forward pass, computes a dummy loss
-  (sum of all outputs), and verifies that <code>loss.backward()</code> produces non-zero gradients
+  (sum of all outputs), and verifies that backpropagation produces non-zero gradients
   for all learnable parameters.
 </p>
 
@@ -950,7 +956,7 @@ $$\\mathcal{O}(T \\cdot d \\cdot d_{\\text{state}}) \\text{ (SSM) vs } \\mathcal
   The Transformer model uses four ContextTCNTransformer modules, each combining a TCN frontend with
   a 2-layer Transformer encoder. GoldSSM replaces each with a VSN frontend and 2-layer Mamba stack.
   The TCN frontend in the Transformer model serves a similar local-context role as the
-  <code>d_conv=4</code> local convolution within the Mamba block, making the architectures
+  $d_{\\text{conv}}{=}4$ local convolution within the Mamba block, making the architectures
   structurally analogous at the component level despite the different sequence modeling paradigm.
 </p>
 
@@ -962,6 +968,11 @@ $$\\mathcal{O}(T \\cdot d \\cdot d_{\\text{state}}) \\text{ (SSM) vs } \\mathcal
   implicit. This eliminates a potential source of error (incorrect positional encoding) and a set
   of additional parameters.
 </p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/state_timeline.png" alt="Hidden state timeline from Markov analysis" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 5: Hidden state timeline from Markov analysis, illustrating how the model's latent state evolves through different market regimes over the course of a trading day.</p>
+</div>
 
 <h2>6. Conclusion</h2>
 

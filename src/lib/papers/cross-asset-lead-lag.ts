@@ -34,7 +34,7 @@ export const content = `
 
 <p>
   <strong>Part A (XAUUSD):</strong> 90 days of M1 OHLCV bars for XAUUSD and six cross-asset instruments,
-  sourced from MetaTrader 5 and CSV files in the <code>Data Scraper/</code> directory. The cross-asset
+  sourced from MetaTrader 5 and CSV files in the data directory. The cross-asset
   instruments are:
 </p>
 
@@ -270,6 +270,16 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
   <p class="figure-caption">Figure 1: Contemporaneous Pearson correlations between cross-asset returns and XAUUSD. Silver shows the strongest positive relationship; DXY shows the expected negative correlation.</p>
 </div>
 
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/intraday_profile.png" alt="XAUUSD intraday return profile by hour" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: XAUUSD intraday return profile by hour, revealing the session-dependent structure that drives the cross-asset correlation patterns.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/stl_decomposition.png" alt="Seasonal-trend decomposition of gold returns" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 3: Seasonal-trend decomposition (STL) of gold returns, separating the trend, seasonal, and residual components that underpin contemporaneous cross-asset relationships.</p>
+</div>
+
 <h3>3.2 Walk-Forward Out-of-Sample R&sup2;</h3>
 
 <div class="finding-box">
@@ -430,7 +440,7 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Quarterly Sign Consistency (22 quarters, 5.5 years)</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 4: Quarterly Sign Consistency (22 quarters, 5.5 years)</text>
     <!-- Chart area: x=90..650, y=45..240 -->
     <!-- Y axis -->
     <line x1="90" y1="240" x2="650" y2="240" stroke="#e5e7eb" stroke-width="1"/>
@@ -479,7 +489,12 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
     <text x="600" y="260" text-anchor="middle" fill="#374151" font-size="10">CAT</text>
     <text x="600" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US500</text>
   </svg>
-  <p class="figure-caption">Figure 2: Quarterly sign consistency across 5.5 years. Only MSFT and GS exceed the 70% robustness threshold. Remaining pairs are indistinguishable from random sign assignment.</p>
+  <p class="figure-caption">Figure 4: Quarterly sign consistency across 5.5 years. Only MSFT and GS exceed the 70% robustness threshold. Remaining pairs are indistinguishable from random sign assignment.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/gold/transition_heatmap.png" alt="Markov transition probability heatmap" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 5: Markov transition probability heatmap for XAUUSD 1-minute bar directions, showing the persistence and reversal probabilities that explain why lagged cross-asset returns fail to predict gold.</p>
 </div>
 
 <h3>4.2 Regime Flip Analysis</h3>
@@ -593,13 +608,14 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
 </p>
 
 <ul>
-  <li><strong>Gold/silver ratio:</strong> <code>xau_close / xag_close</code> captures relative precious
+  <li><strong>Gold/silver ratio:</strong> $C_{\\text{XAU}} / C_{\\text{XAG}}$ captures relative precious
     metals positioning. The ratio has stronger predictive properties than individual lagged returns because
     it encodes a spread relationship that mean-reverts on intraday horizons.</li>
-  <li><strong>Z-scores of rolling correlation:</strong> <code>zscore(rolling_corr(gold, dxy, 60), 240)</code>
-    captures whether the gold-dollar relationship is at an extreme relative to recent history. Extremes
-    in the correlation z-score (very negative or very positive) can signal regime transitions.</li>
-  <li><strong>Relative moves:</strong> <code>gold_return - beta * dxy_return</code> (the "xaucore" metric)
+  <li><strong>Z-scores of rolling correlation:</strong> The z-score of the 60-bar rolling correlation between
+    gold and the dollar, normalised over a 240-bar window, captures whether the gold-dollar relationship is
+    at an extreme relative to recent history. Extremes in the correlation z-score (very negative or very
+    positive) can signal regime transitions.</li>
+  <li><strong>Relative moves:</strong> $r_{\\text{gold}} - \\beta \\cdot r_{\\text{DXY}}$ (the "XAU core" metric)
     isolates gold-specific returns after removing the dollar component. This is already feature #18
     in our 107-feature pipeline and has AUC significantly above 0.500.</li>
   <li><strong>VIX regime indicators:</strong> Binary or ordinal encoding of VIX level (low/medium/high/extreme)
