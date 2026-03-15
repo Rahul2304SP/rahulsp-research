@@ -43,16 +43,21 @@ export default async function PaperPage({
 
       {/* Paper header */}
       <header className="mb-12">
-        <div className="flex items-center gap-3 mb-4">
-          <time className="text-sm text-[#6b7280]">{paper.date}</time>
-          <span className="text-xs font-medium text-[#1e40af] bg-[#eff6ff] px-2.5 py-0.5 rounded-full">
-            {paper.category}
-          </span>
-        </div>
         <h1 className="font-serif text-3xl sm:text-4xl text-[#1a1a2e] leading-tight mb-4">
           {paper.title}
         </h1>
-        <p className="text-[#6b7280] text-sm">{paper.author}</p>
+        <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+          <a
+            href={`/#${paper.category.toLowerCase().replace(/ & /g, "-").replace(/\s+/g, "-")}`}
+            className="inline-block text-xs font-medium text-[#1e40af] bg-[#eff6ff] hover:bg-[#dbeafe] px-2.5 py-0.5 rounded-full transition-colors"
+          >
+            {paper.category}
+          </a>
+          <span>&middot;</span>
+          <time>{paper.date}</time>
+          <span>&middot;</span>
+          <span>{paper.author}</span>
+        </div>
       </header>
 
       {/* Abstract */}
