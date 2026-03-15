@@ -56,45 +56,14 @@ export const content = `
   is as follows:
 </p>
 
-<pre><code>def compute_dd20(xau_bars, xag_bars):
-    """
-    Compute directional disagreement over trailing 20 M1 bars.
+<p>The dd20 metric is defined formally as:</p>
 
-    Parameters:
-        xau_bars: list of 20 most recent completed XAUUSD M1 bars
-        xag_bars: list of XAGUSD M1 bars (matched by timestamp)
+$$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\neq \\text{dir}^{\\text{XAG}}_i]$$
 
-    Returns:
-        dd20: int (0-20), disagree_count adjusted for match rate
-        tier: str, lot tier label
-        mult: float, lot multiplier
-    """
-    disagree_count = 0
-    matched_bars = 0
-
-    for xau_bar in xau_bars[-20:]:
-        # Find corresponding XAGUSD bar by timestamp
-        xag_bar = xag_by_time.get(xau_bar.time)
-        if xag_bar is None:
-            continue  # skip unmatched bars
-
-        matched_bars += 1
-
-        # Compute bar direction from body (close vs open)
-        xau_dir = sign(xau_bar.close - xau_bar.open)
-        xag_dir = sign(xag_bar.close - xag_bar.open)
-
-        # Count disagreement
-        if xau_dir != xag_dir:
-            disagree_count += 1
-
-    # Scale to 20-bar equivalent if some bars unmatched
-    if matched_bars < 15:
-        return dd20=-1, tier="??", mult=1.0  # insufficient data
-
-    dd20 = disagree_count * 20 // matched_bars
-
-    return dd20</code></pre>
+<p>where $\\text{dir}_i = \\text{sign}(\\text{close}_i - \\text{open}_i)$ is the bar direction. The computation
+  requires timestamp-matched bars between XAUUSD and XAGUSD. If fewer than 15 of 20 bars match, the metric
+  returns $\\text{dd}_{20} = -1$ (insufficient data). For partial matches, the count is scaled to a 20-bar
+  equivalent: $\\text{dd}_{20} = \\lfloor \\text{disagree\\_count} \\times 20 / \\text{matched\\_bars} \\rfloor$.</p>
 
 <p>
   Several implementation details are worth noting:
@@ -346,59 +315,59 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="300" fill="#09090b" rx="8"/>
-  <text x="350" y="28" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: Win Rate by Directional Disagreement Bucket</text>
+  <rect width="700" height="300" fill="#ffffff" rx="8"/>
+  <text x="350" y="28" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Win Rate by Directional Disagreement Bucket</text>
   <!-- Axes -->
-  <line x1="100" y1="245" x2="650" y2="245" stroke="#27272a" stroke-width="1"/>
-  <line x1="100" y1="50" x2="100" y2="245" stroke="#27272a" stroke-width="1"/>
+  <line x1="100" y1="245" x2="650" y2="245" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="100" y1="50" x2="100" y2="245" stroke="#e5e7eb" stroke-width="1"/>
   <!-- Y axis labels (40% to 65%) -->
-  <text x="90" y="249" text-anchor="end" fill="#a1a1aa" font-size="10">40%</text>
-  <text x="90" y="210" text-anchor="end" fill="#a1a1aa" font-size="10">45%</text>
-  <text x="90" y="171" text-anchor="end" fill="#a1a1aa" font-size="10">50%</text>
-  <text x="90" y="132" text-anchor="end" fill="#a1a1aa" font-size="10">55%</text>
-  <text x="90" y="93" text-anchor="end" fill="#a1a1aa" font-size="10">60%</text>
-  <text x="90" y="54" text-anchor="end" fill="#a1a1aa" font-size="10">65%</text>
+  <text x="90" y="249" text-anchor="end" fill="#374151" font-size="10">40%</text>
+  <text x="90" y="210" text-anchor="end" fill="#374151" font-size="10">45%</text>
+  <text x="90" y="171" text-anchor="end" fill="#374151" font-size="10">50%</text>
+  <text x="90" y="132" text-anchor="end" fill="#374151" font-size="10">55%</text>
+  <text x="90" y="93" text-anchor="end" fill="#374151" font-size="10">60%</text>
+  <text x="90" y="54" text-anchor="end" fill="#374151" font-size="10">65%</text>
   <!-- Y grid lines -->
-  <line x1="100" y1="206" x2="650" y2="206" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="100" y1="167" x2="650" y2="167" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="100" y1="128" x2="650" y2="128" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="100" y1="89" x2="650" y2="89" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="100" y1="50" x2="650" y2="50" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="100" y1="206" x2="650" y2="206" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="100" y1="167" x2="650" y2="167" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="100" y1="128" x2="650" y2="128" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="100" y1="89" x2="650" y2="89" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="100" y1="50" x2="650" y2="50" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
   <!-- Y axis title -->
-  <text x="22" y="150" text-anchor="middle" fill="#a1a1aa" font-size="11" transform="rotate(-90,22,150)">Win Rate (%)</text>
+  <text x="22" y="150" text-anchor="middle" fill="#374151" font-size="11" transform="rotate(-90,22,150)">Win Rate (%)</text>
   <!-- 50% breakeven dashed line -->
-  <line x1="100" y1="167" x2="650" y2="167" stroke="#eab308" stroke-width="1.5" stroke-dasharray="6,4"/>
-  <text x="654" y="163" fill="#eab308" font-size="9" text-anchor="start">Breakeven</text>
+  <line x1="100" y1="167" x2="650" y2="167" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="654" y="163" fill="#d97706" font-size="9" text-anchor="start">Breakeven</text>
   <!-- Bars: 5 bars, each 80px wide, spaced in 110px intervals -->
-  <!-- scale: 40%=245, 65%=50 => 1% = 7.8px, y = 245 - (val-40)*7.8 -->
-  <!-- 0-4: 59.2% => y=245-(19.2*7.8)=245-149.8=95.2, h=149.8 -->
-  <rect x="130" y="95" width="80" height="150" rx="4" fill="#22c55e"/>
-  <text x="170" y="88" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600">59.2%</text>
-  <text x="170" y="262" text-anchor="middle" fill="#a1a1aa" font-size="10">0-4</text>
-  <!-- 5-8: 55.8% => y=245-(15.8*7.8)=245-123.2=121.8, h=123.2 -->
-  <rect x="240" y="122" width="80" height="123" rx="4" fill="#4ade80"/>
-  <text x="280" y="115" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="600">55.8%</text>
-  <text x="280" y="262" text-anchor="middle" fill="#a1a1aa" font-size="10">5-8</text>
-  <!-- 9-12: 51.3% => y=245-(11.3*7.8)=245-88.1=156.9, h=88.1 -->
-  <rect x="350" y="157" width="80" height="88" rx="4" fill="#eab308"/>
-  <text x="390" y="150" text-anchor="middle" fill="#eab308" font-size="12" font-weight="600">51.3%</text>
-  <text x="390" y="262" text-anchor="middle" fill="#a1a1aa" font-size="10">9-12</text>
-  <!-- 13-16: 47.6% => y=245-(7.6*7.8)=245-59.3=185.7, h=59.3 -->
-  <rect x="460" y="186" width="80" height="59" rx="4" fill="#f97316"/>
-  <text x="500" y="179" text-anchor="middle" fill="#f97316" font-size="12" font-weight="600">47.6%</text>
-  <text x="500" y="262" text-anchor="middle" fill="#a1a1aa" font-size="10">13-16</text>
-  <!-- 17-20: 44.1% => y=245-(4.1*7.8)=245-32=213, h=32 -->
-  <rect x="570" y="213" width="80" height="32" rx="4" fill="#ef4444"/>
-  <text x="610" y="206" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="600">44.1%</text>
-  <text x="610" y="262" text-anchor="middle" fill="#a1a1aa" font-size="10">17-20</text>
+  <!-- 0-4: 59.2% -->
+  <rect x="130" y="95" width="80" height="150" rx="4" fill="#059669"/>
+  <text x="170" y="88" text-anchor="middle" fill="#059669" font-size="12" font-weight="600">59.2%</text>
+  <text x="170" y="262" text-anchor="middle" fill="#374151" font-size="10">0-4</text>
+  <!-- 5-8: 55.8% -->
+  <rect x="240" y="122" width="80" height="123" rx="4" fill="#059669" opacity="0.7"/>
+  <text x="280" y="115" text-anchor="middle" fill="#059669" font-size="12" font-weight="600">55.8%</text>
+  <text x="280" y="262" text-anchor="middle" fill="#374151" font-size="10">5-8</text>
+  <!-- 9-12: 51.3% -->
+  <rect x="350" y="157" width="80" height="88" rx="4" fill="#d97706"/>
+  <text x="390" y="150" text-anchor="middle" fill="#d97706" font-size="12" font-weight="600">51.3%</text>
+  <text x="390" y="262" text-anchor="middle" fill="#374151" font-size="10">9-12</text>
+  <!-- 13-16: 47.6% -->
+  <rect x="460" y="186" width="80" height="59" rx="4" fill="#dc2626" opacity="0.7"/>
+  <text x="500" y="179" text-anchor="middle" fill="#dc2626" font-size="12" font-weight="600">47.6%</text>
+  <text x="500" y="262" text-anchor="middle" fill="#374151" font-size="10">13-16</text>
+  <!-- 17-20: 44.1% -->
+  <rect x="570" y="213" width="80" height="32" rx="4" fill="#dc2626"/>
+  <text x="610" y="206" text-anchor="middle" fill="#dc2626" font-size="12" font-weight="600">44.1%</text>
+  <text x="610" y="262" text-anchor="middle" fill="#374151" font-size="10">17-20</text>
   <!-- X axis title -->
-  <text x="375" y="282" text-anchor="middle" fill="#a1a1aa" font-size="11">dd20 Bucket (Directional Disagreement)</text>
+  <text x="375" y="282" text-anchor="middle" fill="#374151" font-size="11">dd20 Bucket (Directional Disagreement)</text>
   <!-- Legend -->
-  <rect x="140" y="290" width="8" height="8" fill="#22c55e" rx="1"/>
-  <text x="152" y="298" fill="#71717a" font-size="9">Strong agreement</text>
-  <rect x="560" y="290" width="8" height="8" fill="#ef4444" rx="1"/>
-  <text x="572" y="298" fill="#71717a" font-size="9">Strong divergence</text>
+  <rect x="140" y="290" width="8" height="8" fill="#059669" rx="1"/>
+  <text x="152" y="298" fill="#6b7280" font-size="9">Strong agreement</text>
+  <rect x="560" y="290" width="8" height="8" fill="#dc2626" rx="1"/>
+  <text x="572" y="298" fill="#6b7280" font-size="9">Strong divergence</text>
 </svg>
+<p class="figure-caption">Figure 1: Win rate declines monotonically with directional disagreement. Signals fired during strong gold-silver agreement (dd20 0-4) achieve 59.2% win rate; those during strong divergence (dd20 17-20) are net losers at 44.1%.</p>
 </div>
 
 <p>
@@ -529,38 +498,39 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="220" fill="#09090b" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: XAG Lot Scaling Tiers</text>
+  <rect width="700" height="220" fill="#ffffff" rx="8"/>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: XAG Lot Scaling Tiers</text>
   <!-- Baseline axis -->
-  <line x1="60" y1="180" x2="660" y2="180" stroke="#27272a" stroke-width="1"/>
+  <line x1="60" y1="180" x2="660" y2="180" stroke="#e5e7eb" stroke-width="1"/>
   <!-- T1: 1.5x, tallest, green -->
-  <rect x="80" y="50" width="120" height="130" rx="6" fill="#22c55e" opacity="0.85"/>
-  <text x="140" y="85" text-anchor="middle" fill="#09090b" font-size="20" font-weight="700">1.5x</text>
-  <text x="140" y="105" text-anchor="middle" fill="#09090b" font-size="10" font-weight="500">T1</text>
-  <text x="140" y="125" text-anchor="middle" fill="#09090b" font-size="9">dd20 &#x2264; 8</text>
-  <text x="140" y="138" text-anchor="middle" fill="#09090b" font-size="9">+ XAG rev</text>
-  <text x="140" y="198" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="500">Highest confidence</text>
+  <rect x="80" y="50" width="120" height="130" rx="6" fill="#059669" opacity="0.85"/>
+  <text x="140" y="85" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="700">1.5x</text>
+  <text x="140" y="105" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="500">T1</text>
+  <text x="140" y="125" text-anchor="middle" fill="#ffffff" font-size="9">dd20 &#x2264; 8</text>
+  <text x="140" y="138" text-anchor="middle" fill="#ffffff" font-size="9">+ XAG rev</text>
+  <text x="140" y="198" text-anchor="middle" fill="#059669" font-size="10" font-weight="500">Highest confidence</text>
   <!-- T2: 1.0x, medium, lighter green -->
-  <rect x="230" y="80" width="120" height="100" rx="6" fill="#4ade80" opacity="0.85"/>
-  <text x="290" y="115" text-anchor="middle" fill="#09090b" font-size="20" font-weight="700">1.0x</text>
-  <text x="290" y="135" text-anchor="middle" fill="#09090b" font-size="10" font-weight="500">T2</text>
-  <text x="290" y="155" text-anchor="middle" fill="#09090b" font-size="9">dd20 &#x2264; 8</text>
-  <text x="290" y="198" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="500">Baseline</text>
+  <rect x="230" y="80" width="120" height="100" rx="6" fill="#059669" opacity="0.6"/>
+  <text x="290" y="115" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="700">1.0x</text>
+  <text x="290" y="135" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="500">T2</text>
+  <text x="290" y="155" text-anchor="middle" fill="#ffffff" font-size="9">dd20 &#x2264; 8</text>
+  <text x="290" y="198" text-anchor="middle" fill="#059669" font-size="10" font-weight="500">Baseline</text>
   <!-- T3: 0.75x, small, amber -->
-  <rect x="380" y="115" width="120" height="65" rx="6" fill="#eab308" opacity="0.85"/>
-  <text x="440" y="145" text-anchor="middle" fill="#09090b" font-size="20" font-weight="700">0.75x</text>
-  <text x="440" y="162" text-anchor="middle" fill="#09090b" font-size="10" font-weight="500">T3: dd20 9-12</text>
-  <text x="440" y="198" text-anchor="middle" fill="#eab308" font-size="10" font-weight="500">Reduced</text>
+  <rect x="380" y="115" width="120" height="65" rx="6" fill="#d97706" opacity="0.85"/>
+  <text x="440" y="145" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="700">0.75x</text>
+  <text x="440" y="162" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="500">T3: dd20 9-12</text>
+  <text x="440" y="198" text-anchor="middle" fill="#d97706" font-size="10" font-weight="500">Reduced</text>
   <!-- T4: 0.5x, smallest, red -->
-  <rect x="530" y="145" width="120" height="35" rx="6" fill="#ef4444" opacity="0.85"/>
-  <text x="590" y="168" text-anchor="middle" fill="#09090b" font-size="16" font-weight="700">0.5x</text>
-  <text x="590" y="198" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="500">T4: dd20 &gt; 12</text>
+  <rect x="530" y="145" width="120" height="35" rx="6" fill="#dc2626" opacity="0.85"/>
+  <text x="590" y="168" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="700">0.5x</text>
+  <text x="590" y="198" text-anchor="middle" fill="#dc2626" font-size="10" font-weight="500">T4: dd20 &gt; 12</text>
   <!-- Scale arrow -->
-  <text x="40" y="50" fill="#71717a" font-size="9" text-anchor="middle">Max</text>
-  <line x1="40" y1="55" x2="40" y2="175" stroke="#71717a" stroke-width="1" marker-end="url(#arrowGray)"/>
-  <text x="40" y="215" fill="#71717a" font-size="9" text-anchor="middle">Min</text>
-  <defs><marker id="arrowGray" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#71717a"/></marker></defs>
+  <text x="40" y="50" fill="#6b7280" font-size="9" text-anchor="middle">Max</text>
+  <line x1="40" y1="55" x2="40" y2="175" stroke="#6b7280" stroke-width="1" marker-end="url(#arrowGray)"/>
+  <text x="40" y="215" fill="#6b7280" font-size="9" text-anchor="middle">Min</text>
+  <defs><marker id="arrowGray" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6b7280"/></marker></defs>
 </svg>
+<p class="figure-caption">Figure 2: The four-tier lot scaling system. T1 (highest confidence) receives 1.5x the base lot; T4 (highest divergence) receives 0.5x, preserving capital during uncertain regimes.</p>
 </div>
 
 <h3>5.2 Lot Calculation</h3>
@@ -605,11 +575,9 @@ actual_lot = max(0.01, min(actual_lot, max_lot))
   range data, which is more efficient than close-close volatility:
 </p>
 
-<pre><code># Parkinson Volatility estimator
-n = 30  # lookback bars
-PV = sqrt(
-    1 / (4 * n * ln(2)) * sum(ln(H[i] / L[i])^2 for i in range(n))
-)</code></pre>
+$$\\sigma_P = \\sqrt{\\frac{1}{4n \\ln 2} \\sum_{i=1}^{n} \\left(\\ln \\frac{H_i}{L_i}\\right)^2}$$
+
+<p>where $n = 30$ is the lookback window, $H_i$ and $L_i$ are the high and low of bar $i$.</p>
 
 <p>
   Higher PV indicates wider ranges and more opportunity for the retracement to develop. However, extremely
@@ -622,10 +590,7 @@ PV = sqrt(
   "trendy" recent price action has been:
 </p>
 
-<pre><code># Efficiency Ratio
-net_move = abs(close[-1] - close[-61])
-total_path = sum(abs(close[i] - close[i-1]) for i in range(-60, 0))
-ER = net_move / total_path  # range [0, 1]</code></pre>
+$$\\text{ER} = \\frac{|\\text{close}_{t} - \\text{close}_{t-60}|}{\\sum_{i=t-59}^{t} |\\text{close}_i - \\text{close}_{i-1}|} \\in [0, 1]$$
 
 <p>
   ER near 1.0 indicates a strong, efficient trend (price moved in a straight line). ER near 0.0 indicates
@@ -637,8 +602,7 @@ ER = net_move / total_path  # range [0, 1]</code></pre>
   <strong>3. Channel Width (60-bar window):</strong> The normalised price range over the lookback:
 </p>
 
-<pre><code># Channel Width
-CW = (max(high[-60:]) - min(low[-60:])) / close[-1]</code></pre>
+$$\\text{CW} = \\frac{\\max(\\text{high}_{t-60:t}) - \\min(\\text{low}_{t-60:t})}{\\text{close}_t}$$
 
 <p>
   Wider channels indicate more room for price to move before hitting support/resistance, improving the
@@ -649,8 +613,7 @@ CW = (max(high[-60:]) - min(low[-60:])) / close[-1]</code></pre>
   <strong>4. Distance from MA120:</strong> The normalised distance from the 120-bar simple moving average:
 </p>
 
-<pre><code># Distance from MA120
-DM = abs(close[-1] - MA120) / close[-1]</code></pre>
+$$\\text{DM} = \\frac{|\\text{close}_t - \\text{MA}_{120}|}{\\text{close}_t}$$
 
 <p>
   Extreme DM values (price far from the moving average) indicate stretched conditions where mean-reversion
@@ -664,14 +627,13 @@ DM = abs(close[-1] - MA120) / close[-1]</code></pre>
   Each feature is z-score normalised against its own 120-bar rolling history, then summed:
 </p>
 
-<pre><code># Z-score normalisation (120-bar rolling)
-for feature in [PV, ER, CW, DM]:
-    mean_120 = rolling_mean(feature, 120)
-    std_120 = rolling_std(feature, 120)
-    z_feature = (feature - mean_120) / max(std_120, 1e-8)
+<p>Each feature $f$ is z-score normalised against its 120-bar rolling history:</p>
 
-# Composite score
-composite_score = z_pv + z_er + z_cw + z_dm</code></pre>
+$$z_f = \\frac{f - \\mu_{f,120}}{\\max(\\sigma_{f,120},\\, 10^{-8})}$$
+
+<p>The composite quality score is then:</p>
+
+$$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{\\text{DM}}$$
 
 <p>
   The composite score is then mapped to a lot multiplier via percentile ranking:

@@ -7,9 +7,9 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
-      <h1 className="font-serif text-3xl text-[#fafafa] mb-8">About</h1>
+      <h1 className="font-serif text-3xl text-[#1a1a2e] mb-8">About</h1>
 
-      <div className="max-w-2xl space-y-6 text-[#a1a1aa] leading-relaxed">
+      <div className="max-w-2xl space-y-6 text-[#374151] leading-relaxed">
         <p>
           Quantitative researcher focused on market microstructure, neural
           architectures, and systematic trading. Research interests include
@@ -22,13 +22,13 @@ export default function AboutPage() {
         </p>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-[#27272a]">
-        <h2 className="text-lg font-semibold text-[#fafafa] mb-4">Contact</h2>
+      <div className="mt-12 pt-8 border-t border-[#e5e7eb]">
+        <h2 className="text-lg font-semibold text-[#1a1a2e] mb-4">Contact</h2>
         <a
           href="https://linkedin.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#22c55e] text-sm hover:underline"
+          className="text-[#1e40af] text-sm hover:underline"
         >
           LinkedIn &rarr;
         </a>

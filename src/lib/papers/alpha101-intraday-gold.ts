@@ -196,53 +196,54 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="280" fill="#09090b" rx="8"/>
-  <text x="350" y="28" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: AUC Distribution of 101 Alpha Factors on XAUUSD M1</text>
+  <rect width="700" height="280" fill="#ffffff" rx="8"/>
+  <text x="350" y="28" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: AUC Distribution of 101 Alpha Factors on XAUUSD M1</text>
   <!-- axes -->
-  <line x1="90" y1="240" x2="650" y2="240" stroke="#27272a" stroke-width="1"/>
-  <line x1="90" y1="50" x2="90" y2="240" stroke="#27272a" stroke-width="1"/>
+  <line x1="90" y1="240" x2="650" y2="240" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="90" y1="50" x2="90" y2="240" stroke="#e5e7eb" stroke-width="1"/>
   <!-- Y axis labels -->
-  <text x="80" y="244" text-anchor="end" fill="#a1a1aa" font-size="11">0</text>
-  <text x="80" y="206" text-anchor="end" fill="#a1a1aa" font-size="11">10</text>
-  <text x="80" y="168" text-anchor="end" fill="#a1a1aa" font-size="11">20</text>
-  <text x="80" y="130" text-anchor="end" fill="#a1a1aa" font-size="11">30</text>
-  <text x="80" y="92" text-anchor="end" fill="#a1a1aa" font-size="11">40</text>
-  <text x="80" y="54" text-anchor="end" fill="#a1a1aa" font-size="11">50</text>
+  <text x="80" y="244" text-anchor="end" fill="#374151" font-size="11">0</text>
+  <text x="80" y="206" text-anchor="end" fill="#374151" font-size="11">10</text>
+  <text x="80" y="168" text-anchor="end" fill="#374151" font-size="11">20</text>
+  <text x="80" y="130" text-anchor="end" fill="#374151" font-size="11">30</text>
+  <text x="80" y="92" text-anchor="end" fill="#374151" font-size="11">40</text>
+  <text x="80" y="54" text-anchor="end" fill="#374151" font-size="11">50</text>
   <!-- Y grid lines -->
-  <line x1="90" y1="202" x2="650" y2="202" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="90" y1="164" x2="650" y2="164" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="90" y1="126" x2="650" y2="126" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="90" y1="88" x2="650" y2="88" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
-  <line x1="90" y1="50" x2="650" y2="50" stroke="#27272a" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="90" y1="202" x2="650" y2="202" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="90" y1="164" x2="650" y2="164" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="90" y1="126" x2="650" y2="126" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="90" y1="88" x2="650" y2="88" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="90" y1="50" x2="650" y2="50" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3,3"/>
   <!-- Y axis title -->
-  <text x="20" y="150" text-anchor="middle" fill="#a1a1aa" font-size="11" transform="rotate(-90,20,150)">Count of Alphas</text>
+  <text x="20" y="150" text-anchor="middle" fill="#374151" font-size="11" transform="rotate(-90,20,150)">Count of Alphas</text>
   <!-- Bars: each bin is 112px wide, bar 80px wide centered -->
   <!-- 0.48-0.49: count ~5, height = 5/50*190 = 19 -->
-  <rect x="126" y="221" width="80" height="19" fill="#71717a" rx="3"/>
-  <text x="166" y="216" text-anchor="middle" fill="#a1a1aa" font-size="10">5</text>
+  <rect x="126" y="221" width="80" height="19" fill="#6b7280" rx="3"/>
+  <text x="166" y="216" text-anchor="middle" fill="#374151" font-size="10">5</text>
   <!-- 0.49-0.50: count ~40, height = 40/50*190 = 152 -->
-  <rect x="238" y="88" width="80" height="152" fill="#71717a" rx="3"/>
-  <text x="278" y="83" text-anchor="middle" fill="#a1a1aa" font-size="10">40</text>
+  <rect x="238" y="88" width="80" height="152" fill="#6b7280" rx="3"/>
+  <text x="278" y="83" text-anchor="middle" fill="#374151" font-size="10">40</text>
   <!-- 0.50-0.51: count ~45, height = 45/50*190 = 171 -->
-  <rect x="350" y="69" width="80" height="171" fill="#71717a" rx="3"/>
-  <text x="390" y="64" text-anchor="middle" fill="#a1a1aa" font-size="10">45</text>
+  <rect x="350" y="69" width="80" height="171" fill="#6b7280" rx="3"/>
+  <text x="390" y="64" text-anchor="middle" fill="#374151" font-size="10">45</text>
   <!-- 0.51-0.52: count ~7, height = 7/50*190 = 26.6 -->
-  <rect x="462" y="213" width="80" height="27" fill="#71717a" rx="3"/>
-  <text x="502" y="208" text-anchor="middle" fill="#a1a1aa" font-size="10">7</text>
+  <rect x="462" y="213" width="80" height="27" fill="#6b7280" rx="3"/>
+  <text x="502" y="208" text-anchor="middle" fill="#374151" font-size="10">7</text>
   <!-- 0.52-0.53: count ~4, height = 4/50*190 = 15.2, GREEN survivors -->
-  <rect x="574" y="225" width="80" height="15" fill="#22c55e" rx="3"/>
-  <text x="614" y="220" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="600">4</text>
+  <rect x="574" y="225" width="80" height="15" fill="#059669" rx="3"/>
+  <text x="614" y="220" text-anchor="middle" fill="#059669" font-size="10" font-weight="600">4</text>
   <!-- X axis labels -->
-  <text x="166" y="258" text-anchor="middle" fill="#a1a1aa" font-size="10">0.48-0.49</text>
-  <text x="278" y="258" text-anchor="middle" fill="#a1a1aa" font-size="10">0.49-0.50</text>
-  <text x="390" y="258" text-anchor="middle" fill="#a1a1aa" font-size="10">0.50-0.51</text>
-  <text x="502" y="258" text-anchor="middle" fill="#a1a1aa" font-size="10">0.51-0.52</text>
-  <text x="614" y="258" text-anchor="middle" fill="#a1a1aa" font-size="10">0.52-0.53</text>
-  <text x="370" y="275" text-anchor="middle" fill="#a1a1aa" font-size="11">AUC Score Range</text>
+  <text x="166" y="258" text-anchor="middle" fill="#374151" font-size="10">0.48-0.49</text>
+  <text x="278" y="258" text-anchor="middle" fill="#374151" font-size="10">0.49-0.50</text>
+  <text x="390" y="258" text-anchor="middle" fill="#374151" font-size="10">0.50-0.51</text>
+  <text x="502" y="258" text-anchor="middle" fill="#374151" font-size="10">0.51-0.52</text>
+  <text x="614" y="258" text-anchor="middle" fill="#374151" font-size="10">0.52-0.53</text>
+  <text x="370" y="275" text-anchor="middle" fill="#374151" font-size="11">AUC Score Range</text>
   <!-- Survival threshold dashed line at 0.515 = midpoint of 0.51-0.52 bar -->
-  <line x1="462" y1="45" x2="462" y2="240" stroke="#eab308" stroke-width="1.5" stroke-dasharray="6,4"/>
-  <text x="466" y="44" fill="#eab308" font-size="10" font-weight="500">Survival Threshold (0.515)</text>
+  <line x1="462" y1="45" x2="462" y2="240" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="466" y="44" fill="#d97706" font-size="10" font-weight="500">Survival Threshold (0.515)</text>
 </svg>
+<p class="figure-caption">Figure 1: AUC distribution of all 101 Alpha101 factors evaluated on XAUUSD M1 data. The distribution is tightly centered around 0.500 (random), with only 4 factors exceeding the survival threshold.</p>
 </div>
 
 <h3>3.2 Top 10 Alphas by AUC</h3>
@@ -265,14 +266,14 @@ export const content = `
     <td>alpha024</td>
     <td>0.521</td>
     <td>Conditional momentum/reversion</td>
-    <td style="color: #22c55e;">Kept</td>
+    <td style="color: #059669;">Kept</td>
   </tr>
   <tr>
     <td>2</td>
     <td>alpha083</td>
     <td>0.518</td>
     <td>Volume-price imbalance</td>
-    <td style="color: #22c55e;">Kept</td>
+    <td style="color: #059669;">Kept</td>
   </tr>
   <tr>
     <td>3</td>
@@ -351,36 +352,37 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="180" fill="#09090b" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: Alpha101 Screening Funnel</text>
+  <rect width="700" height="180" fill="#ffffff" rx="8"/>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Alpha101 Screening Funnel</text>
   <!-- Block 1: 101 tested (widest) -->
-  <rect x="40" y="50" width="200" height="80" rx="8" fill="#18181b" stroke="#71717a" stroke-width="1.5"/>
-  <text x="140" y="82" text-anchor="middle" fill="#fafafa" font-size="22" font-weight="700">101</text>
-  <text x="140" y="102" text-anchor="middle" fill="#a1a1aa" font-size="11">Alphas Tested</text>
-  <text x="140" y="118" text-anchor="middle" fill="#71717a" font-size="10">Full Kakushadze set</text>
+  <rect x="40" y="50" width="200" height="80" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="140" y="82" text-anchor="middle" fill="#1a1a2e" font-size="22" font-weight="700">101</text>
+  <text x="140" y="102" text-anchor="middle" fill="#374151" font-size="11">Alphas Tested</text>
+  <text x="140" y="118" text-anchor="middle" fill="#6b7280" font-size="10">Full Kakushadze set</text>
   <!-- Arrow 1 -->
-  <line x1="245" y1="90" x2="280" y2="90" stroke="#71717a" stroke-width="1.5"/>
-  <polygon points="280,85 290,90 280,95" fill="#71717a"/>
-  <text x="268" y="80" text-anchor="middle" fill="#ef4444" font-size="9">-97</text>
+  <line x1="245" y1="90" x2="280" y2="90" stroke="#6b7280" stroke-width="1.5"/>
+  <polygon points="280,85 290,90 280,95" fill="#6b7280"/>
+  <text x="268" y="80" text-anchor="middle" fill="#dc2626" font-size="9">-97</text>
   <!-- Block 2: 4 survived -->
-  <rect x="295" y="60" width="150" height="60" rx="8" fill="#18181b" stroke="#a1a1aa" stroke-width="1.5"/>
-  <text x="370" y="87" text-anchor="middle" fill="#fafafa" font-size="22" font-weight="700">4</text>
-  <text x="370" y="107" text-anchor="middle" fill="#a1a1aa" font-size="11">AUC &gt; 0.515</text>
+  <rect x="295" y="60" width="150" height="60" rx="8" fill="#f3f4f6" stroke="#374151" stroke-width="1.5"/>
+  <text x="370" y="87" text-anchor="middle" fill="#1a1a2e" font-size="22" font-weight="700">4</text>
+  <text x="370" y="107" text-anchor="middle" fill="#374151" font-size="11">AUC &gt; 0.515</text>
   <!-- Arrow 2 -->
-  <line x1="450" y1="90" x2="485" y2="90" stroke="#71717a" stroke-width="1.5"/>
-  <polygon points="485,85 495,90 485,95" fill="#71717a"/>
-  <text x="473" y="80" text-anchor="middle" fill="#ef4444" font-size="9">-2</text>
+  <line x1="450" y1="90" x2="485" y2="90" stroke="#6b7280" stroke-width="1.5"/>
+  <polygon points="485,85 495,90 485,95" fill="#6b7280"/>
+  <text x="473" y="80" text-anchor="middle" fill="#dc2626" font-size="9">-2</text>
   <!-- Block 3: 2 kept (smallest, green) -->
-  <rect x="500" y="65" width="150" height="50" rx="8" fill="#18181b" stroke="#22c55e" stroke-width="2"/>
-  <text x="575" y="88" text-anchor="middle" fill="#22c55e" font-size="22" font-weight="700">2</text>
-  <text x="575" y="105" text-anchor="middle" fill="#22c55e" font-size="11">alpha024, alpha083</text>
+  <rect x="500" y="65" width="150" height="50" rx="8" fill="#f3f4f6" stroke="#059669" stroke-width="2"/>
+  <text x="575" y="88" text-anchor="middle" fill="#059669" font-size="22" font-weight="700">2</text>
+  <text x="575" y="105" text-anchor="middle" fill="#059669" font-size="11">alpha024, alpha083</text>
   <!-- Labels below -->
-  <text x="140" y="148" text-anchor="middle" fill="#71717a" font-size="10">Implementation</text>
-  <text x="370" y="148" text-anchor="middle" fill="#71717a" font-size="10">AUC Screening</text>
-  <text x="575" y="148" text-anchor="middle" fill="#71717a" font-size="10">Forward Selection</text>
+  <text x="140" y="148" text-anchor="middle" fill="#6b7280" font-size="10">Implementation</text>
+  <text x="370" y="148" text-anchor="middle" fill="#6b7280" font-size="10">AUC Screening</text>
+  <text x="575" y="148" text-anchor="middle" fill="#6b7280" font-size="10">Forward Selection</text>
   <!-- Survival rate -->
-  <text x="350" y="170" text-anchor="middle" fill="#a1a1aa" font-size="11">Overall survival rate: 1.98%</text>
+  <text x="350" y="170" text-anchor="middle" fill="#374151" font-size="11">Overall survival rate: 1.98%</text>
 </svg>
+<p class="figure-caption">Figure 2: The Alpha101 screening funnel. Of 101 factors tested, only 4 exceeded the AUC survival threshold, and only 2 provided non-redundant information after forward selection.</p>
 </div>
 
 <h2>4. Surviving Alphas</h2>
@@ -392,12 +394,11 @@ export const content = `
   the 100-bar simple moving average. The original Kakushadze formula:
 </p>
 
-<pre><code>delta_sma = ((SMA(close, 100)[t] - SMA(close, 100)[t-100]) / SMA(close, 100)[t-100])
+<p>The original Kakushadze formula, expressed in mathematical notation:</p>
 
-if delta_sma < 0.05:
-    alpha024 = -1 * (close - min(close, 100))
-else:
-    alpha024 = -1 * delta(close, 3)</code></pre>
+$$\\delta_{\\text{SMA}} = \\frac{\\text{SMA}(\\text{close}, 100)_t - \\text{SMA}(\\text{close}, 100)_{t-100}}{\\text{SMA}(\\text{close}, 100)_{t-100}}$$
+
+$$\\alpha_{024} = \\begin{cases} -1 \\cdot (\\text{close} - \\min(\\text{close}, 100)) & \\text{if } \\delta_{\\text{SMA}} < 0.05 \\\\ -1 \\cdot \\Delta(\\text{close}, 3) & \\text{otherwise} \\end{cases}$$
 
 <p>
   <strong>Step-by-step worked example:</strong> Consider a window where the 100-bar SMA has moved from
@@ -430,14 +431,14 @@ else:
   Alpha083 captures volume-weighted price deviation. The adapted formula for single-instrument use:
 </p>
 
-<pre><code>vwap = (high + low + close) / 3  # Approximate VWAP per bar
-volume_ratio = volume / rolling_mean(volume, 20)
+<p>The adapted formula for single-instrument use:</p>
 
-# Core computation: normalized price-VWAP deviation, amplified by relative volume
-alpha083 = (vwap - close) / (vwap + close) * volume_ratio
+$$\\text{VWAP} = \\frac{\\text{high} + \\text{low} + \\text{close}}{3}, \\quad r_{\\text{vol}} = \\frac{\\text{volume}}{\\text{SMA}(\\text{volume}, 20)}$$
 
-# In Kakushadze notation, this also involves ranking operations across instruments,
-# but for single-instrument we use the raw continuous value</code></pre>
+$$\\alpha_{083} = \\frac{\\text{VWAP} - \\text{close}}{\\text{VWAP} + \\text{close}} \\times r_{\\text{vol}}$$
+
+<p>In the original Kakushadze notation, this also involves ranking operations across instruments,
+but for single-instrument use we use the raw continuous value.</p>
 
 <p>
   <strong>Interpretation:</strong> The numerator (vwap - close) measures how far the close deviates

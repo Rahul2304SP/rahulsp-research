@@ -64,69 +64,70 @@ export const content = `
   The GoldSSM architecture consists of four main components arranged in a sequential pipeline:
 </p>
 
-<pre><code>Input (B, T, F=107) &rarr; Variable Selection Network &rarr; Mamba Block Stack (&times;2) &rarr; Temporal Attention Pooling &rarr; Output Heads
-                                                                                                        &darr;
-                                                                                          (p_trade, p_up, p_down, p_hold, recon)</code></pre>
+<p>
+  <strong>Pipeline:</strong> Input $(B, T, F{=}107)$ &rarr; Variable Selection Network &rarr; Mamba Block Stack ($\\times 2$) &rarr; Temporal Attention Pooling &rarr; Output Heads &rarr; $(p_{\\text{trade}}, p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}, \\text{recon})$
+</p>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="24" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: GoldSSM Architecture</text>
+    <text x="350" y="24" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: GoldSSM Architecture</text>
     <defs>
       <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-        <polygon points="0 0, 8 3, 0 6" fill="#a1a1aa"/>
+        <polygon points="0 0, 8 3, 0 6" fill="#374151"/>
       </marker>
     </defs>
     <!-- Input box -->
-    <rect x="225" y="44" width="250" height="38" rx="6" fill="#111113" stroke="#22c55e" stroke-width="1.5"/>
-    <text x="350" y="68" text-anchor="middle" fill="#fafafa" font-size="12" font-weight="600">Input</text>
-    <text x="520" y="68" text-anchor="start" fill="#71717a" font-size="11">(B, T, 107)</text>
+    <rect x="225" y="44" width="250" height="38" rx="6" fill="#f8f9fa" stroke="#059669" stroke-width="1.5"/>
+    <text x="350" y="68" text-anchor="middle" fill="#1a1a2e" font-size="12" font-weight="600">Input</text>
+    <text x="520" y="68" text-anchor="start" fill="#6b7280" font-size="11">(B, T, 107)</text>
     <!-- Arrow -->
-    <line x1="350" y1="82" x2="350" y2="108" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="350" y1="82" x2="350" y2="108" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
     <!-- VSN box -->
-    <rect x="225" y="112" width="250" height="38" rx="6" fill="#111113" stroke="#22c55e" stroke-width="1.5"/>
-    <text x="350" y="136" text-anchor="middle" fill="#fafafa" font-size="12" font-weight="600">Variable Selection Network</text>
+    <rect x="225" y="112" width="250" height="38" rx="6" fill="#f8f9fa" stroke="#059669" stroke-width="1.5"/>
+    <text x="350" y="136" text-anchor="middle" fill="#1a1a2e" font-size="12" font-weight="600">Variable Selection Network</text>
     <!-- Arrow -->
-    <line x1="350" y1="150" x2="350" y2="176" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="350" y1="150" x2="350" y2="176" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
     <!-- Dimension annotation -->
-    <text x="520" y="170" text-anchor="start" fill="#71717a" font-size="11">(B, T, 128)</text>
+    <text x="520" y="170" text-anchor="start" fill="#6b7280" font-size="11">(B, T, 128)</text>
     <!-- Mamba box -->
-    <rect x="225" y="180" width="250" height="50" rx="6" fill="#111113" stroke="#22c55e" stroke-width="1.5"/>
-    <text x="350" y="201" text-anchor="middle" fill="#fafafa" font-size="12" font-weight="600">Mamba Block &times;2</text>
-    <text x="350" y="219" text-anchor="middle" fill="#71717a" font-size="10">d_state=8, d_conv=4</text>
+    <rect x="225" y="180" width="250" height="50" rx="6" fill="#f8f9fa" stroke="#059669" stroke-width="1.5"/>
+    <text x="350" y="201" text-anchor="middle" fill="#1a1a2e" font-size="12" font-weight="600">Mamba Block &times;2</text>
+    <text x="350" y="219" text-anchor="middle" fill="#6b7280" font-size="10">d_state=8, d_conv=4</text>
     <!-- Arrow -->
-    <line x1="350" y1="230" x2="350" y2="256" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="350" y1="230" x2="350" y2="256" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
     <!-- Dimension annotation -->
-    <text x="520" y="250" text-anchor="start" fill="#71717a" font-size="11">(B, T, 128)</text>
+    <text x="520" y="250" text-anchor="start" fill="#6b7280" font-size="11">(B, T, 128)</text>
     <!-- TAP box -->
-    <rect x="225" y="260" width="250" height="50" rx="6" fill="#111113" stroke="#22c55e" stroke-width="1.5"/>
-    <text x="350" y="281" text-anchor="middle" fill="#fafafa" font-size="12" font-weight="600">Temporal Attention Pooling</text>
-    <text x="350" y="299" text-anchor="middle" fill="#71717a" font-size="10">4 learned queries</text>
+    <rect x="225" y="260" width="250" height="50" rx="6" fill="#f8f9fa" stroke="#059669" stroke-width="1.5"/>
+    <text x="350" y="281" text-anchor="middle" fill="#1a1a2e" font-size="12" font-weight="600">Temporal Attention Pooling</text>
+    <text x="350" y="299" text-anchor="middle" fill="#6b7280" font-size="10">4 learned queries</text>
     <!-- Arrow -->
-    <line x1="350" y1="310" x2="350" y2="336" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="350" y1="310" x2="350" y2="336" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
     <!-- Dimension annotation -->
-    <text x="520" y="330" text-anchor="start" fill="#71717a" font-size="11">(B, 128)</text>
+    <text x="520" y="330" text-anchor="start" fill="#6b7280" font-size="11">(B, 128)</text>
     <!-- Split into 4 heads -->
     <!-- Connector lines from center down to 4 boxes -->
-    <line x1="350" y1="340" x2="350" y2="365" stroke="#a1a1aa" stroke-width="1.5"/>
-    <line x1="170" y1="365" x2="530" y2="365" stroke="#a1a1aa" stroke-width="1.5"/>
-    <line x1="170" y1="365" x2="170" y2="385" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-    <line x1="290" y1="365" x2="290" y2="385" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-    <line x1="410" y1="365" x2="410" y2="385" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-    <line x1="530" y1="365" x2="530" y2="385" stroke="#a1a1aa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="350" y1="340" x2="350" y2="365" stroke="#374151" stroke-width="1.5"/>
+    <line x1="170" y1="365" x2="530" y2="365" stroke="#374151" stroke-width="1.5"/>
+    <line x1="170" y1="365" x2="170" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="290" y1="365" x2="290" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="410" y1="365" x2="410" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="530" y1="365" x2="530" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead)"/>
     <!-- Output head boxes -->
-    <rect x="120" y="389" width="100" height="34" rx="5" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-    <text x="170" y="411" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">p_trade</text>
-    <rect x="240" y="389" width="100" height="34" rx="5" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-    <text x="290" y="411" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">p_up</text>
-    <rect x="360" y="389" width="100" height="34" rx="5" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-    <text x="410" y="411" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">p_down</text>
-    <rect x="480" y="389" width="100" height="34" rx="5" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-    <text x="530" y="411" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="600">p_hold</text>
+    <rect x="120" y="389" width="100" height="34" rx="5" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="170" y="411" text-anchor="middle" fill="#059669" font-size="11" font-weight="600">p_trade</text>
+    <rect x="240" y="389" width="100" height="34" rx="5" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="290" y="411" text-anchor="middle" fill="#059669" font-size="11" font-weight="600">p_up</text>
+    <rect x="360" y="389" width="100" height="34" rx="5" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="410" y="411" text-anchor="middle" fill="#059669" font-size="11" font-weight="600">p_down</text>
+    <rect x="480" y="389" width="100" height="34" rx="5" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="530" y="411" text-anchor="middle" fill="#059669" font-size="11" font-weight="600">p_hold</text>
     <!-- Recon head (5th output, centered below) -->
-    <line x1="350" y1="423" x2="350" y2="445" stroke="#a1a1aa" stroke-width="1" stroke-dasharray="4,3"/>
-    <rect x="290" y="445" width="120" height="30" rx="5" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-    <text x="350" y="465" text-anchor="middle" fill="#a1a1aa" font-size="11">recon (aux)</text>
+    <line x1="350" y1="423" x2="350" y2="445" stroke="#374151" stroke-width="1" stroke-dasharray="4,3"/>
+    <rect x="290" y="445" width="120" height="30" rx="5" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="350" y="465" text-anchor="middle" fill="#374151" font-size="11">recon (aux)</text>
   </svg>
+  <p class="figure-caption">Figure 1: GoldSSM architecture. Input features pass through a Variable Selection Network for per-timestep gating, a stack of two Mamba blocks for linear-time sequence modeling, temporal attention pooling for learned aggregation, and five regime-specialist output heads.</p>
 </div>
 
 <h3>2.1 Variable Selection Network (VSN)</h3>
@@ -217,19 +218,27 @@ export const content = `
   dynamical system with state h(t), input x(t), and output y(t):
 </p>
 
-<pre><code>h'(t) = A &middot; h(t) + B &middot; x(t)
-y(t)  = C &middot; h(t)</code></pre>
+<p>The continuous-time dynamics:</p>
+
+$$h'(t) = A \\cdot h(t) + B \\cdot x(t)$$
+
+$$y(t) = C \\cdot h(t)$$
 
 <p>
-  where A is the state matrix (d_state &times; d_state), B is the input matrix (d_state &times; 1),
-  and C is the output matrix (1 &times; d_state). For discrete sequences, these continuous parameters
-  must be discretized using a step size &Delta;:
+  where $A$ is the state matrix ($d_{\\text{state}} \\times d_{\\text{state}}$), $B$ is the input matrix ($d_{\\text{state}} \\times 1$),
+  and $C$ is the output matrix ($1 \\times d_{\\text{state}}$). For discrete sequences, these continuous parameters
+  must be discretized using a step size $\\Delta$:
 </p>
 
-<pre><code>&Amacr; = exp(&Delta; &middot; A)
-B&#772; = (&Delta; &middot; A)&minus;&sup1; (exp(&Delta; &middot; A) &minus; I) &middot; &Delta; &middot; B
-h_t = &Amacr; &middot; h_{t&minus;1} + B&#772; &middot; x_t
-y_t = C &middot; h_t</code></pre>
+<p>Discretization:</p>
+
+$$\\bar{A} = \\exp(\\Delta A), \\quad \\bar{B} = (\\Delta A)^{-1}(\\exp(\\Delta A) - I) \\cdot \\Delta B$$
+
+<p>Discrete recurrence:</p>
+
+$$h_t = \\bar{A} \\cdot h_{t-1} + \\bar{B} \\cdot x_t$$
+
+$$y_t = C \\cdot h_t$$
 
 <p>
   In classical SSMs (S4, S5), A, B, C, and &Delta; are <strong>fixed parameters</strong> learned
@@ -265,13 +274,17 @@ y_t = C &middot; h_t</code></pre>
   performs:
 </p>
 
-<pre><code>&Delta;_t = softplus(Linear(x_t))
-B_t = Linear(x_t)
-C_t = Linear(x_t)
-&Amacr;_t = exp(&Delta;_t &middot; A)         # Discretized state matrix
-B&#772;_t = &Delta;_t &middot; B_t                 # Discretized input matrix
-h_t = &Amacr;_t &middot; h_{t&minus;1} + B&#772;_t &middot; x_t   # State update
-y_t = C_t &middot; h_t                     # Output</code></pre>
+<p>The selective scan at each timestep $t$:</p>
+
+$$\\Delta_t = \\text{softplus}(W_\\Delta \\cdot x_t + b_\\Delta)$$
+
+$$B_t = W_B \\cdot x_t, \\quad C_t = W_C \\cdot x_t$$
+
+$$\\bar{A}_t = \\exp(\\Delta_t \\cdot A), \\quad \\bar{B}_t = \\Delta_t \\cdot B_t$$
+
+$$h_t = \\bar{A}_t \\cdot h_{t-1} + \\bar{B}_t \\cdot x_t$$
+
+$$y_t = C_t \\cdot h_t$$
 
 <p>
   The state vector h_t has dimension d_state=8, meaning the model maintains an 8-dimensional
@@ -729,18 +742,19 @@ y_t = C_t &middot; h_t                     # Output</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: Parameter Count Comparison</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Parameter Count Comparison</text>
     <!-- GoldSSM bar -->
-    <text x="170" y="62" text-anchor="end" fill="#a1a1aa" font-size="12">GoldSSM</text>
-    <rect x="180" y="46" width="80" height="28" rx="4" fill="#22c55e"/>
-    <text x="268" y="65" fill="#fafafa" font-size="11" font-weight="600">2.0M</text>
+    <text x="170" y="62" text-anchor="end" fill="#374151" font-size="12">GoldSSM</text>
+    <rect x="180" y="46" width="80" height="28" rx="4" fill="#059669"/>
+    <text x="268" y="65" fill="#1a1a2e" font-size="11" font-weight="600">2.0M</text>
     <!-- Transformer bar -->
-    <text x="170" y="108" text-anchor="end" fill="#a1a1aa" font-size="12">Transformer Macro</text>
-    <rect x="180" y="92" width="500" height="28" rx="4" fill="#a1a1aa" opacity="0.3"/>
-    <text x="688" y="111" fill="#fafafa" font-size="11" font-weight="600">12.5M</text>
+    <text x="170" y="108" text-anchor="end" fill="#374151" font-size="12">Transformer Macro</text>
+    <rect x="180" y="92" width="500" height="28" rx="4" fill="#374151" opacity="0.3"/>
+    <text x="688" y="111" fill="#1a1a2e" font-size="11" font-weight="600">12.5M</text>
     <!-- 6.2x label -->
-    <text x="400" y="80" text-anchor="middle" fill="#22c55e" font-size="16" font-weight="700">6.2&times; smaller</text>
+    <text x="400" y="80" text-anchor="middle" fill="#059669" font-size="16" font-weight="700">6.2&times; smaller</text>
   </svg>
+  <p class="figure-caption">Figure 2: GoldSSM achieves 6.2x parameter reduction compared to the Transformer Macro Regimes baseline, primarily by replacing multi-head self-attention with the selective scan mechanism.</p>
 </div>
 
 <h3>3.5 Validation</h3>
@@ -759,7 +773,9 @@ y_t = C_t &middot; h_t                     # Output</code></pre>
 
 <p>
   The computational advantage of GoldSSM over the Transformer baseline can be analyzed formally
-  by comparing the dominant operations in each architecture.
+  by comparing the dominant operations in each architecture:
+
+$$\\mathcal{O}(T \\cdot d \\cdot d_{\\text{state}}) \\text{ (SSM) vs } \\mathcal{O}(T^2 \\cdot d) \\text{ (Transformer)}$$
 </p>
 
 <h3>4.1 Transformer Self-Attention Complexity</h3>

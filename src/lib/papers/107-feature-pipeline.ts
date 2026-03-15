@@ -127,7 +127,7 @@ export const content = `
     <td>3</td>
     <td><code>dist_ma120</code></td>
     <td>Distance from 120-bar MA</td>
-    <td><code>(close - SMA(close, 120)) / SMA(close, 120)</code>. Normalized distance from the 2-hour moving average. Mean-reversion anchor: extreme values suggest overextension.</td>
+    <td>$\\frac{\\text{close} - \\text{SMA}(\\text{close}, 120)}{\\text{SMA}(\\text{close}, 120)}$. Normalized distance from the 2-hour moving average. Mean-reversion anchor: extreme values suggest overextension.</td>
   </tr>
   <tr>
     <td>4</td>
@@ -139,19 +139,19 @@ export const content = `
     <td>5</td>
     <td><code>er60</code></td>
     <td>Efficiency ratio (60-bar)</td>
-    <td><code>|close[t] - close[t-60]| / sum(|close[i] - close[i-1]|, i=t-59..t)</code>. Ranges [0, 1]. High values indicate trending (price moved far relative to path length); low values indicate choppy/mean-reverting.</td>
+    <td>$\\frac{|\\text{close}_t - \\text{close}_{t-60}|}{\\sum_{i=t-59}^{t} |\\text{close}_i - \\text{close}_{i-1}|}$. Ranges [0, 1]. High values indicate trending (price moved far relative to path length); low values indicate choppy/mean-reverting.</td>
   </tr>
   <tr>
     <td>6</td>
     <td><code>tod_sin</code></td>
     <td>Time-of-day (sine)</td>
-    <td><code>sin(2&pi; &middot; minutes_since_midnight / 1440)</code>. Cyclical encoding of time that the model can use to learn session-dependent patterns without discrete session boundaries.</td>
+    <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Cyclical encoding of time that the model can use to learn session-dependent patterns without discrete session boundaries.</td>
   </tr>
   <tr>
     <td>7</td>
     <td><code>tod_cos</code></td>
     <td>Time-of-day (cosine)</td>
-    <td><code>cos(2&pi; &middot; minutes_since_midnight / 1440)</code>. Paired with tod_sin to provide a complete cyclical encoding. <strong>Note: INVERTED</strong> (original AUC was 0.476; inverted to 0.524). The cosine component peaked at midnight UTC, which anti-correlates with direction during the Asian session.</td>
+    <td>$\\cos\\left(\\frac{2\\pi \\cdot \\text{minutes\\_since\\_midnight}}{1440}\\right)$. Paired with tod_sin to provide a complete cyclical encoding. <strong>Note: INVERTED</strong> (original AUC was 0.476; inverted to 0.524). The cosine component peaked at midnight UTC, which anti-correlates with direction during the Asian session.</td>
   </tr>
   <tr>
     <td>8</td>
@@ -163,7 +163,7 @@ export const content = `
     <td>9</td>
     <td><code>dow_sin</code></td>
     <td>Day-of-week (sine encoding)</td>
-    <td><code>sin(2&pi; &middot; day_of_week / 5)</code>. Captures weekly seasonality (e.g., Monday positioning, Friday book-squaring). Combined with tod_sin/cos provides full intraweek temporal context.</td>
+    <td>$\\sin\\left(\\frac{2\\pi \\cdot \\text{day\\_of\\_week}}{5}\\right)$. Captures weekly seasonality (e.g., Monday positioning, Friday book-squaring). Combined with tod_sin/cos provides full intraweek temporal context.</td>
   </tr>
 </table>
 
@@ -494,37 +494,38 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="120" fill="#09090b" rx="8"/>
-  <text x="350" y="20" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: Feature Quality Control Pipeline</text>
+  <rect width="700" height="120" fill="#ffffff" rx="8"/>
+  <text x="350" y="20" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Feature Quality Control Pipeline</text>
   <!-- Box 1: Raw Candidates -->
-  <rect x="20" y="38" width="120" height="50" rx="10" fill="#18181b" stroke="#71717a" stroke-width="1.5"/>
-  <text x="80" y="58" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="700">120+</text>
-  <text x="80" y="74" text-anchor="middle" fill="#a1a1aa" font-size="9">Raw Candidates</text>
+  <rect x="20" y="38" width="120" height="50" rx="10" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="80" y="58" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="700">120+</text>
+  <text x="80" y="74" text-anchor="middle" fill="#374151" font-size="9">Raw Candidates</text>
   <!-- Arrow 1 -->
-  <line x1="144" y1="63" x2="170" y2="63" stroke="#71717a" stroke-width="1.5"/>
-  <polygon points="170,58 180,63 170,68" fill="#71717a"/>
+  <line x1="144" y1="63" x2="170" y2="63" stroke="#6b7280" stroke-width="1.5"/>
+  <polygon points="170,58 180,63 170,68" fill="#6b7280"/>
   <!-- Box 2: AUC Validation -->
-  <rect x="184" y="38" width="120" height="50" rx="10" fill="#18181b" stroke="#a1a1aa" stroke-width="1.5"/>
-  <text x="244" y="58" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">AUC Validation</text>
-  <text x="244" y="74" text-anchor="middle" fill="#a1a1aa" font-size="9">Remove AUC &#x2248; 0.50</text>
+  <rect x="184" y="38" width="120" height="50" rx="10" fill="#f3f4f6" stroke="#374151" stroke-width="1.5"/>
+  <text x="244" y="58" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">AUC Validation</text>
+  <text x="244" y="74" text-anchor="middle" fill="#374151" font-size="9">Remove AUC &#x2248; 0.50</text>
   <!-- Arrow 2 -->
-  <line x1="308" y1="63" x2="334" y2="63" stroke="#71717a" stroke-width="1.5"/>
-  <polygon points="334,58 344,63 334,68" fill="#71717a"/>
-  <text x="325" y="50" text-anchor="middle" fill="#ef4444" font-size="8">-9 noise</text>
+  <line x1="308" y1="63" x2="334" y2="63" stroke="#6b7280" stroke-width="1.5"/>
+  <polygon points="334,58 344,63 334,68" fill="#6b7280"/>
+  <text x="325" y="50" text-anchor="middle" fill="#dc2626" font-size="8">-9 noise</text>
   <!-- Box 3: Inversion -->
-  <rect x="348" y="38" width="120" height="50" rx="10" fill="#18181b" stroke="#a1a1aa" stroke-width="1.5"/>
-  <text x="408" y="58" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">Invert AUC&lt;0.50</text>
-  <text x="408" y="74" text-anchor="middle" fill="#a1a1aa" font-size="9">4 features flipped</text>
+  <rect x="348" y="38" width="120" height="50" rx="10" fill="#f3f4f6" stroke="#374151" stroke-width="1.5"/>
+  <text x="408" y="58" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">Invert AUC&lt;0.50</text>
+  <text x="408" y="74" text-anchor="middle" fill="#374151" font-size="9">4 features flipped</text>
   <!-- Arrow 3 -->
-  <line x1="472" y1="63" x2="498" y2="63" stroke="#71717a" stroke-width="1.5"/>
-  <polygon points="498,58 508,63 498,68" fill="#71717a"/>
+  <line x1="472" y1="63" x2="498" y2="63" stroke="#6b7280" stroke-width="1.5"/>
+  <polygon points="498,58 508,63 498,68" fill="#6b7280"/>
   <!-- Box 4: Final -->
-  <rect x="512" y="38" width="150" height="50" rx="10" fill="#18181b" stroke="#22c55e" stroke-width="2"/>
-  <text x="587" y="58" text-anchor="middle" fill="#22c55e" font-size="16" font-weight="700">107</text>
-  <text x="587" y="74" text-anchor="middle" fill="#22c55e" font-size="10">Official Features</text>
+  <rect x="512" y="38" width="150" height="50" rx="10" fill="#f3f4f6" stroke="#059669" stroke-width="2"/>
+  <text x="587" y="58" text-anchor="middle" fill="#059669" font-size="16" font-weight="700">107</text>
+  <text x="587" y="74" text-anchor="middle" fill="#059669" font-size="10">Official Features</text>
   <!-- Bottom note -->
-  <text x="350" y="108" text-anchor="middle" fill="#71717a" font-size="10">Cache invalidation via SHA-256 hash of OFFICIAL_FEATURE_COLS</text>
+  <text x="350" y="108" text-anchor="middle" fill="#6b7280" font-size="10">Cache invalidation via SHA-256 hash of OFFICIAL_FEATURE_COLS</text>
 </svg>
+<p class="figure-caption">Figure 2: Feature quality control pipeline. Starting from 120+ candidates, noise features are removed via AUC validation, 4 features are inverted, yielding the final 107 official features.</p>
 </div>
 
 <h3>4.4 Alpha101 Screening</h3>
@@ -557,19 +558,19 @@ export const content = `
     <td><code>_rolling_rsi</code></td>
     <td><code>(series: Series, window: int) &rarr; Series</code></td>
     <td>[0, 100]</td>
-    <td>Relative Strength Index via exponential moving averages of gains and losses. Uses the Wilder smoothing method (equivalent to EMA with span=2*window-1). RSI=14 is the standard configuration used in the pipeline.</td>
+    <td>Relative Strength Index: $\\text{RSI} = 100 - \\frac{100}{1 + \\text{RS}}$ where $\\text{RS} = \\frac{\\text{EMA}(\\text{gains}, w)}{\\text{EMA}(\\text{losses}, w)}$. Uses the Wilder smoothing method (equivalent to EMA with span=2*window-1). RSI=14 is the standard configuration used in the pipeline.</td>
   </tr>
   <tr>
     <td><code>_rolling_atr_series</code></td>
     <td><code>(high: Series, low: Series, close: Series, window: int) &rarr; Series</code></td>
     <td>[0, &infin;)</td>
-    <td>Average True Range (vectorized). Computes true range as max(high-low, |high-prev_close|, |low-prev_close|), then applies EMA smoothing. This is the <strong>vectorized</strong> version for the feature pipeline; a separate scalar <code>_atr()</code> function exists for live execution where only the latest value is needed.</td>
+    <td>Average True Range (vectorized). Computes $\\text{TR}_t = \\max(H_t - L_t,\\, |H_t - C_{t-1}|,\\, |L_t - C_{t-1}|)$, then applies EMA smoothing: $\\text{ATR}_t = \\text{EMA}(\\text{TR}, w)$. This is the <strong>vectorized</strong> version for the feature pipeline; a separate scalar <code>_atr()</code> function exists for live execution where only the latest value is needed.</td>
   </tr>
   <tr>
     <td><code>_rolling_hurst</code></td>
     <td><code>(series: Series, window: int) &rarr; Series</code></td>
     <td>[0, 1]</td>
-    <td>Hurst exponent via Rescaled Range (R/S) analysis. H &gt; 0.5 indicates trending (persistent) behavior; H &lt; 0.5 indicates mean-reverting (anti-persistent) behavior; H = 0.5 indicates random walk. <strong>Minimum bar floor: 20</strong> (below this, R/S analysis is statistically unreliable).</td>
+    <td>Hurst exponent via Rescaled Range (R/S) analysis: $H$ is estimated from the scaling law $\\frac{R}{S} \\sim n^H$. $H > 0.5$ indicates trending (persistent) behavior; $H < 0.5$ indicates mean-reverting (anti-persistent) behavior; $H = 0.5$ indicates random walk. <strong>Minimum bar floor: 20</strong> (below this, R/S analysis is statistically unreliable).</td>
   </tr>
   <tr>
     <td><code>_rolling_fractal_dimension</code></td>
@@ -587,7 +588,7 @@ export const content = `
     <td><code>_garman_klass_vol</code></td>
     <td><code>(high: Series, low: Series, close: Series, open: Series, window: int) &rarr; Series</code></td>
     <td>[0, &infin;)</td>
-    <td>Garman-Klass volatility estimator. Uses full OHLC information, making it approximately 8&times; more efficient than close-to-close volatility estimation. Formula: 0.5 * ln(H/L)&sup2; - (2ln2-1) * ln(C/O)&sup2;, averaged over the rolling window.</td>
+    <td>Garman-Klass volatility estimator. Uses full OHLC information, making it approximately 8&times; more efficient than close-to-close volatility estimation. Formula: $\\sigma_{GK}^2 = \\frac{1}{n}\\sum_{i=1}^{n}\\left[\\frac{1}{2}\\left(\\ln\\frac{H_i}{L_i}\\right)^2 - (2\\ln 2 - 1)\\left(\\ln\\frac{C_i}{O_i}\\right)^2\\right]$, averaged over the rolling window.</td>
   </tr>
   <tr>
     <td><code>_rolling_beta</code></td>
@@ -842,8 +843,8 @@ export const content = `
 
 <div style="margin: 2rem 0;">
 <svg width="100%" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-  <rect width="700" height="200" fill="#09090b" rx="8"/>
-  <text x="350" y="26" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: Feature Composition (107 Total)</text>
+  <rect width="700" height="200" fill="#ffffff" rx="8"/>
+  <text x="350" y="26" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Feature Composition (107 Total)</text>
   <!-- Stacked horizontal bar -->
   <!-- Total width = 600px (from x=50 to x=650), each feature = 600/107 = 5.61px -->
   <!-- Original: 9 => 50.5px | OG Extended: 17 => 95.3px | Level & Channel: 17 => 95.3px | Session: 5 => 28px | Extended: 59 => 331px -->
@@ -857,38 +858,39 @@ export const content = `
   <!-- Session & Timing: 5 features -->
   <rect x="292" y="55" width="28" height="55" rx="0" fill="#5eead4"/>
   <!-- Extended: 59 features -->
-  <rect x="320" y="55" width="330" height="55" rx="0" fill="#22c55e"/>
+  <rect x="320" y="55" width="330" height="55" rx="0" fill="#059669"/>
   <!-- Rounded corners on first and last -->
   <rect x="50" y="55" width="10" height="55" fill="#0d9488"/>
   <rect x="50" y="55" width="50" height="55" rx="4" fill="#0d9488"/>
-  <rect x="320" y="55" width="330" height="55" rx="0" fill="#22c55e"/>
-  <rect x="640" y="55" width="10" height="55" rx="4" fill="#22c55e"/>
+  <rect x="320" y="55" width="330" height="55" rx="0" fill="#059669"/>
+  <rect x="640" y="55" width="10" height="55" rx="4" fill="#059669"/>
   <!-- Count labels inside bars -->
-  <text x="75" y="87" text-anchor="middle" fill="#09090b" font-size="14" font-weight="700">9</text>
-  <text x="148" y="87" text-anchor="middle" fill="#09090b" font-size="14" font-weight="700">17</text>
-  <text x="244" y="87" text-anchor="middle" fill="#09090b" font-size="14" font-weight="700">17</text>
-  <text x="306" y="87" text-anchor="middle" fill="#09090b" font-size="11" font-weight="700">5</text>
-  <text x="485" y="87" text-anchor="middle" fill="#09090b" font-size="14" font-weight="700">59</text>
+  <text x="75" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">9</text>
+  <text x="148" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">17</text>
+  <text x="244" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">17</text>
+  <text x="306" y="87" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">5</text>
+  <text x="485" y="87" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">59</text>
   <!-- Labels below bar -->
-  <text x="75" y="130" text-anchor="middle" fill="#fafafa" font-size="10" font-weight="500">Original</text>
-  <text x="148" y="130" text-anchor="middle" fill="#fafafa" font-size="10" font-weight="500">OG Extended</text>
-  <text x="244" y="130" text-anchor="middle" fill="#fafafa" font-size="10" font-weight="500">Level &amp; Channel</text>
-  <text x="306" y="130" text-anchor="middle" fill="#fafafa" font-size="9" font-weight="500">Session</text>
-  <text x="485" y="130" text-anchor="middle" fill="#fafafa" font-size="10" font-weight="500">Extended</text>
+  <text x="75" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Original</text>
+  <text x="148" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">OG Extended</text>
+  <text x="244" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Level &amp; Channel</text>
+  <text x="306" y="130" text-anchor="middle" fill="#1a1a2e" font-size="9" font-weight="500">Session</text>
+  <text x="485" y="130" text-anchor="middle" fill="#1a1a2e" font-size="10" font-weight="500">Extended</text>
   <!-- Extended sub-sections breakdown -->
-  <text x="485" y="148" text-anchor="middle" fill="#a1a1aa" font-size="9">PV(4) Tick(3) Mom(5) Regime(4) Vol(8) Risk(4) Lead(4) Candle(4) Liq(3) Cal(3) S/R(4) Scale(5) Self(8)</text>
+  <text x="485" y="148" text-anchor="middle" fill="#374151" font-size="9">PV(4) Tick(3) Mom(5) Regime(4) Vol(8) Risk(4) Lead(4) Candle(4) Liq(3) Cal(3) S/R(4) Scale(5) Self(8)</text>
   <!-- Legend -->
   <rect x="120" y="170" width="12" height="12" rx="2" fill="#0d9488"/>
-  <text x="136" y="180" fill="#a1a1aa" font-size="10">Original (9)</text>
+  <text x="136" y="180" fill="#374151" font-size="10">Original (9)</text>
   <rect x="220" y="170" width="12" height="12" rx="2" fill="#14b8a6"/>
-  <text x="236" y="180" fill="#a1a1aa" font-size="10">OG Extended (17)</text>
+  <text x="236" y="180" fill="#374151" font-size="10">OG Extended (17)</text>
   <rect x="340" y="170" width="12" height="12" rx="2" fill="#2dd4bf"/>
-  <text x="356" y="180" fill="#a1a1aa" font-size="10">Level &amp; Channel (17)</text>
+  <text x="356" y="180" fill="#374151" font-size="10">Level &amp; Channel (17)</text>
   <rect x="470" y="170" width="12" height="12" rx="2" fill="#5eead4"/>
-  <text x="486" y="180" fill="#a1a1aa" font-size="10">Session (5)</text>
-  <rect x="555" y="170" width="12" height="12" rx="2" fill="#22c55e"/>
-  <text x="571" y="180" fill="#a1a1aa" font-size="10">Extended (59)</text>
+  <text x="486" y="180" fill="#374151" font-size="10">Session (5)</text>
+  <rect x="555" y="170" width="12" height="12" rx="2" fill="#059669"/>
+  <text x="571" y="180" fill="#374151" font-size="10">Extended (59)</text>
 </svg>
+<p class="figure-caption">Figure 1: Feature composition across the five major groups. The Extended group (59 features) is the largest, spanning 14 sub-families of market microstructure, regime, and cross-asset features.</p>
 </div>
 
 <h2>9. Conclusion</h2>

@@ -73,7 +73,7 @@ export const content = `
     correlations. Session windows: Asian (00:00&ndash;08:00 UTC), London (07:00&ndash;16:00 UTC), and
     New York (13:00&ndash;22:00 UTC). The London-NY overlap (13:00&ndash;16:00 UTC) is analyzed separately
     as it represents the highest-liquidity period for gold.</li>
-  <li><strong>Returns computation:</strong> Log returns are used throughout: <code>r_t = ln(close_t / close_{t-1})</code>.
+  <li><strong>Returns computation:</strong> Log returns are used throughout: $r_t = \\ln\\left(\\frac{\\text{close}_t}{\\text{close}_{t-1}}\\right)$.
     Log returns are preferred over simple returns for their additivity over time and better normality
     properties at the minute frequency.</li>
 </ul>
@@ -100,13 +100,14 @@ export const content = `
   The core test uses 1-bar lagged returns as the predictor variable:
 </p>
 
-<pre><code>target:    r_gold[t]        (XAUUSD return at bar t)
-predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
+<p>The core regression specification:</p>
+
+$$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsilon_t$$
 
 <p>
-  This is a univariate OLS regression: <code>r_gold[t] = &alpha; + &beta; &middot; r_cross[t-1] + &epsilon;_t</code>.
-  The coefficient &beta; measures the linear sensitivity of gold returns to lagged cross-asset returns, and
-  R&sup2; measures the fraction of gold return variance explained by the predictor. We also test a multivariate
+  where $r_{\\text{gold},t}$ is the XAUUSD return at bar $t$ and $r_{\\text{cross},t-1}$ is the cross-asset return at bar $t-1$.
+  The coefficient $\\beta$ measures the linear sensitivity of gold returns to lagged cross-asset returns, and
+  $R^2$ measures the fraction of gold return variance explained by the predictor. We also test a multivariate
   specification with all six lagged predictors simultaneously.
 </p>
 
@@ -132,7 +133,7 @@ predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
 <p>
   In each fold, the OLS regression is estimated on the training window, and R&sup2; is computed on the
   test window using the <em>training-set coefficients</em>. The OOS R&sup2; is computed as:
-  <code>R&sup2;_OOS = 1 - SSE_model / SSE_mean</code>, where SSE_mean is the sum of squared errors from
+  $R^2_{\\text{OOS}} = 1 - \\frac{\\text{SSE}_{\\text{model}}}{\\text{SSE}_{\\text{mean}}}$, where $\\text{SSE}_{\\text{mean}}$ is the sum of squared errors from
   predicting the test-set mean return. Negative OOS R&sup2; means the lagged cross-asset model performs
   worse than simply predicting the mean &mdash; a definitive failure of predictive power.
 </p>
@@ -234,38 +235,39 @@ predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: Contemporaneous Correlations with XAUUSD</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Contemporaneous Correlations with XAUUSD</text>
     <!-- Center axis at x=350 for 0. Scale: 0.77 maps to full right (330px). Per unit: 330/0.77 = 428px -->
     <!-- Chart area y: 45..225, 5 bars, spacing=36 -->
     <!-- Zero axis -->
-    <line x1="350" y1="40" x2="350" y2="220" stroke="#a1a1aa" stroke-width="1"/>
+    <line x1="350" y1="40" x2="350" y2="220" stroke="#374151" stroke-width="1"/>
     <!-- Scale markers -->
-    <text x="350" y="238" text-anchor="middle" fill="#71717a" font-size="10">0</text>
-    <text x="564" y="238" text-anchor="middle" fill="#71717a" font-size="10">+0.50</text>
-    <text x="136" y="238" text-anchor="middle" fill="#71717a" font-size="10">&minus;0.50</text>
-    <line x1="564" y1="40" x2="564" y2="220" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="136" y1="40" x2="136" y2="220" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <text x="350" y="238" text-anchor="middle" fill="#6b7280" font-size="10">0</text>
+    <text x="564" y="238" text-anchor="middle" fill="#6b7280" font-size="10">+0.50</text>
+    <text x="136" y="238" text-anchor="middle" fill="#6b7280" font-size="10">&minus;0.50</text>
+    <line x1="564" y1="40" x2="564" y2="220" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="136" y1="40" x2="136" y2="220" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
     <!-- XAG: +0.77, bar width = 0.77*428 = 330, y=48 -->
-    <text x="85" y="63" text-anchor="end" fill="#a1a1aa" font-size="12">XAG</text>
-    <rect x="350" y="48" width="330" height="24" rx="3" fill="#22c55e"/>
-    <text x="686" y="65" fill="#fafafa" font-size="11" font-weight="600">+0.77</text>
+    <text x="85" y="63" text-anchor="end" fill="#374151" font-size="12">XAG</text>
+    <rect x="350" y="48" width="330" height="24" rx="3" fill="#059669"/>
+    <text x="686" y="65" fill="#1a1a2e" font-size="11" font-weight="600">+0.77</text>
     <!-- NAS100: +0.18, bar width = 0.18*428 = 77, y=84 -->
-    <text x="85" y="99" text-anchor="end" fill="#a1a1aa" font-size="12">NAS100</text>
-    <rect x="350" y="84" width="77" height="24" rx="3" fill="#22c55e" opacity="0.7"/>
-    <text x="433" y="101" fill="#fafafa" font-size="11">+0.18</text>
+    <text x="85" y="99" text-anchor="end" fill="#374151" font-size="12">NAS100</text>
+    <rect x="350" y="84" width="77" height="24" rx="3" fill="#059669" opacity="0.7"/>
+    <text x="433" y="101" fill="#1a1a2e" font-size="11">+0.18</text>
     <!-- US500: +0.16, bar width = 0.16*428 = 68, y=120 -->
-    <text x="85" y="135" text-anchor="end" fill="#a1a1aa" font-size="12">US500</text>
-    <rect x="350" y="120" width="68" height="24" rx="3" fill="#22c55e" opacity="0.6"/>
-    <text x="424" y="137" fill="#fafafa" font-size="11">+0.16</text>
+    <text x="85" y="135" text-anchor="end" fill="#374151" font-size="12">US500</text>
+    <rect x="350" y="120" width="68" height="24" rx="3" fill="#059669" opacity="0.6"/>
+    <text x="424" y="137" fill="#1a1a2e" font-size="11">+0.16</text>
     <!-- USDJPY: -0.15, bar width = 0.15*428 = 64, extends left, y=156 -->
-    <text x="85" y="171" text-anchor="end" fill="#a1a1aa" font-size="12">USDJPY</text>
-    <rect x="286" y="156" width="64" height="24" rx="3" fill="#ef4444" opacity="0.7"/>
-    <text x="278" y="173" text-anchor="end" fill="#fafafa" font-size="11">&minus;0.15</text>
+    <text x="85" y="171" text-anchor="end" fill="#374151" font-size="12">USDJPY</text>
+    <rect x="286" y="156" width="64" height="24" rx="3" fill="#dc2626" opacity="0.7"/>
+    <text x="278" y="173" text-anchor="end" fill="#1a1a2e" font-size="11">&minus;0.15</text>
     <!-- DXY: -0.28, bar width = 0.28*428 = 120, extends left, y=192 -->
-    <text x="85" y="207" text-anchor="end" fill="#a1a1aa" font-size="12">DXY</text>
-    <rect x="230" y="192" width="120" height="24" rx="3" fill="#ef4444"/>
-    <text x="222" y="209" text-anchor="end" fill="#fafafa" font-size="11">&minus;0.28</text>
+    <text x="85" y="207" text-anchor="end" fill="#374151" font-size="12">DXY</text>
+    <rect x="230" y="192" width="120" height="24" rx="3" fill="#dc2626"/>
+    <text x="222" y="209" text-anchor="end" fill="#1a1a2e" font-size="11">&minus;0.28</text>
   </svg>
+  <p class="figure-caption">Figure 1: Contemporaneous Pearson correlations between cross-asset returns and XAUUSD. Silver shows the strongest positive relationship; DXY shows the expected negative correlation.</p>
 </div>
 
 <h3>3.2 Walk-Forward Out-of-Sample R&sup2;</h3>
@@ -363,7 +365,7 @@ predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
     <td><strong>81%</strong></td>
     <td>[+0.021, +0.058]</td>
     <td>38%</td>
-    <td style="color: #22c55e;"><strong>ROBUST</strong></td>
+    <td style="color: #059669;"><strong>ROBUST</strong></td>
   </tr>
   <tr>
     <td>GS &rarr; US30</td>
@@ -372,7 +374,7 @@ predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
     <td><strong>73%</strong></td>
     <td>[+0.008, +0.041]</td>
     <td>42%</td>
-    <td style="color: #22c55e;"><strong>ROBUST</strong></td>
+    <td style="color: #059669;"><strong>ROBUST</strong></td>
   </tr>
   <tr>
     <td>AXP &rarr; US30</td>
@@ -428,55 +430,56 @@ predictor: r_cross[t-1]     (cross-asset return at bar t-1)</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: Quarterly Sign Consistency (22 quarters, 5.5 years)</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Quarterly Sign Consistency (22 quarters, 5.5 years)</text>
     <!-- Chart area: x=90..650, y=45..240 -->
     <!-- Y axis -->
-    <line x1="90" y1="240" x2="650" y2="240" stroke="#27272a" stroke-width="1"/>
-    <line x1="90" y1="45" x2="90" y2="240" stroke="#27272a" stroke-width="1"/>
+    <line x1="90" y1="240" x2="650" y2="240" stroke="#e5e7eb" stroke-width="1"/>
+    <line x1="90" y1="45" x2="90" y2="240" stroke="#e5e7eb" stroke-width="1"/>
     <!-- Y gridlines: 0%=240, 25%=191.25, 50%=142.5, 75%=93.75, 100%=45 -->
-    <line x1="90" y1="191" x2="650" y2="191" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="90" y1="142" x2="650" y2="142" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="90" y1="94" x2="650" y2="94" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="90" y1="45" x2="650" y2="45" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <text x="80" y="244" text-anchor="end" fill="#71717a" font-size="10">0%</text>
-    <text x="80" y="146" text-anchor="end" fill="#71717a" font-size="10">50%</text>
-    <text x="80" y="98" text-anchor="end" fill="#71717a" font-size="10">75%</text>
-    <text x="80" y="49" text-anchor="end" fill="#71717a" font-size="10">100%</text>
+    <line x1="90" y1="191" x2="650" y2="191" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="90" y1="142" x2="650" y2="142" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="90" y1="94" x2="650" y2="94" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="90" y1="45" x2="650" y2="45" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <text x="80" y="244" text-anchor="end" fill="#6b7280" font-size="10">0%</text>
+    <text x="80" y="146" text-anchor="end" fill="#6b7280" font-size="10">50%</text>
+    <text x="80" y="98" text-anchor="end" fill="#6b7280" font-size="10">75%</text>
+    <text x="80" y="49" text-anchor="end" fill="#6b7280" font-size="10">100%</text>
     <!-- 50% threshold dashed line -->
-    <line x1="90" y1="142" x2="650" y2="142" stroke="#a1a1aa" stroke-width="1" stroke-dasharray="6,4"/>
-    <text x="656" y="146" fill="#a1a1aa" font-size="10">Random</text>
+    <line x1="90" y1="142" x2="650" y2="142" stroke="#374151" stroke-width="1" stroke-dasharray="6,4"/>
+    <text x="656" y="146" fill="#374151" font-size="10">Random</text>
     <!-- 6 bars, centered at: 150, 240, 330, 420, 510, 600. Width=60 -->
     <!-- MSFT-NAS: 81%, height=158, y=82 -->
-    <rect x="120" y="82" width="60" height="158" rx="3" fill="#22c55e"/>
-    <text x="150" y="74" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">81%</text>
-    <text x="150" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">MSFT</text>
-    <text x="150" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;NAS100</text>
+    <rect x="120" y="82" width="60" height="158" rx="3" fill="#059669"/>
+    <text x="150" y="74" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">81%</text>
+    <text x="150" y="260" text-anchor="middle" fill="#374151" font-size="10">MSFT</text>
+    <text x="150" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;NAS100</text>
     <!-- GS-US30: 73%, height=142, y=98 -->
-    <rect x="210" y="98" width="60" height="142" rx="3" fill="#22c55e" opacity="0.8"/>
-    <text x="240" y="90" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">73%</text>
-    <text x="240" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">GS</text>
-    <text x="240" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;US30</text>
+    <rect x="210" y="98" width="60" height="142" rx="3" fill="#059669" opacity="0.8"/>
+    <text x="240" y="90" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">73%</text>
+    <text x="240" y="260" text-anchor="middle" fill="#374151" font-size="10">GS</text>
+    <text x="240" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US30</text>
     <!-- AXP-US30: 56%, height=109, y=131 (amber) -->
-    <rect x="300" y="131" width="60" height="109" rx="3" fill="#eab308" opacity="0.7"/>
-    <text x="330" y="123" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">56%</text>
-    <text x="330" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">AXP</text>
-    <text x="330" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;US30</text>
+    <rect x="300" y="131" width="60" height="109" rx="3" fill="#d97706" opacity="0.7"/>
+    <text x="330" y="123" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">56%</text>
+    <text x="330" y="260" text-anchor="middle" fill="#374151" font-size="10">AXP</text>
+    <text x="330" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US30</text>
     <!-- AAPL-US30: 50%, height=97.5, y=142 (red) -->
-    <rect x="390" y="142" width="60" height="98" rx="3" fill="#ef4444" opacity="0.6"/>
-    <text x="420" y="134" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">50%</text>
-    <text x="420" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">AAPL</text>
-    <text x="420" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;US30</text>
+    <rect x="390" y="142" width="60" height="98" rx="3" fill="#dc2626" opacity="0.6"/>
+    <text x="420" y="134" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">50%</text>
+    <text x="420" y="260" text-anchor="middle" fill="#374151" font-size="10">AAPL</text>
+    <text x="420" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US30</text>
     <!-- MCD-US500: 44%, height=85.8, y=154 (red) -->
-    <rect x="480" y="154" width="60" height="86" rx="3" fill="#ef4444" opacity="0.5"/>
-    <text x="510" y="146" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">44%</text>
-    <text x="510" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">MCD</text>
-    <text x="510" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;US500</text>
+    <rect x="480" y="154" width="60" height="86" rx="3" fill="#dc2626" opacity="0.5"/>
+    <text x="510" y="146" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">44%</text>
+    <text x="510" y="260" text-anchor="middle" fill="#374151" font-size="10">MCD</text>
+    <text x="510" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US500</text>
     <!-- CAT-US500: 45%, height=87.75, y=152 (red) -->
-    <rect x="570" y="152" width="60" height="88" rx="3" fill="#ef4444" opacity="0.5"/>
-    <text x="600" y="144" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">45%</text>
-    <text x="600" y="260" text-anchor="middle" fill="#a1a1aa" font-size="10">CAT</text>
-    <text x="600" y="272" text-anchor="middle" fill="#71717a" font-size="9">&rarr;US500</text>
+    <rect x="570" y="152" width="60" height="88" rx="3" fill="#dc2626" opacity="0.5"/>
+    <text x="600" y="144" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">45%</text>
+    <text x="600" y="260" text-anchor="middle" fill="#374151" font-size="10">CAT</text>
+    <text x="600" y="272" text-anchor="middle" fill="#6b7280" font-size="9">&rarr;US500</text>
   </svg>
+  <p class="figure-caption">Figure 2: Quarterly sign consistency across 5.5 years. Only MSFT and GS exceed the 70% robustness threshold. Remaining pairs are indistinguishable from random sign assignment.</p>
 </div>
 
 <h3>4.2 Regime Flip Analysis</h3>

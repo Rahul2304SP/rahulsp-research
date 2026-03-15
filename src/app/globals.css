@@ -2,36 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
+/* KaTeX styles loaded via CDN in layout */
+
 body {
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: #ffffff;
+  color: #1a1a2e;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #09090b; }
-::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+/* Academic paper styling */
+.paper-content {
+  font-size: 1.05rem;
+  line-height: 1.9;
+  color: #2d2d3f;
+}
+.paper-content h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.paper-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: #1a1a2e;
+}
+.paper-content p {
+  color: #374151;
+  line-height: 1.9;
+  margin-bottom: 1.25rem;
+}
+.paper-content strong { color: #1a1a2e; font-weight: 600; }
+.paper-content ul, .paper-content ol {
+  color: #374151;
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+.paper-content li { margin-bottom: 0.5rem; line-height: 1.8; }
+.paper-content code {
+  background: #f3f4f6;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+  font-family: 'JetBrains Mono', monospace;
+}
+.paper-content pre {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+.paper-content pre code {
+  background: none;
+  padding: 0;
+  color: #374151;
+}
+.paper-content blockquote {
+  border-left: 3px solid #1e40af;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #4b5563;
+  font-style: italic;
+  background: #f8f9fc;
+  padding: 1rem 1.25rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.paper-content a { color: #1e40af; text-decoration: underline; text-underline-offset: 2px; }
 
-/* Prose-like styling for paper content */
-.paper-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 1rem; color: #fafafa; }
-.paper-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #fafafa; }
-.paper-content p { color: #a1a1aa; line-height: 1.8; margin-bottom: 1.25rem; }
-.paper-content strong { color: #fafafa; }
-.paper-content ul, .paper-content ol { color: #a1a1aa; margin-bottom: 1.25rem; padding-left: 1.5rem; }
-.paper-content li { margin-bottom: 0.5rem; line-height: 1.7; }
-.paper-content code { background: #18181b; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.875rem; color: #22c55e; }
-.paper-content pre { background: #111113; border: 1px solid #27272a; border-radius: 0.5rem; padding: 1.25rem; overflow-x: auto; margin-bottom: 1.5rem; }
-.paper-content pre code { background: none; padding: 0; color: #a1a1aa; }
-.paper-content blockquote { border-left: 3px solid #22c55e; padding-left: 1rem; margin: 1.5rem 0; color: #a1a1aa; font-style: italic; }
-.paper-content a { color: #22c55e; text-decoration: underline; text-underline-offset: 2px; }
+/* Tables — clean academic style */
+.paper-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+.paper-content th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #1a1a2e;
+  color: #1a1a2e;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.paper-content td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+.paper-content tr:hover td { background: #f8f9fa; }
 
-/* Tables */
-.paper-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.875rem; }
-.paper-content th { text-align: left; padding: 0.75rem 1rem; border-bottom: 2px solid #27272a; color: #fafafa; font-weight: 600; }
-.paper-content td { padding: 0.75rem 1rem; border-bottom: 1px solid #18181b; color: #a1a1aa; }
-.paper-content tr:hover td { background: #111113; }
+/* Key finding callout — academic blue accent */
+.finding-box {
+  background: #f0f4ff;
+  border: 1px solid #dbeafe;
+  border-left: 4px solid #1e40af;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  margin: 2rem 0;
+}
+.finding-box p { margin-bottom: 0; color: #1e3a5f; }
 
-/* Key finding callout */
-.finding-box { background: #111113; border: 1px solid #27272a; border-left: 3px solid #22c55e; border-radius: 0.5rem; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
-.finding-box p { margin-bottom: 0; }
+/* Figure captions */
+.figure-caption {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Math blocks */
+.math-block {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* Scrollbar — subtle */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #ffffff; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }

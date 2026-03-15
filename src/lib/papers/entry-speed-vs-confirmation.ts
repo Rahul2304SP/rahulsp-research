@@ -102,7 +102,7 @@ export const content = `
     }</code></pre>
 
 <p>
-  The <code>body_pct</code> calculation &mdash; <code>|close - open| / open &times; 100</code> &mdash;
+  The body percentage calculation &mdash; $\\text{body\\%} = \\frac{|\\text{close} - \\text{open}|}{\\text{open}} \\times 100$ &mdash;
   normalises the body size relative to the instrument price, making the threshold meaningful across
   different price levels. For XAUUSD trading near $2,600, a body_pct threshold of 0.03% corresponds to
   approximately $0.78, while 0.05% corresponds to approximately $1.30. These thresholds filter out
@@ -399,20 +399,21 @@ elif signal_direction == -1:  # SELL (after bullish run)
   size, ensuring exits are proportional to the signal strength:
 </p>
 
-<pre><code># TPSL calculation
-total_body_pct = signal["total_body_pct"]  # sum of all run bar bodies / open * 100
-tp_pct = total_body_pct * tp_fraction / 100
-sl_pct = tp_pct * sl_multiplier
+<p>The take-profit and stop-loss levels are computed as follows:</p>
 
-# For BUY trades (after bearish run):
-tp_price = entry_price * (1 + tp_pct)
-sl_price = entry_price * (1 - sl_pct)
+$$\\text{TP}_{\\text{pct}} = \\frac{\\text{total\\_body\\_pct} \\times \\text{tp\\_fraction}}{100}$$
 
-# For SELL trades (after bullish run):
-tp_price = entry_price * (1 - tp_pct)
-sl_price = entry_price * (1 + sl_pct)
+$$\\text{SL}_{\\text{pct}} = \\text{TP}_{\\text{pct}} \\times \\text{sl\\_multiplier}$$
 
-# Timeout exit: close at market after timeout_bars (default 3) completed bars</code></pre>
+<p>For BUY trades (after bearish run):</p>
+
+$$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 + \\text{TP}_{\\text{pct}}), \\quad \\text{SL}_{\\text{price}} = \\text{entry} \\times (1 - \\text{SL}_{\\text{pct}})$$
+
+<p>For SELL trades (after bullish run):</p>
+
+$$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct}}), \\quad \\text{SL}_{\\text{price}} = \\text{entry} \\times (1 + \\text{SL}_{\\text{pct}})$$
+
+<p>A timeout exit closes at market after <code>timeout_bars</code> (default 3) completed bars.</p>
 
 <p>
   The <code>tp_fraction</code> parameter controls what percentage of the run body the TP captures.
@@ -740,37 +741,38 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 3: Mean Sustain Rate by Window Size</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 3: Mean Sustain Rate by Window Size</text>
     <!-- Chart area: x=120..600, y=50..210 -->
     <!-- Y axis -->
-    <line x1="120" y1="210" x2="600" y2="210" stroke="#27272a" stroke-width="1"/>
-    <line x1="120" y1="50" x2="120" y2="210" stroke="#27272a" stroke-width="1"/>
+    <line x1="120" y1="210" x2="600" y2="210" stroke="#e5e7eb" stroke-width="1"/>
+    <line x1="120" y1="50" x2="120" y2="210" stroke="#e5e7eb" stroke-width="1"/>
     <!-- Y gridlines & labels: 0%=210, 50%=130, 100%=50 -->
-    <line x1="120" y1="130" x2="600" y2="130" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="120" y1="50" x2="600" y2="50" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <text x="110" y="214" text-anchor="end" fill="#71717a" font-size="11">0%</text>
-    <text x="110" y="134" text-anchor="end" fill="#71717a" font-size="11">50%</text>
-    <text x="110" y="54" text-anchor="end" fill="#71717a" font-size="11">100%</text>
+    <line x1="120" y1="130" x2="600" y2="130" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="120" y1="50" x2="600" y2="50" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <text x="110" y="214" text-anchor="end" fill="#6b7280" font-size="11">0%</text>
+    <text x="110" y="134" text-anchor="end" fill="#6b7280" font-size="11">50%</text>
+    <text x="110" y="54" text-anchor="end" fill="#6b7280" font-size="11">100%</text>
     <!-- Bars: 4 bars centered at x=195, 300, 405, 510, width=70 -->
     <!-- 73.1%: height=117, y=93 -->
-    <rect x="160" y="93" width="70" height="117" rx="3" fill="#22c55e" opacity="1.0"/>
-    <text x="195" y="85" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">73.1%</text>
-    <text x="195" y="232" text-anchor="middle" fill="#a1a1aa" font-size="11">1s</text>
+    <rect x="160" y="93" width="70" height="117" rx="3" fill="#059669" opacity="1.0"/>
+    <text x="195" y="85" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">73.1%</text>
+    <text x="195" y="232" text-anchor="middle" fill="#374151" font-size="11">1s</text>
     <!-- 71.2%: height=114, y=96 -->
-    <rect x="265" y="96" width="70" height="114" rx="3" fill="#22c55e" opacity="0.82"/>
-    <text x="300" y="88" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">71.2%</text>
-    <text x="300" y="232" text-anchor="middle" fill="#a1a1aa" font-size="11">3s</text>
+    <rect x="265" y="96" width="70" height="114" rx="3" fill="#059669" opacity="0.82"/>
+    <text x="300" y="88" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">71.2%</text>
+    <text x="300" y="232" text-anchor="middle" fill="#374151" font-size="11">3s</text>
     <!-- 69.4%: height=111, y=99 -->
-    <rect x="370" y="99" width="70" height="111" rx="3" fill="#22c55e" opacity="0.64"/>
-    <text x="405" y="91" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">69.4%</text>
-    <text x="405" y="232" text-anchor="middle" fill="#a1a1aa" font-size="11">5s</text>
+    <rect x="370" y="99" width="70" height="111" rx="3" fill="#059669" opacity="0.64"/>
+    <text x="405" y="91" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">69.4%</text>
+    <text x="405" y="232" text-anchor="middle" fill="#374151" font-size="11">5s</text>
     <!-- 65.1%: height=104, y=106 -->
-    <rect x="475" y="106" width="70" height="104" rx="3" fill="#22c55e" opacity="0.46"/>
-    <text x="510" y="98" text-anchor="middle" fill="#fafafa" font-size="11" font-weight="600">65.1%</text>
-    <text x="510" y="232" text-anchor="middle" fill="#a1a1aa" font-size="11">10s</text>
+    <rect x="475" y="106" width="70" height="104" rx="3" fill="#059669" opacity="0.46"/>
+    <text x="510" y="98" text-anchor="middle" fill="#1a1a2e" font-size="11" font-weight="600">65.1%</text>
+    <text x="510" y="232" text-anchor="middle" fill="#374151" font-size="11">10s</text>
     <!-- X axis label -->
-    <text x="360" y="252" text-anchor="middle" fill="#a1a1aa" font-size="11">Window size</text>
+    <text x="360" y="252" text-anchor="middle" fill="#374151" font-size="11">Window size</text>
   </svg>
+  <p class="figure-caption">Figure 3: Mean sustain rate declines from 73.1% at 1 second to 65.1% at 10 seconds, reflecting the rapid dissipation of the microstructure imbalance driving the reversal.</p>
 </div>
 
 <p>
@@ -815,23 +817,24 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 1: Cumulative PnL by Entry Method (90 days)</text>
-    <line x1="220" y1="40" x2="220" y2="180" stroke="#27272a" stroke-width="1"/>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 1: Cumulative PnL by Entry Method (90 days)</text>
+    <line x1="220" y1="40" x2="220" y2="180" stroke="#e5e7eb" stroke-width="1"/>
     <!-- Break Entry -->
-    <text x="210" y="72" text-anchor="end" fill="#a1a1aa" font-size="12">Break Entry</text>
-    <rect x="220" y="56" width="370" height="26" rx="3" fill="#22c55e"/>
-    <text x="596" y="74" fill="#fafafa" font-size="12" font-weight="600">+\$39,277</text>
+    <text x="210" y="72" text-anchor="end" fill="#374151" font-size="12">Break Entry</text>
+    <rect x="220" y="56" width="370" height="26" rx="3" fill="#059669"/>
+    <text x="596" y="74" fill="#1a1a2e" font-size="12" font-weight="600">+\$39,277</text>
     <!-- Confirmation Entry -->
-    <text x="210" y="118" text-anchor="end" fill="#a1a1aa" font-size="12">Confirmation Entry</text>
-    <rect x="220" y="102" width="250" height="26" rx="3" fill="#22c55e" opacity="0.55"/>
-    <text x="476" y="120" fill="#fafafa" font-size="12" font-weight="600">+\$26,631</text>
+    <text x="210" y="118" text-anchor="end" fill="#374151" font-size="12">Confirmation Entry</text>
+    <rect x="220" y="102" width="250" height="26" rx="3" fill="#059669" opacity="0.55"/>
+    <text x="476" y="120" fill="#1a1a2e" font-size="12" font-weight="600">+\$26,631</text>
     <!-- Confirmation Bar -->
-    <text x="210" y="164" text-anchor="end" fill="#a1a1aa" font-size="12">Confirmation Bar</text>
-    <rect x="127" y="148" width="93" height="26" rx="3" fill="#ef4444"/>
-    <text x="70" y="166" fill="#fafafa" font-size="12" font-weight="600">&minus;\$9,923</text>
+    <text x="210" y="164" text-anchor="end" fill="#374151" font-size="12">Confirmation Bar</text>
+    <rect x="127" y="148" width="93" height="26" rx="3" fill="#dc2626"/>
+    <text x="70" y="166" fill="#1a1a2e" font-size="12" font-weight="600">&minus;\$9,923</text>
     <!-- Zero line label -->
-    <text x="220" y="192" text-anchor="middle" fill="#71717a" font-size="10">\$0</text>
+    <text x="220" y="192" text-anchor="middle" fill="#6b7280" font-size="10">\$0</text>
   </svg>
+  <p class="figure-caption">Figure 1: Break entry via pending STOP order outperforms confirmation entry by $12,646. The confirmation bar itself has negative expected value.</p>
 </div>
 
 <h3>9.2 The Confirmation Bar: Drag, Not Edge</h3>
@@ -1068,41 +1071,42 @@ sustain_rate = on_correct_side / len(window_ticks) * 100</code></pre>
 
 <div style="margin: 2rem 0;">
   <svg width="100%" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
-    <text x="350" y="22" text-anchor="middle" fill="#fafafa" font-size="13" font-weight="600">Figure 2: Entry Slippage vs Delay (seconds)</text>
+    <text x="350" y="22" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="600">Figure 2: Entry Slippage vs Delay (seconds)</text>
     <!-- Chart area: x=80..640, y=50..230 -->
     <!-- Grid lines -->
-    <line x1="80" y1="230" x2="640" y2="230" stroke="#27272a" stroke-width="1"/>
-    <line x1="80" y1="185" x2="640" y2="185" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="80" y1="140" x2="640" y2="140" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="80" y1="95" x2="640" y2="95" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="80" y1="50" x2="640" y2="50" stroke="#27272a" stroke-width="0.5" stroke-dasharray="4,4"/>
-    <line x1="80" y1="50" x2="80" y2="230" stroke="#27272a" stroke-width="1"/>
+    <line x1="80" y1="230" x2="640" y2="230" stroke="#e5e7eb" stroke-width="1"/>
+    <line x1="80" y1="185" x2="640" y2="185" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="80" y1="140" x2="640" y2="140" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="80" y1="95" x2="640" y2="95" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="80" y1="50" x2="640" y2="50" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="4,4"/>
+    <line x1="80" y1="50" x2="80" y2="230" stroke="#e5e7eb" stroke-width="1"/>
     <!-- Y axis labels -->
-    <text x="70" y="234" text-anchor="end" fill="#71717a" font-size="11">\$0.00</text>
-    <text x="70" y="189" text-anchor="end" fill="#71717a" font-size="11">\$0.50</text>
-    <text x="70" y="144" text-anchor="end" fill="#71717a" font-size="11">\$1.00</text>
-    <text x="70" y="99" text-anchor="end" fill="#71717a" font-size="11">\$1.50</text>
-    <text x="70" y="54" text-anchor="end" fill="#71717a" font-size="11">\$2.00</text>
+    <text x="70" y="234" text-anchor="end" fill="#6b7280" font-size="11">\$0.00</text>
+    <text x="70" y="189" text-anchor="end" fill="#6b7280" font-size="11">\$0.50</text>
+    <text x="70" y="144" text-anchor="end" fill="#6b7280" font-size="11">\$1.00</text>
+    <text x="70" y="99" text-anchor="end" fill="#6b7280" font-size="11">\$1.50</text>
+    <text x="70" y="54" text-anchor="end" fill="#6b7280" font-size="11">\$2.00</text>
     <!-- X axis labels: 0s=80, 3s=248, 5s=360, 10s=640 (scaled: x = 80 + delay * 56) -->
-    <text x="80" y="250" text-anchor="middle" fill="#71717a" font-size="11">0s</text>
-    <text x="248" y="250" text-anchor="middle" fill="#71717a" font-size="11">3s</text>
-    <text x="360" y="250" text-anchor="middle" fill="#71717a" font-size="11">5s</text>
-    <text x="640" y="250" text-anchor="middle" fill="#71717a" font-size="11">10s</text>
+    <text x="80" y="250" text-anchor="middle" fill="#6b7280" font-size="11">0s</text>
+    <text x="248" y="250" text-anchor="middle" fill="#6b7280" font-size="11">3s</text>
+    <text x="360" y="250" text-anchor="middle" fill="#6b7280" font-size="11">5s</text>
+    <text x="640" y="250" text-anchor="middle" fill="#6b7280" font-size="11">10s</text>
     <!-- Axis title -->
-    <text x="360" y="272" text-anchor="middle" fill="#a1a1aa" font-size="11">Delay after break</text>
+    <text x="360" y="272" text-anchor="middle" fill="#374151" font-size="11">Delay after break</text>
     <!-- Line path: (0,$0)=80,230  (3,$1.05)=248,135.5  (5,$1.32)=360,110.8  (10,$1.82)=640,65.8 -->
-    <polyline points="80,230 248,135 360,111 640,66" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round"/>
+    <polyline points="80,230 248,135 360,111 640,66" fill="none" stroke="#059669" stroke-width="2.5" stroke-linejoin="round"/>
     <!-- Dots -->
-    <circle cx="80" cy="230" r="5" fill="#22c55e"/>
-    <circle cx="248" cy="135" r="5" fill="#22c55e"/>
-    <circle cx="360" cy="111" r="5" fill="#22c55e"/>
-    <circle cx="640" cy="66" r="5" fill="#22c55e"/>
+    <circle cx="80" cy="230" r="5" fill="#059669"/>
+    <circle cx="248" cy="135" r="5" fill="#059669"/>
+    <circle cx="360" cy="111" r="5" fill="#059669"/>
+    <circle cx="640" cy="66" r="5" fill="#059669"/>
     <!-- Value labels -->
-    <text x="80" y="222" text-anchor="middle" fill="#fafafa" font-size="10">\$0.00</text>
-    <text x="248" y="127" text-anchor="middle" fill="#fafafa" font-size="10">\$1.05</text>
-    <text x="360" y="103" text-anchor="middle" fill="#fafafa" font-size="10">\$1.32</text>
-    <text x="640" y="58" text-anchor="middle" fill="#fafafa" font-size="10">\$1.82</text>
+    <text x="80" y="222" text-anchor="middle" fill="#1a1a2e" font-size="10">\$0.00</text>
+    <text x="248" y="127" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.05</text>
+    <text x="360" y="103" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.32</text>
+    <text x="640" y="58" text-anchor="middle" fill="#1a1a2e" font-size="10">\$1.82</text>
   </svg>
+  <p class="figure-caption">Figure 2: Mean entry slippage as a function of delay after break. At 5 seconds, slippage of $1.32 consumes 53% of the mean TP target.</p>
 </div>
 
 <h2>10. Discussion</h2>
