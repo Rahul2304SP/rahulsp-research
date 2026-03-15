@@ -54,6 +54,18 @@ export const content = `
   <li>Measure entry slippage as a continuous function of delay and demonstrate monotonic edge decay</li>
 </ol>
 
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Disclaimer &mdash; Simulated Results:</strong> All PnL figures, profit factors, and win rates
+  reported in this paper are derived from <strong>historical tick replay simulation</strong>, not live
+  trading. The simulation replays 42.9 million recorded ticks across 90 trading days, applies the
+  strategy logic to each signal, and computes hypothetical fills at the prevailing bid/ask with a
+  $0.22 spread assumption. No live account equity was at risk during this study. Simulated results
+  do not account for variable liquidity, requotes, partial fills, or adverse market impact that may
+  occur in live execution. The primary contribution of this paper is the <em>relative</em> comparison
+  between entry methods (break vs. confirmation vs. sustain-wait), not the absolute PnL levels, which
+  should not be interpreted as indicative of future live performance.
+</div>
+
 <h2>2. Signal Detection</h2>
 
 <h3>2.1 Forming Run Detection (Path 1 &mdash; Mid-bar Entry)</h3>
@@ -722,6 +734,54 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <h2>9. Results</h2>
 
+<h3>9.0 Methodology Note: Simulation vs. Live Trading</h3>
+
+<p>
+  The results below are produced by replaying historical tick data through the strategy logic
+  in a deterministic simulation environment. This approach provides exact reproducibility and
+  allows controlled comparison between entry methods on identical signal sets. However, it
+  differs from live trading in several important respects:
+</p>
+
+<table>
+  <tr>
+    <th>Aspect</th>
+    <th>Simulation (this study)</th>
+    <th>Live Execution</th>
+  </tr>
+  <tr>
+    <td>Fill model</td>
+    <td>Instantaneous at bid/ask</td>
+    <td>Subject to requotes, slippage, partial fills</td>
+  </tr>
+  <tr>
+    <td>Spread</td>
+    <td>Fixed at $0.22 (session average)</td>
+    <td>Variable; widens during news, rollover, low liquidity</td>
+  </tr>
+  <tr>
+    <td>Market impact</td>
+    <td>None (price path unchanged by orders)</td>
+    <td>Non-zero for larger lot sizes</td>
+  </tr>
+  <tr>
+    <td>Latency</td>
+    <td>Zero (tick-synchronous)</td>
+    <td>Network + broker processing (typically 5&ndash;50ms for MT5 STOP orders)</td>
+  </tr>
+  <tr>
+    <td>Crash filter</td>
+    <td>Not applied (all signals included)</td>
+    <td>Active; blocks entries during high-volatility microstructure events</td>
+  </tr>
+</table>
+
+<p>
+  The absolute PnL figures should therefore be treated as <strong>upper bounds</strong> on
+  achievable performance. The relative ranking of entry methods (break &gt; confirmation &gt;
+  sustain-wait) is robust to these assumptions, as all methods face the same simulation conditions.
+</p>
+
 <h3>9.1 Break vs. Confirmation Entry</h3>
 
 <table>
@@ -1163,4 +1223,11 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
   The edge is not in knowing <em>which</em> breaks will succeed &mdash; it is in being at the exact
   break price when they do.
 </blockquote>
+
+<p>
+  <em>Note:</em> All results in this paper are from historical tick replay simulation and should
+  not be interpreted as guarantees of live performance. The strategy described here has been
+  deployed in a live MT5 environment, but live performance data is not reported in this study.
+  Readers should conduct their own validation before trading.
+</p>
 `;
