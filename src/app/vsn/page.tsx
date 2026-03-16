@@ -19,7 +19,19 @@ interface VsnRow {
   id: number;
   stream: string;
   timestamp: string;
-  weights: number[];
+  weights: Record<string, number> | string;
+}
+
+function parseWeights(raw: Record<string, number> | string): number[] {
+  // Supabase returns JSONB as parsed object or string
+  let obj: Record<string, number>;
+  if (typeof raw === "string") {
+    try { obj = JSON.parse(raw); } catch { return []; }
+  } else {
+    obj = raw;
+  }
+  // Map feature names to ordered array
+  return FEATURE_NAMES.map((name) => obj[name] ?? 0);
 }
 
 export default function VsnPage() {
@@ -57,17 +69,23 @@ export default function VsnPage() {
 
   // Latest weights for bar chart
   const latest = rows.length > 0 ? rows[0] : null;
-  const latestWeights = latest?.weights ?? [];
+  const latestWeights = latest ? parseWeights(latest.weights) : [];
   const meanWeight = latestWeights.length > 0 ? latestWeights.reduce((a, b) => a + b, 0) / latestWeights.length : 0;
   const maxWeight = Math.max(0.01, ...latestWeights);
 
   // Heatmap: rows reversed to show oldest-left, newest-right
   const heatmapRows = [...rows].reverse();
 
+  // Heatmap: parse weights for each row
+  const heatmapParsed = heatmapRows.map((r) => ({
+    ...r,
+    parsed: parseWeights(r.weights),
+  }));
+
   // Heatmap max for color scaling
   const heatmapMax = Math.max(
     0.01,
-    ...heatmapRows.flatMap((r) => r.weights ?? [])
+    ...heatmapParsed.flatMap((r) => r.parsed)
   );
 
   // Sort features by latest weight for bar chart
@@ -85,10 +103,10 @@ export default function VsnPage() {
   const barChartH = featureOrder.length * (barH + barGap) + 8;
 
   /* ---- Heatmap SVG ---- */
-  const hmCellW = Math.max(8, Math.min(14, 700 / Math.max(1, heatmapRows.length)));
+  const hmCellW = Math.max(8, Math.min(14, 700 / Math.max(1, heatmapParsed.length)));
   const hmCellH = 18;
   const hmLabelW = 160;
-  const hmW = hmLabelW + heatmapRows.length * hmCellW + 16;
+  const hmW = hmLabelW + heatmapParsed.length * hmCellW + 16;
   const hmH = FEATURE_NAMES.length * hmCellH + 40;
 
   if (loading) {
@@ -219,7 +237,7 @@ export default function VsnPage() {
       {/* Weight Evolution Heatmap */}
       <div className="rounded-lg border border-[#e5e7eb] bg-white p-5 mb-8">
         <h2 className="text-xs text-[#6b7280] uppercase tracking-wide mb-4">
-          Weight Evolution (Last {heatmapRows.length} Bars)
+          Weight Evolution (Last {heatmapParsed.length} Bars)
         </h2>
         <div className="overflow-x-auto">
           <svg width={hmW} height={hmH} className="overflow-visible">
@@ -238,10 +256,10 @@ export default function VsnPage() {
               </text>
             ))}
             {/* Heatmap cells */}
-            {heatmapRows.map((row, ti) => (
+            {heatmapParsed.map((row, ti) => (
               <g key={ti}>
                 {FEATURE_NAMES.map((_, fi) => {
-                  const val = row.weights?.[fi] ?? 0;
+                  const val = row.parsed[fi] ?? 0;
                   const intensity = Math.min(1, val / heatmapMax);
                   return (
                     <rect
@@ -258,19 +276,19 @@ export default function VsnPage() {
               </g>
             ))}
             {/* Time axis labels */}
-            {heatmapRows.length > 0 && (
+            {heatmapParsed.length > 0 && (
               <>
                 <text x={hmLabelW} y={24} fill="#9ca3af" fontSize="9" textAnchor="start">
-                  {new Date(heatmapRows[0].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {new Date(heatmapParsed[0].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </text>
                 <text
-                  x={hmLabelW + (heatmapRows.length - 1) * hmCellW}
+                  x={hmLabelW + (heatmapParsed.length - 1) * hmCellW}
                   y={24}
                   fill="#9ca3af"
                   fontSize="9"
                   textAnchor="start"
                 >
-                  {new Date(heatmapRows[heatmapRows.length - 1].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {new Date(heatmapParsed[heatmapParsed.length - 1].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </text>
               </>
             )}
