@@ -5,6 +5,7 @@ import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
 import { content as featurePipelineContent } from "./papers/107-feature-pipeline";
 import { content as dispersionContent } from "./papers/dispersion-trading";
+import { content as gprContent } from "./papers/gpr-gold";
 import { content as kalmanContent } from "./papers/kalman-hmm-gold";
 
 export interface Paper {
@@ -18,6 +19,16 @@ export interface Paper {
 }
 
 export const papers: Paper[] = [
+  {
+    slug: "gpr-gold",
+    title: "Geopolitical Risk and Gold: A 40-Year Empirical Study",
+    date: "March 2026",
+    category: "Empirical Studies",
+    abstract:
+      "Using the Caldara-Iacoviello Geopolitical Risk Index (1985-2026), we examine the relationship between geopolitical risk and gold returns across multiple horizons. While GPR level regimes significantly condition gold return distributions, the directional predictive power is weak. High-GPR months show elevated gold volatility and positive skew, but the signal operates at monthly frequency — too slow for intraday trading, though valuable as a regime filter.",
+    author: "Rahul S. P.",
+    content: gprContent,
+  },
   {
     slug: "kalman-hmm-gold",
     title: "Kalman Filter and HMM Regime Detection for Gold Mean-Reversion",
