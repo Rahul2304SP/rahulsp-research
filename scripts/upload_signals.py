@@ -22,7 +22,7 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-DELAY_MINUTES = 15
+DELAY_MINUTES = 0  # Push immediately — delay enforced on frontend by subscription tier
 POLL_SECONDS = 60
 
 # Live model CSV paths

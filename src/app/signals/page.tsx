@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 const SUPABASE_URL = "https://skthypriuhjcayuxaydf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_31hh1GrQE-w-RgSn2o59OA_FwABMlFe";
@@ -72,11 +73,32 @@ export default function SignalsPage() {
   const [activeModel, setActiveModel] = useState<ModelTab>("GoldSSM-34F");
   const [error, setError] = useState<string | null>(null);
   const { isOpen: isMarketOpen, session: currentSession } = useMarketStatus();
+  const [user, setUser] = useState<any>(null);
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        supabase
+          .from("subscribers")
+          .select("status")
+          .eq("user_id", user.id)
+          .single()
+          .then(({ data }) => {
+            setIsPro(data?.status === "pro");
+          });
+      }
+    });
+  }, []);
 
   const fetchSignals = useCallback(async () => {
     try {
+      const delayFilter = isPro
+        ? ""
+        : `&bar_ts=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/signals?model=eq.${activeModel}&order=bar_ts.desc&limit=200`,
+        `${SUPABASE_URL}/rest/v1/signals?model=eq.${activeModel}${delayFilter}&order=bar_ts.desc&limit=200`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -93,7 +115,7 @@ export default function SignalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeModel]);
+  }, [activeModel, isPro]);
 
   useEffect(() => {
     setLoading(true);
@@ -160,9 +182,42 @@ export default function SignalsPage() {
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-[#1a1a2e]">Live Signals</h1>
         <p className="mt-2 text-[#6b7280] text-sm">
-          XAUUSD model signals with 15-minute delay. Updated every 30 seconds.
+          XAUUSD model signals{isPro ? "" : " with 15-minute delay"}. Updated every 30 seconds.
         </p>
       </div>
+
+      {/* Auth/subscription banner */}
+      {!user && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-[#eff6ff] px-4 py-3">
+          <svg className="h-4 w-4 text-[#1e40af] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+          </svg>
+          <p className="text-sm text-[#374151]">
+            <a href="/login" className="font-medium text-[#1e40af] hover:underline">Sign in</a>{" "}
+            to access real-time signals.
+          </p>
+        </div>
+      )}
+      {user && !isPro && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#fde68a] bg-[#fffbeb] px-4 py-3">
+          <svg className="h-4 w-4 text-[#d97706] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+          </svg>
+          <p className="text-sm text-[#374151]">
+            You&apos;re seeing signals with a 15-minute delay.{" "}
+            <a href="/subscribe" className="font-medium text-[#1e40af] hover:underline">Upgrade to Pro</a>{" "}
+            for instant access.
+          </p>
+        </div>
+      )}
+      {user && isPro && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#059669] text-white">
+            Pro
+          </span>
+          <p className="text-sm text-[#166534]">Real-time signals — no delay.</p>
+        </div>
+      )}
 
       {/* Market status widget */}
       <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
@@ -335,7 +390,7 @@ export default function SignalsPage() {
 
       {/* Footer note */}
       <p className="mt-6 text-xs text-[#9ca3af] text-center">
-        Signals are delayed by 15 minutes. Past performance is not indicative of future results.
+        {isPro ? "Real-time signals." : "Signals are delayed by 15 minutes."} Past performance is not indicative of future results.
       </p>
     </div>
   );
