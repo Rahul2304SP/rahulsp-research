@@ -2,17 +2,18 @@ export const content = `
 <h2>1. Introduction</h2>
 
 <p>
-  Gold is the world's most actively traded commodity, with daily turnover exceeding $130 billion across spot,
-  futures, and derivatives markets. Intraday gold price dynamics are driven by a complex web of factors:
-  monetary policy expectations (Federal Reserve rate decisions, forward guidance), real interest rate movements
-  (TIPS yields, inflation breakevens), currency dynamics (DXY, EUR/USD), equity risk appetite (S&amp;P 500,
-  VIX), and market microstructure (liquidity sweeps, order flow imbalances, session transitions). The
-  interaction between these drivers is nonlinear, time-varying, and regime-dependent &mdash; a combination that
-  places extreme demands on any forecasting model.
+  Intraday price forecasting in liquid financial markets — commodities, FX, equity indices — is driven by a
+  complex web of factors: monetary policy expectations, real interest rate movements, currency dynamics,
+  cross-asset risk appetite, and market microstructure (liquidity sweeps, order flow imbalances, session
+  transitions). The interaction between these drivers is nonlinear, time-varying, and regime-dependent &mdash;
+  a combination that places extreme demands on any forecasting model. We develop GoldSSM using XAUUSD (gold)
+  as our primary instrument, chosen for its high liquidity ($130B+ daily turnover), diverse driver set, and
+  strong regime structure — though the architecture is designed for any liquid financial instrument at the
+  intraday timescale.
 </p>
 
 <p>
-  Three fundamental challenges define the problem of intraday gold forecasting at the one-minute (M1) timescale:
+  Three fundamental challenges define the problem of intraday forecasting at the one-minute (M1) timescale:
 </p>
 
 <ol>
@@ -23,7 +24,7 @@ export const content = `
     all timesteps uniformly will be overwhelmed by noise.
   </li>
   <li>
-    <strong>Non-stationarity at every timescale.</strong> The statistical properties of gold returns &mdash;
+    <strong>Non-stationarity at every timescale.</strong> The statistical properties of financial returns &mdash;
     volatility, autocorrelation structure, cross-asset correlations, and the relevance of individual features
     &mdash; shift continuously. A volatility regime that persists for weeks can collapse within minutes during a
     macro shock. Any model with frozen normalisation statistics or static feature weights will degrade as the
@@ -82,8 +83,8 @@ $$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d_k
   where $Q, K, V \\in \\mathbb{R}^{T \\times d}$. The $QK^\\top$ matrix multiplication alone requires
   $O(T^2 \\cdot d)$ operations, and the resulting $T \\times T$ attention matrix must be materialised in memory.
   For a 720-bar M1 window (12 hours of trading), this produces 518,400 attention score pairs per head per layer.
-  With multiple heads, multiple layers, and four parallel temporal streams, the total computational burden makes
-  real-time inference on commodity GPU hardware infeasible.
+  With multiple heads and multiple layers, the total computational burden makes real-time inference on commodity
+  GPU hardware infeasible — and this cost applies to each temporal context window the model must process.
 </p>
 
 <p>
@@ -117,7 +118,7 @@ $$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d_k
 
 <p>
   Transformers process a fixed feature vector at each timestep, with no native mechanism to adapt which features
-  receive emphasis based on the current market regime. In gold trading, the relevance of individual features
+  receive emphasis based on the current market regime. In financial markets, the relevance of individual features
   rotates dramatically: during trending regimes, momentum and moving-average distance features dominate; during
   mean-reverting regimes, support/resistance proximity and volatility features are primary; during macro-shock
   regimes, cross-asset correlations and rate-sensitivity features become paramount. A Transformer treats the
@@ -143,7 +144,7 @@ $$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d_k
   static feature weighting, and regular positional assumptions are each individually problematic for financial
   time series. In combination, they create a model that is simultaneously too expensive for long context,
   too diffuse in its attention, too rigid in its feature treatment, and too regular in its positional
-  assumptions to capture the sparse, non-stationary, regime-dependent structure of intraday gold dynamics.
+  assumptions to capture the sparse, non-stationary, regime-dependent structure of intraday financial dynamics.
 </div>
 
 <h2>3. The State Space Alternative</h2>
@@ -232,11 +233,12 @@ $$h_t = \\bar{A}_t \\odot h_{t-1} + \\bar{B}_t, \\quad y_t = C_t^\\top h_t + D \
 <h2>4. GoldSSM Architecture</h2>
 
 <p>
-  GoldSSM is a multi-scale state space architecture designed for intraday gold forecasting. It processes four
-  parallel temporal streams &mdash; 60, 120, 240, and 720 M1 bars &mdash; through a pipeline of four
-  components: Variable Selection Network, Multi-Scale Mamba Encoding, Temporal Attention Pooling, and Stream
-  Gating with Fusion. Each component addresses a specific limitation of Transformer-based approaches identified
-  in Section 2.
+  GoldSSM is a multi-scale state space architecture designed for intraday financial time series forecasting.
+  Rather than processing a single fixed-length context window, the architecture processes multiple parallel
+  temporal streams at different horizons. In our implementation, we use four streams — 60, 120, 240, and 720
+  M1 bars (1 hour to 12 hours) — though the number and length of streams are configurable hyperparameters.
+  The architecture consists of four components arranged in a pipeline, each addressing a specific limitation
+  of Transformer-based approaches identified in Section 2.
 </p>
 
 <div class="finding-box">
@@ -396,8 +398,8 @@ $$h_{\\text{pool}} = \\text{LayerNorm}\\left(\\frac{1}{Q}\\sum_{i=1}^{Q} o_i\\ri
 
 <p>
   The four pooled stream representations must be combined into a single vector for the prediction heads. A
-  naive approach would concatenate or average them with equal weight. However, empirical analysis of gold
-  intraday dynamics reveals that the most predictive temporal scale rotates across regime quintiles: short
+  naive approach would concatenate or average them with equal weight. However, empirical analysis of
+  intraday financial dynamics reveals that the most predictive temporal scale rotates across regime quintiles: short
   scales dominate during mean-reversion around support/resistance levels, while long scales dominate during
   persistent trend regimes driven by macro factors.
 </p>
