@@ -51,6 +51,12 @@ export default function RootLayout({
                 Research
               </a>
               <a
+                href="/signals"
+                className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
+              >
+                Live Signals
+              </a>
+              <a
                 href="/about"
                 className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
               >

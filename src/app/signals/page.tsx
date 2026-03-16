@@ -1,0 +1,282 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+
+const SUPABASE_URL = "https://skthypriuhjcayuxaydf.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_31hh1GrQE-w-RgSn2o59OA_FwABMlFe";
+
+interface Signal {
+  id: number;
+  model: string;
+  bar_ts: string;
+  close: number;
+  direction: string;
+  entry_price: number | null;
+  sl_price: number | null;
+  tp_price: number | null;
+  exit_reason: string | null;
+  exit_price: number | null;
+  pnl: number | null;
+  hold_bars: number | null;
+  status: string;
+}
+
+type ModelTab = "GoldSSM-34F" | "GoldSSM-28F";
+
+export default function SignalsPage() {
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeModel, setActiveModel] = useState<ModelTab>("GoldSSM-34F");
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSignals = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/signals?model=eq.${activeModel}&order=bar_ts.desc&limit=200`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: Signal[] = await res.json();
+      setSignals(data);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to fetch signals");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeModel]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchSignals();
+    const interval = setInterval(fetchSignals, 30000); // refresh every 30s
+    return () => clearInterval(interval);
+  }, [fetchSignals]);
+
+  // Compute stats
+  const closedSignals = signals.filter((s) => s.status === "closed" && s.pnl !== null);
+  const totalPnl = closedSignals.reduce((sum, s) => sum + (s.pnl ?? 0), 0);
+  const wins = closedSignals.filter((s) => (s.pnl ?? 0) > 0).length;
+  const winRate = closedSignals.length > 0 ? (wins / closedSignals.length) * 100 : 0;
+  const grossProfit = closedSignals.filter((s) => (s.pnl ?? 0) > 0).reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const grossLoss = Math.abs(closedSignals.filter((s) => (s.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0));
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+
+  // Cumulative PnL for chart
+  const sortedClosed = [...closedSignals].sort(
+    (a, b) => new Date(a.bar_ts).getTime() - new Date(b.bar_ts).getTime()
+  );
+  let cumPnl = 0;
+  const equityCurve = sortedClosed.map((s) => {
+    cumPnl += s.pnl ?? 0;
+    return { ts: s.bar_ts, pnl: cumPnl };
+  });
+
+  // SVG equity curve
+  const chartWidth = 700;
+  const chartHeight = 200;
+  const padding = { top: 20, right: 20, bottom: 30, left: 60 };
+  const innerW = chartWidth - padding.left - padding.right;
+  const innerH = chartHeight - padding.top - padding.bottom;
+
+  let svgPath = "";
+  let svgDots = "";
+  if (equityCurve.length > 1) {
+    const minPnl = Math.min(0, ...equityCurve.map((p) => p.pnl));
+    const maxPnl = Math.max(1, ...equityCurve.map((p) => p.pnl));
+    const range = maxPnl - minPnl || 1;
+
+    const points = equityCurve.map((p, i) => {
+      const x = padding.left + (i / (equityCurve.length - 1)) * innerW;
+      const y = padding.top + innerH - ((p.pnl - minPnl) / range) * innerH;
+      return { x, y };
+    });
+
+    svgPath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+    svgDots = points
+      .filter((_, i) => i === points.length - 1)
+      .map((p) => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#1e40af"/>`)
+      .join("");
+  }
+
+  const formatTime = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleString("en-GB", {
+      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="mb-8">
+        <h1 className="font-serif text-3xl text-[#1a1a2e]">Live Signals</h1>
+        <p className="mt-2 text-[#6b7280] text-sm">
+          XAUUSD model signals with 15-minute delay. Updated every 30 seconds.
+        </p>
+      </div>
+
+      {/* Model tabs */}
+      <div className="flex gap-2 mb-8">
+        {(["GoldSSM-34F", "GoldSSM-28F"] as ModelTab[]).map((model) => (
+          <button
+            key={model}
+            onClick={() => setActiveModel(model)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              activeModel === model
+                ? "bg-[#1e40af] text-white"
+                : "bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]"
+            }`}
+          >
+            {model}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        {[
+          { label: "Total Trades", value: closedSignals.length.toString() },
+          { label: "Win Rate", value: closedSignals.length > 0 ? `${winRate.toFixed(1)}%` : "—" },
+          { label: "Profit Factor", value: closedSignals.length > 0 ? (profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)) : "—" },
+          { label: "Net PnL", value: closedSignals.length > 0 ? `$${totalPnl.toFixed(2)}` : "—", color: totalPnl >= 0 ? "#059669" : "#dc2626" },
+          { label: "Gross Loss", value: closedSignals.length > 0 ? `-$${grossLoss.toFixed(2)}` : "—", color: "#dc2626" },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-lg border border-[#e5e7eb] bg-white p-4">
+            <p className="text-xs text-[#6b7280] uppercase tracking-wide">{stat.label}</p>
+            <p
+              className="mt-1 text-xl font-bold"
+              style={{ color: (stat as { color?: string }).color ?? "#1a1a2e" }}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Equity curve */}
+      {equityCurve.length > 1 && (
+        <div className="rounded-lg border border-[#e5e7eb] bg-white p-4 mb-8">
+          <p className="text-xs text-[#6b7280] uppercase tracking-wide mb-3">Cumulative PnL</p>
+          <svg
+            width="100%"
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            className="overflow-visible"
+          >
+            {/* Grid lines */}
+            <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + innerH} stroke="#e5e7eb" strokeWidth="1" />
+            <line x1={padding.left} y1={padding.top + innerH} x2={padding.left + innerW} y2={padding.top + innerH} stroke="#e5e7eb" strokeWidth="1" />
+            {/* Zero line */}
+            {(() => {
+              const minPnl = Math.min(0, ...equityCurve.map((p) => p.pnl));
+              const maxPnl = Math.max(1, ...equityCurve.map((p) => p.pnl));
+              const range = maxPnl - minPnl || 1;
+              const zeroY = padding.top + innerH - ((0 - minPnl) / range) * innerH;
+              return <line x1={padding.left} y1={zeroY} x2={padding.left + innerW} y2={zeroY} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />;
+            })()}
+            {/* Line */}
+            <path d={svgPath} fill="none" stroke="#1e40af" strokeWidth="2" strokeLinejoin="round" />
+            {/* End dot */}
+            <g dangerouslySetInnerHTML={{ __html: svgDots }} />
+            {/* Labels */}
+            <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" fill="#6b7280" fontSize="10">
+              ${Math.max(...equityCurve.map((p) => p.pnl)).toFixed(0)}
+            </text>
+            <text x={padding.left - 8} y={padding.top + innerH + 4} textAnchor="end" fill="#6b7280" fontSize="10">
+              ${Math.min(0, ...equityCurve.map((p) => p.pnl)).toFixed(0)}
+            </text>
+          </svg>
+        </div>
+      )}
+
+      {/* Loading / Error */}
+      {loading && (
+        <div className="text-center py-12 text-[#6b7280]">Loading signals...</div>
+      )}
+      {error && (
+        <div className="text-center py-12 text-[#dc2626]">Error: {error}</div>
+      )}
+
+      {/* No signals yet */}
+      {!loading && !error && signals.length === 0 && (
+        <div className="text-center py-16 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
+          <p className="text-lg text-[#374151] font-medium">No signals yet</p>
+          <p className="mt-2 text-sm text-[#6b7280]">
+            Signals appear here with a 15-minute delay once the models start trading.
+          </p>
+        </div>
+      )}
+
+      {/* Signals table */}
+      {!loading && signals.length > 0 && (
+        <div className="rounded-lg border border-[#e5e7eb] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#f8f9fa]">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Time</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Direction</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Entry</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">SL</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">TP</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Exit</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">PnL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {signals.map((s) => (
+                  <tr key={s.id} className="border-t border-[#f3f4f6] hover:bg-[#f8f9fa]">
+                    <td className="px-4 py-3 text-[#374151] whitespace-nowrap">{formatTime(s.bar_ts)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                          s.direction === "LONG"
+                            ? "bg-[#dcfce7] text-[#166534]"
+                            : s.direction === "SHORT"
+                            ? "bg-[#fef2f2] text-[#991b1b]"
+                            : "bg-[#f3f4f6] text-[#374151]"
+                        }`}
+                      >
+                        {s.direction}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-[#374151] font-mono">{s.entry_price?.toFixed(2) ?? "—"}</td>
+                    <td className="px-4 py-3 text-right text-[#dc2626] font-mono">{s.sl_price?.toFixed(2) ?? "—"}</td>
+                    <td className="px-4 py-3 text-right text-[#059669] font-mono">{s.tp_price?.toFixed(2) ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          s.status === "open"
+                            ? "bg-[#eff6ff] text-[#1e40af]"
+                            : "bg-[#f3f4f6] text-[#6b7280]"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#6b7280] text-xs">{s.exit_reason ?? "—"}</td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold" style={{
+                      color: s.pnl === null ? "#6b7280" : (s.pnl ?? 0) >= 0 ? "#059669" : "#dc2626"
+                    }}>
+                      {s.pnl !== null ? `${s.pnl >= 0 ? "+" : ""}$${s.pnl.toFixed(2)}` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Footer note */}
+      <p className="mt-6 text-xs text-[#9ca3af] text-center">
+        Signals are delayed by 15 minutes. Past performance is not indicative of future results.
+      </p>
+    </div>
+  );
+}
