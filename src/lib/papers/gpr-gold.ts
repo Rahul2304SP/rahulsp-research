@@ -219,7 +219,7 @@ export const content = `
 
 <h2>5. Results: GPR Level and Gold Returns</h2>
 
-<img src="/charts/gpr/fig01_gpr_gold_overview.png" alt="GPR index and gold price normalised, 2018-2026" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig01_gpr_gold_overview_v2.png" alt="GPR index and gold price normalised, 2018-2026" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 1.</strong> Caldara-Iacoviello GPR Index (blue) and XAUUSD price (gold, normalised to 100) over the
   2018&ndash;2026 overlap period. Grey shading shows GPR history prior to the gold data window. Notable GPR spikes
@@ -235,7 +235,7 @@ export const content = `
   geopolitical risk per se.
 </p>
 
-<img src="/charts/gpr/fig02_regime_violin.png" alt="Gold monthly return distribution by GPR level regime" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig02_regime_violin_v2.png" alt="Gold monthly return distribution by GPR level regime" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 2.</strong> Gold monthly return distributions by GPR level regime (Low &lt; 25th percentile,
   Mid = 25&ndash;75th, High &gt; 75th). Violin plots show the full density; white bars indicate medians.
@@ -256,7 +256,7 @@ export const content = `
   to Low-GPR months, consistent with gold's role as a tail-risk asset.
 </div>
 
-<img src="/charts/gpr/fig06_cumulative_regimes.png" alt="Cumulative gold return: High-GPR vs Low-GPR months" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig06_cumulative_regimes_v2.png" alt="Cumulative gold return: High-GPR vs Low-GPR months" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 3.</strong> Cumulative gold return for months classified as High-GPR (red), Mid-GPR (grey),
   and Low-GPR (green). Months are ordered sequentially within each regime, not by calendar date. This
@@ -272,7 +272,7 @@ export const content = `
 
 <h2>6. Results: GPR Changes and Forward Returns</h2>
 
-<img src="/charts/gpr/fig03_quintile_box.png" alt="GPR MoM change quintile vs gold forward returns" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig03_quintile_box_v2.png" alt="GPR MoM change quintile vs gold forward returns" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 4.</strong> Gold return distributions by GPR month-over-month change quintile (Q1 = big GPR drop,
   Q5 = big GPR spike). Box plots show interquartile ranges; whiskers extend to 1.5&times; IQR. Panels show
@@ -287,7 +287,7 @@ export const content = `
   than Q1, but the effect is small relative to the within-quintile dispersion.
 </p>
 
-<img src="/charts/gpr/fig04_winrate_bars.png" alt="Win-rate bar chart by quintile and horizon" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig04_winrate_bars_v2.png" alt="Win-rate bar chart by quintile and horizon" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 5.</strong> Gold win rate (percentage of months with positive returns) by GPR MoM change quintile
   across four horizons: same-month, 1-month forward, 3-month forward, and 6-month forward.
@@ -309,7 +309,7 @@ export const content = `
 
 <h2>7. Results: Temporal Stability</h2>
 
-<img src="/charts/gpr/fig05_scatter_decades.png" alt="Scatter plot of GPR MoM change vs gold return by period" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig05_scatter_decades_v2.png" alt="Scatter plot of GPR MoM change vs gold return by period" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 6.</strong> Scatter plot of GPR month-over-month percentage change versus gold same-month return,
   coloured by sub-period. The dashed white line shows the full-sample OLS regression. The weak overall
@@ -325,7 +325,7 @@ export const content = `
   which is surprising given the intuition that geopolitical risk should matter more when it is elevated.
 </p>
 
-<img src="/charts/gpr/fig07_rolling_corr.png" alt="Rolling 12-month Spearman correlation between GPR level and gold return" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig07_rolling_corr_v2.png" alt="Rolling 12-month Spearman correlation between GPR level and gold return" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 7.</strong> Rolling 12-month Spearman correlation between GPR level and gold monthly return.
   Green shading indicates positive correlation (gold rises with GPR); red shading indicates negative correlation.
