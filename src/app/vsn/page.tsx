@@ -162,6 +162,11 @@ export default function VsnPage() {
           right now. The heatmap shows how these weights have evolved over recent bars, revealing
           which features the model considers most informative as market conditions change.
         </p>
+        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#eff6ff] border border-[#dbeafe]">
+          <span className="text-xs text-[#1e40af]">Free plan: 15-minute delay</span>
+          <span className="text-[#93c5fd]">&middot;</span>
+          <a href="/subscribe" className="text-xs text-[#1e40af] font-medium hover:underline">Upgrade for real-time</a>
+        </div>
         <p className="mt-2 text-[#9ca3af] text-xs">
           GoldSSM-28F &middot; Long stream &middot; 28 features &middot; Auto-refreshes every 60 seconds
         </p>
