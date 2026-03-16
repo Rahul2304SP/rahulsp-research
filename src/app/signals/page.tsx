@@ -23,11 +23,55 @@ interface Signal {
 
 type ModelTab = "GoldSSM-34F" | "GoldSSM-28F";
 
+function useMarketStatus() {
+  const [status, setStatus] = useState({ isOpen: false, session: "Closed" });
+
+  useEffect(() => {
+    function compute() {
+      const now = new Date();
+      const utcDay = now.getUTCDay(); // 0=Sun
+      const utcH = now.getUTCHours();
+      const utcM = now.getUTCMinutes();
+      const t = utcH * 60 + utcM;
+
+      // Market closed: Fri 22:00 UTC to Sun 22:00 UTC
+      const isFriClose = utcDay === 5 && t >= 1320;
+      const isSaturday = utcDay === 6;
+      const isSunEarly = utcDay === 0 && t < 1320;
+      if (isFriClose || isSaturday || isSunEarly) {
+        setStatus({ isOpen: false, session: "Closed" });
+        return;
+      }
+
+      // Session detection (overlaps possible)
+      const sessions: string[] = [];
+      // Asia: 22:00-07:00 UTC
+      if (t >= 1320 || t < 420) sessions.push("Asia");
+      // London: 07:00-16:00 UTC
+      if (t >= 420 && t < 960) sessions.push("London");
+      // New York: 13:00-22:00 UTC
+      if (t >= 780 && t < 1320) sessions.push("New York");
+
+      if (sessions.length > 0) {
+        setStatus({ isOpen: true, session: sessions.join(" / ") });
+      } else {
+        setStatus({ isOpen: false, session: "Closed" });
+      }
+    }
+    compute();
+    const iv = setInterval(compute, 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  return status;
+}
+
 export default function SignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModel, setActiveModel] = useState<ModelTab>("GoldSSM-34F");
   const [error, setError] = useState<string | null>(null);
+  const { isOpen: isMarketOpen, session: currentSession } = useMarketStatus();
 
   const fetchSignals = useCallback(async () => {
     try {
@@ -118,6 +162,22 @@ export default function SignalsPage() {
         <p className="mt-2 text-[#6b7280] text-sm">
           XAUUSD model signals with 15-minute delay. Updated every 30 seconds.
         </p>
+      </div>
+
+      {/* Market status widget */}
+      <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${isMarketOpen ? 'bg-[#059669] animate-pulse' : 'bg-[#dc2626]'}`} />
+          <span className="text-sm font-medium text-[#1a1a2e]">
+            {isMarketOpen ? 'Market Open' : 'Market Closed'}
+          </span>
+        </div>
+        <span className="text-xs text-[#6b7280]">
+          {currentSession} Session
+        </span>
+        <span className="text-xs text-[#6b7280] ml-auto">
+          XAUUSD
+        </span>
       </div>
 
       {/* Model tabs */}
