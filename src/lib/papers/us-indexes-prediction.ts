@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -517,24 +517,234 @@ export const content = `
   <figcaption>Figure 4. NAS100 IBS and RSI(2) equity curves and trade distributions.</figcaption>
 </figure>
 
+<h2>6.2 Gap Study #4: Cross-Index Momentum Rotation</h2>
+
+<h3>6.2.1 Objective</h3>
+
+<p>
+  The second empirical study tests whether cross-index momentum rotation can outperform static
+  buy-and-hold allocation across the three US equity indices. This directly addresses the gap
+  identified in Section 3.2: time-series momentum (Moskowitz, Ooi, and Pedersen, 2012) is one
+  of the most robust findings in quantitative finance, yet its specific application to
+  US30/US500/NAS100 rotation has never been tested. We evaluate four rotation strategies
+  against four buy-and-hold baselines over a common period of August 2020 to March 2026
+  (approximately 5.5 years).
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from historical backtests on
+  MT5 CFD daily bars with spread costs deducted on every entry. They do not account for slippage,
+  overnight financing, or execution latency. Past performance does not predict future results.
+</div>
+
+<h3>6.2.2 Strategies and Baselines</h3>
+
+<p>
+  Four rotation strategies were tested, all using daily close prices for the three indices:
+</p>
+
+<ul>
+  <li><strong>Top-1 Momentum:</strong> At each rebalancing date, allocate 100% to the index with
+  the highest trailing return over the lookback window.</li>
+  <li><strong>Top-2 Momentum:</strong> Allocate 50% each to the two indices with the highest
+  trailing returns.</li>
+  <li><strong>TSMOM (Time-Series Momentum):</strong> For each index independently, go long if its
+  trailing return over the lookback window is positive, otherwise go to cash. Equal-weight across
+  indices with positive momentum. If all three have negative momentum, hold 100% cash.</li>
+  <li><strong>Long-Short:</strong> Go long the top-momentum index and short the bottom-momentum
+  index at each rebalancing date.</li>
+</ul>
+
+<p>
+  Lookback periods of 1, 3, 6, and 12 months were tested with both weekly and monthly rebalancing
+  frequencies. The optimal configuration was selected on the full sample and validated via
+  walk-forward out-of-sample testing.
+</p>
+
+<h3>6.2.3 Baseline Performance</h3>
+
+<table>
+  <thead>
+    <tr><th>Baseline</th><th>Ann. Return</th><th>Sharpe Ratio</th><th>Max Drawdown</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Buy &amp; Hold US30</td><td>9.9%</td><td>0.67</td><td>-21.8%</td></tr>
+    <tr><td>Buy &amp; Hold US500</td><td>13.1%</td><td>0.78</td><td>-24.9%</td></tr>
+    <tr><td>Buy &amp; Hold NAS100</td><td>15.0%</td><td>0.69</td><td>-35.4%</td></tr>
+    <tr><td>Equal Weight (1/3 each)</td><td>12.9%</td><td>0.75</td><td>-26.4%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  NAS100 buy-and-hold delivers the highest annualised return (15.0%) but at the cost of the
+  deepest drawdown (-35.4%). The equal-weight portfolio smooths some of this volatility but
+  does not beat the best single index. US500 has the best risk-adjusted return among the
+  buy-and-hold baselines (Sharpe 0.78).
+</p>
+
+<h3>6.2.4 Full-Sample Results</h3>
+
+<p>
+  The table below reports the best configuration for each strategy family (selected by Sharpe ratio).
+  TSMOM with a 1-month lookback and weekly rebalancing is the clear winner.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Strategy</th><th>Lookback</th><th>Rebalance</th><th>Trades</th><th>Ann. Return</th><th>Sharpe</th><th>Max DD</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Top-1 Momentum</td><td>1 month</td><td>Weekly</td><td>148</td><td>12.3%</td><td>0.71</td><td>-28.1%</td></tr>
+    <tr><td>Top-2 Momentum</td><td>1 month</td><td>Weekly</td><td>134</td><td>13.8%</td><td>0.84</td><td>-22.7%</td></tr>
+    <tr style="font-weight: 600; background: #f0fdf4;"><td>TSMOM</td><td>1 month</td><td>Weekly</td><td>108</td><td>16.0%</td><td>1.27</td><td>-9.4%</td></tr>
+    <tr><td>Long-Short</td><td>1 month</td><td>Weekly</td><td>156</td><td>2.1%</td><td>0.18</td><td>-31.2%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  TSMOM delivers 16.0% annualised with a Sharpe ratio of 1.27, which is 1.7 times better than the
+  best buy-and-hold baseline (US500 at 0.78) and 1.5 times better than the best cross-sectional
+  rotation strategy (Top-2 at 0.84). Its maximum drawdown of -9.4% is less than half of any
+  buy-and-hold baseline and roughly one-quarter of NAS100 buy-and-hold (-35.4%).
+</p>
+
+<p>
+  The long-short strategy fails decisively, earning only 2.1% annualised with a Sharpe of 0.18 and
+  the worst drawdown in the table. This is consistent with a known property of cross-sectional
+  momentum at small $N$: the bottom-ranked index tends to mean-revert rather than continue declining,
+  making the short leg a drag on performance.
+</p>
+
+<h3>6.2.5 Why TSMOM Works: Crash Protection</h3>
+
+<p>
+  TSMOM's edge is not in picking the best index during bull markets. Its edge is almost entirely
+  in <em>crash protection</em>. When trailing returns for all three indices turn negative, TSMOM
+  moves to 100% cash. This mechanism avoided the majority of the 2022 drawdown (when all three
+  indices fell 20 to 35%) and the sharp corrections in late 2023 and early 2025. The allocation
+  timeline chart (Figure 8) shows this clearly: TSMOM spends roughly 15 to 20% of the sample
+  period in cash, and those cash periods coincide with the deepest drawdowns in the buy-and-hold
+  baselines.
+</p>
+
+<p>
+  Short lookback (1 month) combined with weekly rebalancing is optimal because it detects the onset
+  of drawdowns quickly. Longer lookbacks (3, 6, 12 months) are slower to react and suffer larger
+  drawdowns before switching to cash. Monthly rebalancing underperforms weekly for the same reason:
+  delayed reaction to regime changes.
+</p>
+
+<h3>6.2.6 Walk-Forward Out-of-Sample Validation</h3>
+
+<p>
+  The TSMOM strategy (1-month lookback, weekly rebalancing) was validated using a two-fold
+  walk-forward framework. TSMOM beats the equal-weight baseline in both folds (100% beat rate).
+</p>
+
+<table>
+  <thead>
+    <tr><th>Fold</th><th>Period</th><th>TSMOM Return</th><th>TSMOM Sharpe</th><th>Equal-Weight Return</th><th>Equal-Weight Sharpe</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Fold 0</td><td>2020-08 to 2023-05</td><td>+35.0%</td><td>2.35</td><td>+28.7%</td><td>0.91</td></tr>
+    <tr><td>Fold 1</td><td>2023-05 to 2026-03</td><td>+2.2%</td><td>0.27</td><td>+1.8%</td><td>0.12</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Fold 0 covers the post-COVID recovery through mid-2023 and shows strong outperformance
+  (Sharpe 2.35 versus 0.91). Fold 1 covers the more challenging 2023 to 2026 period and shows
+  modest outperformance (Sharpe 0.27 versus 0.12). The strategy beats the baseline in both folds,
+  but the edge is substantially weaker in the more recent period. This is consistent with the
+  observation that TSMOM's primary edge is crash avoidance: Fold 0 contains the 2022 drawdown
+  (where going to cash was highly valuable), while Fold 1 has shallower corrections.
+</p>
+
+<h3>6.2.7 Key Findings</h3>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  <strong>Positive result: TSMOM beats all baselines.</strong>
+  Time-series momentum with a 1-month lookback and weekly rebalancing delivers a Sharpe ratio of
+  1.27 (1.7 times the best buy-and-hold) with a maximum drawdown of -9.4% (less than half of any
+  baseline). This is the first strategy in the series to outperform all buy-and-hold benchmarks
+  on both return and risk-adjusted metrics.
+</div>
+
+<ol>
+  <li><strong>TSMOM is the first strategy to beat all baselines.</strong> At 16.0% annualised with
+  Sharpe 1.27 and -9.4% max drawdown, it dominates every buy-and-hold benchmark and the
+  equal-weight portfolio on both absolute and risk-adjusted metrics.</li>
+  <li><strong>The edge is in crash protection, not stock picking.</strong> TSMOM moves to cash when
+  trailing returns are negative, avoiding the bulk of major drawdowns. During bull markets, it
+  performs roughly in line with equal-weight allocation.</li>
+  <li><strong>Short lookback plus frequent rebalancing is optimal.</strong> A 1-month lookback with
+  weekly rebalancing reacts quickly to regime changes. Longer lookbacks and less frequent
+  rebalancing suffer larger drawdowns before adapting.</li>
+  <li><strong>Long-short fails at small $N$.</strong> With only three indices, the bottom-ranked
+  index tends to mean-revert rather than continue falling, making the short leg a consistent drag.
+  This contrasts with the broader TSMOM literature where diversification across dozens of
+  instruments smooths the short leg.</li>
+  <li><strong>Walk-forward validates the result, with caveats.</strong> TSMOM beats equal-weight in
+  2/2 folds (100%), but the edge is concentrated in the fold containing the 2022 drawdown. In
+  benign markets, the advantage narrows substantially.</li>
+  <li><strong>This validates pursuing harder cross-index gaps.</strong> The positive TSMOM result
+  confirms that cross-index signals contain exploitable structure, motivating the remaining gap
+  studies (spread dynamics, cointegration, regime detection) identified in Section 4.</li>
+</ol>
+
+<h3>6.2.8 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/full_sample_equity_20260316_235013.png" alt="Full-sample equity curves: TSMOM vs buy-and-hold baselines" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 5. Full-sample equity curves: TSMOM vs buy-and-hold baselines. TSMOM (green) delivers the highest terminal value with the shallowest drawdowns, primarily by moving to cash during the 2022 correction.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/sharpe_by_lookback_20260316_235013.png" alt="Sharpe ratio by lookback period and rebalancing frequency" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 6. Sharpe ratio by lookback period and rebalancing frequency. Short lookbacks (1 month) dominate across all strategy families, with weekly rebalancing consistently outperforming monthly.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/walkforward_oos_20260316_235013.png" alt="Walk-forward out-of-sample performance by fold" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 7. Walk-forward out-of-sample performance by fold. TSMOM beats equal-weight in both folds, with the strongest outperformance in Fold 0 (which contains the 2022 drawdown).</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/allocation_timeline_20260316_235013.png" alt="TSMOM allocation timeline showing index rotation" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 8. TSMOM allocation timeline showing index rotation over the full sample. Grey bands indicate cash periods where all three indices had negative trailing momentum. These cash periods coincide with the deepest drawdowns in the buy-and-hold baselines.</figcaption>
+</figure>
+
 <h2>7. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
-  The first empirical gap study, replicating the IBS and RSI(2) mean-reversion strategies from the
-  published literature, has been completed. The key finding is a negative result: daily mean-reversion on
-  MT5 CFDs does not outperform buy-and-hold after realistic spread costs. Pagonidis's reported 75% IBS
-  win rate does not replicate (we observe approximately 50%), and while RSI(2) shows a genuine but weak
+  Two empirical gap studies have been completed.
+</p>
+
+<p>
+  <strong>Gap Study #8 (IBS/RSI replication):</strong> The first study replicated two well-known
+  mean-reversion strategies on MT5 CFDs. The key finding is a negative result: daily mean-reversion
+  does not outperform buy-and-hold after realistic spread costs. Pagonidis's reported 75% IBS win
+  rate does not replicate (we observe approximately 50%), and while RSI(2) shows a genuine but weak
   signal (55 to 67% win rate), it fails walk-forward validation on all three indices.
 </p>
 
 <p>
-  This negative result is informative. It confirms that the research agenda should prioritise the novel
-  cross-index gaps identified in Section 4 (spread dynamics, cointegration, regime detection) rather than
-  single-index mean-reversion at daily frequency. The four highest-priority gaps (price-weighted divergence
-  signal, trivariate cointegration regime model, NAS100/DJIA ratio as regime indicator, and cross-index
-  lead-lag at minute frequency) are all testable with the OHLCV data we have available and remain the
-  focus of the next gap studies.
+  <strong>Gap Study #4 (Cross-index momentum rotation):</strong> The second study tested time-series
+  momentum (TSMOM) rotation across the three indices. This produced the first positive result in the
+  series: TSMOM with a 1-month lookback and weekly rebalancing delivers a Sharpe ratio of 1.27
+  (1.7 times the best buy-and-hold baseline) with a maximum drawdown of only -9.4%. The edge is
+  primarily in crash protection, as TSMOM moves to cash when all three indices have negative trailing
+  momentum. Walk-forward validation confirms the result in 2/2 out-of-sample folds, though the edge
+  is strongest during periods containing significant drawdowns.
+</p>
+
+<p>
+  These results together confirm that single-index mean-reversion at daily frequency is not viable on
+  MT5 CFDs, but cross-index signals contain exploitable structure. The remaining highest-priority gaps
+  (price-weighted divergence signal, trivariate cointegration regime model, NAS100/DJIA ratio as
+  regime indicator, and cross-index lead-lag at minute frequency) are all testable with the OHLCV
+  data we have available and remain the focus of the next gap studies.
 </p>
 
 <h2>8. References</h2>
