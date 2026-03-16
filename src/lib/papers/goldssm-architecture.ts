@@ -55,7 +55,7 @@ export const content = `
   multi-scale Mamba encoding with input-dependent state transitions for linear-time sequence processing; learned
   temporal attention pooling to concentrate summary capacity on informative bars; and adaptive stream gating to
   redistribute emphasis across temporal scales as the regime shifts. GoldSSM processes 12 hours of M1 context
-  (720 bars) in linear time, with 6.2&times; fewer parameters than the equivalent Transformer baseline.
+  (720 bars) in linear time, with approximately 2.1&times; fewer parameters than the equivalent Transformer baseline.
 </p>
 
 <h2>2. The Transformer Problem for Financial Time Series</h2>
@@ -461,21 +461,21 @@ $$z = \\text{LayerNorm}\\big(\\text{SiLU}(W_f [g_1 \\cdot h_1 \\; ; \\; g_2 \\cd
     </tr>
     <tr>
       <td>Parameters</td>
-      <td>~12.5M</td>
-      <td>~2.0M (6.2&times; reduction)</td>
+      <td>~2.41M</td>
+      <td>~1.15M (2.1&times; reduction)</td>
     </tr>
   </tbody>
 </table>
 
 <p>
-  Where does the 6.2x parameter reduction come from? The Transformer baseline requires separate learned
+  Where does the 2.1&times; parameter reduction come from? The Transformer baseline requires separate learned
   positional encodings, multi-head self-attention projections ($W_Q$, $W_K$, $W_V$, $W_O$ per head per layer),
   and feed-forward networks at each layer. GoldSSM replaces all of these with compact Mamba blocks whose
   parameter count scales as $O(d \\cdot N)$ per block; the state dimension $N = 8$ is far smaller than the
   typical Transformer hidden dimension. The Variable Selection Network adds $O(F \\cdot d)$ parameters, and the
-  stream gating network is a small MLP. The result is approximately 2.0 million parameters, small enough to
-  train on limited financial datasets without severe overfitting and fast enough for real-time M1 inference
-  on commodity hardware.
+  stream gating network is a small MLP. The result is approximately 1.15 million parameters at $d = 128$
+  (reducing to 39,634 parameters in the production deployment at $d = 16$), small enough to train on limited
+  financial datasets without severe overfitting and fast enough for real-time M1 inference on commodity hardware.
 </p>
 
 <p>
@@ -484,6 +484,36 @@ $$z = \\text{LayerNorm}\\big(\\text{SiLU}(W_f [g_1 \\cdot h_1 \\; ; \\; g_2 \\cd
   augmentation is problematic because synthetic financial data rarely preserves the distributional properties
   that matter for trading. Fewer parameters means fewer samples needed for comparable generalisation, reducing
   the risk of overfitting to historical idiosyncrasies that will not recur out of sample.
+</p>
+
+<h3>5.1 A Note on Practical Timing</h3>
+
+<p>
+  The theoretical complexity advantage of SSMs over Transformers does not translate
+  straightforwardly into wall-clock speedups at practical sequence lengths. Empirical
+  timing of forward passes on GPU (CUDA) reveals that at $T = 720$, a standard Transformer
+  encoder completes a forward pass in approximately 23ms, while GoldSSM requires
+  approximately 411ms. The fitted scaling exponents are $T^{0.87}$ for GoldSSM and $T^{1.00}$
+  for the Transformer, both effectively linear at the sequence lengths tested.
+</p>
+
+<p>
+  The explanation lies in implementation maturity. PyTorch's self-attention benefits from
+  years of hardware-level optimisation: FlashAttention, cuDNN-fused kernels, and memory-efficient
+  attention backends that exploit GPU tensor cores. These optimisations compress the theoretical
+  $O(T^2)$ scaling into near-linear observed behaviour for $T \\leq 1440$. The Mamba selective
+  scan, by contrast, relies on a sequential JIT-compiled loop that cannot yet exploit the same
+  degree of hardware parallelism.
+</p>
+
+<p>
+  This does not invalidate the architectural argument. The $O(T)$ theoretical bound ensures
+  that GoldSSM's advantage widens at longer sequence lengths where the Transformer's quadratic
+  term eventually dominates. At $T = 10{,}000$ or beyond, the scaling difference becomes material.
+  For the sequence lengths used in this work ($T \\leq 720$), the Transformer's practical speed
+  advantage is real and should be acknowledged. The architectural benefits of GoldSSM &mdash; in
+  particular dynamic feature selection, adaptive memory, and regime-conditioned stream gating
+  &mdash; remain independent of the timing comparison.
 </p>
 
 <h2>6. Training: Noise-Consistency Regularisation</h2>
@@ -560,7 +590,109 @@ $$\\mathcal{L}_{\\text{NC}} = \\mathbb{E}\\left[\\|f(x) - f(x + \\epsilon)\\|_2^
   than one standard deviation go to the regime-sensitive path; the rest use the stationary path.
 </p>
 
-<h2>7. Conclusion</h2>
+<h2>7. Empirical Validation</h2>
+
+<p>
+  To verify the claims made in this paper, we conducted a series of empirical tests
+  on the trained GoldSSM model using the production checkpoint. The results confirm
+  several architectural claims while revealing important caveats about computational
+  performance.
+</p>
+
+<h3>7.1 Parameter Count</h3>
+<p>
+  At the paper configuration ($d_{\\text{embed}} = 128$, 2 Mamba layers, 34 features, 4 streams),
+  GoldSSM contains 1,151,938 trainable parameters. An equivalent Transformer encoder
+  with matched embedding dimension and layer count contains 2,411,942 parameters,
+  yielding a ratio of 2.1&times;. The production deployment uses $d_{\\text{embed}} = 16$,
+  reducing GoldSSM to 39,634 parameters.
+</p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_param_comparison.png" alt="Parameter count comparison between GoldSSM and Transformer at d_embed=128" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 1: Parameter count comparison between GoldSSM and equivalent Transformer at $d_{\\text{embed}} = 128$. GoldSSM achieves a 2.1&times; reduction, primarily from replacing self-attention projections with compact Mamba blocks.</p>
+</div>
+
+<h3>7.2 VSN Regime Dependence</h3>
+<p>
+  A permutation test (1,000 shuffles) on VSN weight vectors from the short stream
+  confirms that feature weights are statistically dependent on regime label
+  ($p &lt; 0.0001$). The three most regime-variable features are the XAG-beta
+  interaction term, the 1440-bar DXY correlation, and 60-minute returns. While
+  cross-regime cosine similarity remains high (0.9999), the differences, though
+  small in magnitude, are consistent and statistically significant.
+</p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_vsn_regime_heatmap.png" alt="VSN weight heatmap across regimes" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 2: VSN weight distribution across regime labels. Feature weights vary systematically with regime (permutation test $p &lt; 0.0001$), with the largest differences in cross-asset and momentum features.</p>
+</div>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_vsn_top_features.png" alt="Top regime-variable features by VSN weight variance" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 3: Top features ranked by cross-regime VSN weight variance. XAG-beta interaction, DXY correlation, and 60-minute returns show the strongest regime dependence.</p>
+</div>
+
+<h3>7.3 Stream Gating</h3>
+<p>
+  All four stream gates differ significantly from uniform weighting
+  (one-sample $t$-test, $p &lt; 0.001$ for all streams). The long stream receives
+  the highest mean gate value (1.040), suggesting the model allocates
+  slightly more representational weight to the 4-hour context. Gate value
+  ranges are modest (0.02 to 0.06), indicating that gating provides fine
+  adjustment rather than aggressive stream suppression.
+</p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_gate_evolution.png" alt="Stream gate values across evaluation samples" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 4: Stream gate values across evaluation samples. All four streams deviate significantly from uniform ($p &lt; 0.001$), with the long stream (4h) receiving the highest mean gate weight. The narrow range (0.02&ndash;0.06) indicates fine-grained rather than binary stream selection.</p>
+</div>
+
+<h3>7.4 Temporal Attention Pooling</h3>
+<p>
+  TAP entropy across all four streams is 1.0, indicating that the learned queries
+  currently distribute attention uniformly across the encoded sequence. In effect,
+  TAP is behaving as mean pooling rather than concentrating on a sparse subset of
+  informative bars as the architecture is designed to do. This is likely a consequence
+  of insufficient training epochs: the queries have not yet differentiated. Longer
+  training schedules or explicit sparsity encouragement (e.g., entropy regularisation
+  on the attention weights) may be needed to realise the theoretical benefit of
+  selective temporal summarisation.
+</p>
+
+<h3>7.5 Noise Robustness</h3>
+<p>
+  Output sensitivity to input perturbation scales linearly with noise
+  magnitude: $L_2$ distance of 0.0011 at $\\sigma = 0.01$, rising to 0.052 at $\\sigma = 0.50$.
+  The near-proportional relationship and small absolute magnitudes suggest
+  the model has not memorised bar-level patterns and responds smoothly
+  to input variation. The noise-consistency regularisation described in Section 6
+  appears to be functioning as intended.
+</p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_noise_sensitivity.png" alt="Output L2 distance as a function of input noise magnitude" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 5: Output $L_2$ distance as a function of input noise standard deviation $\\sigma$. The near-linear relationship confirms that the model's predictions degrade gracefully under input perturbation rather than exhibiting the sharp sensitivity characteristic of overfitting.</p>
+</div>
+
+<h3>7.6 Causal Normalisation</h3>
+<p>
+  Comparing KL divergence between training and out-of-sample feature
+  distributions, causal rolling normalisation reduces distribution shift
+  for 11 of 12 testable features, with a mean reduction of 78.6%. The
+  largest improvements appear in volatility and volume features (stdev60:
+  83.6% reduction, xau_volume: 96.9%). The single feature that did not
+  improve (er60, efficiency ratio) has an approximately stationary
+  distribution by construction, confirming that the dual-path normalisation
+  scheme (Section 6.1) correctly assigns stationary features to the static path.
+</p>
+
+<div style="margin: 2rem 0;">
+  <img src="/charts/goldssm/fig_normalisation_kl.png" alt="KL divergence reduction from causal normalisation by feature" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <p class="figure-caption">Figure 6: KL divergence between training and out-of-sample feature distributions, with and without causal rolling normalisation. 11 of 12 features show reduced distribution shift, with mean improvement of 78.6%.</p>
+</div>
+
+<h2>8. Conclusion</h2>
 
 <p>
   GoldSSM addresses three limitations of Transformer architectures for intraday financial forecasting. Replacing
@@ -580,12 +712,15 @@ $$\\mathcal{L}_{\\text{NC}} = \\mathbb{E}\\left[\\|f(x) - f(x + \\epsilon)\\|_2^
 </p>
 
 <p>
-  At approximately 2.0 million parameters, GoldSSM achieves a 6.2x reduction relative to the equivalent
-  Transformer baseline with comparable layer depth and embedding dimension. This reduction follows from
-  architecture, not aggressive pruning: the Mamba block's $O(d \\cdot N)$ parameter scaling with $N = 8$ is
-  inherently more compact than the $O(d^2)$ scaling of Transformer self-attention and feed-forward layers. The
-  smaller model is both faster at inference and less prone to overfitting on the limited, non-stationary
-  datasets characteristic of financial machine learning.
+  At approximately 1.15 million parameters ($d_{\\text{embed}} = 128$), GoldSSM achieves a 2.1&times; reduction
+  relative to the equivalent Transformer baseline with comparable layer depth and embedding dimension. This
+  reduction follows from architecture, not aggressive pruning: the Mamba block's $O(d \\cdot N)$ parameter
+  scaling with $N = 8$ is inherently more compact than the $O(d^2)$ scaling of Transformer self-attention
+  and feed-forward layers. The smaller model is less prone to overfitting on the limited, non-stationary
+  datasets characteristic of financial machine learning. However, the parameter advantage does not currently
+  translate into inference speed: at $T = 720$, PyTorch's highly optimised attention kernels give the
+  Transformer a substantial wall-clock advantage (Section 5.1). The theoretical $O(T)$ scaling of SSMs
+  is expected to become practically relevant at longer sequence lengths as Mamba kernel implementations mature.
 </p>
 
 <p>
@@ -599,9 +734,12 @@ $$\\mathcal{L}_{\\text{NC}} = \\mathbb{E}\\left[\\|f(x) - f(x + \\epsilon)\\|_2^
 <p>
   Every architectural choice in GoldSSM is grounded in the statistical properties of financial time series
   rather than general-purpose sequence modelling considerations. The model is more expressive (adaptive feature
-  selection, adaptive temporal weighting, adaptive memory horizon), more efficient (linear complexity, 6.2x
-  fewer parameters), and better regularised (noise-consistency, causal normalisation) than the Transformer
-  baseline it replaces.
+  selection, adaptive temporal weighting, adaptive memory horizon), more parameter-efficient (linear theoretical
+  complexity, 2.1&times; fewer parameters), and better regularised (noise-consistency, causal normalisation) than
+  the Transformer baseline it replaces. Empirical validation (Section 7) confirms the statistical claims
+  &mdash; regime-dependent feature selection, non-uniform stream gating, noise robustness, and effective causal
+  normalisation &mdash; while identifying areas for further work, including TAP query specialisation and
+  closing the wall-clock gap with optimised Mamba kernels.
 </p>
 
 <h2>References</h2>
