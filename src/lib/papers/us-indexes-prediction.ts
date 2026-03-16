@@ -1,8 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Work in Progress</strong> &mdash; This study is currently in Phase 1 (Literature Review).
-  The empirical analysis, backtesting, and walk-forward validation are planned for subsequent phases.
-  This page will be updated as the research progresses.
+  <strong>Work in Progress</strong> &mdash; Phase 1 complete, Phase 2 in progress.
+  Empirical gap studies are underway. This page will be updated as results become available.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering</td><td style="color: #6b7280;">Planned</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -386,26 +385,159 @@ export const content = `
   documented as a negative result.
 </p>
 
-<h2>6. Current Status</h2>
+<h2>6. Phase 2: IBS and RSI Mean-Reversion Replication</h2>
+
+<h3>6.1 Objective</h3>
 
 <p>
-  This project is in Phase 1. The literature review is complete. We have surveyed 25 academic papers and
-  industry white papers covering cross-index dynamics, multi-index strategies, structural differences
-  between the three major US equity indices, and the associated research gaps. The key finding from the
-  literature review is that while individual-index prediction has been extensively studied, the cross-index
-  dimension &mdash; particularly the structural divergences created by different weighting methodologies,
-  sector compositions, and rebalancing schedules &mdash; contains several entirely unstudied research gaps.
+  The first empirical study in Phase 2 replicates two of the most cited OHLCV-only mean-reversion
+  strategies on US equity indices: the Internal Bar Strength (IBS) strategy from Pagonidis (2014) and
+  the RSI(2) strategy from Connors and Alvarez (2009). Both strategies are tested on US30, US500, and
+  NAS100 using daily bars from MetaTrader 5 with realistic CFD spread costs applied to every round-trip.
+  The purpose is to establish whether these well-known edges survive transaction costs on MT5 CFDs before
+  building more complex models on top of them.
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from historical backtests on
+  MT5 CFD daily bars with spread costs deducted on every entry. They do not account for slippage,
+  overnight financing, or execution latency. Past performance does not predict future results.
+</div>
+
+<h3>6.2 Full-Sample Results (Literature Parameters)</h3>
+
+<p>
+  The IBS strategy enters long when the Internal Bar Strength
+  $\\text{IBS} = (\\text{Close} - \\text{Low}) / (\\text{High} - \\text{Low})$ falls below 0.20 and
+  exits the next trading day. The RSI(2) strategy enters long when the two-period RSI drops below 5
+  and holds for five trading days. Both use the exact parameter values from their respective publications.
+</p>
+
+<h4>IBS (buy &lt; 0.20, sell &gt; 0.80, hold 1 day)</h4>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Trades</th><th>Win Rate</th><th>Profit Factor</th><th>Total Points</th><th>Buy &amp; Hold Points</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>360</td><td>49.4%</td><td>1.15</td><td>+8,764</td><td>+19,167</td></tr>
+    <tr><td>US500</td><td>547</td><td>50.3%</td><td>1.26</td><td>+2,846</td><td>+4,055</td></tr>
+    <tr><td>NAS100</td><td>603</td><td>49.4%</td><td>1.25</td><td>+12,516</td><td>+18,027</td></tr>
+  </tbody>
+</table>
+
+<h4>RSI(2) &lt; 5, hold 5 days</h4>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Trades</th><th>Win Rate</th><th>Profit Factor</th><th>Total Points</th><th>Buy &amp; Hold Points</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>47</td><td>57.4%</td><td>1.48</td><td>+7,243</td><td>+19,167</td></tr>
+    <tr><td>US500</td><td>61</td><td>67.2%</td><td>1.64</td><td>+1,501</td><td>+4,055</td></tr>
+    <tr><td>NAS100</td><td>62</td><td>59.7%</td><td>1.45</td><td>+4,959</td><td>+18,027</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Both strategies are profitable in-sample across all three indices, but neither comes close to matching
+  buy-and-hold returns. IBS captures roughly 46% to 70% of buy-and-hold points depending on the index,
+  while RSI(2) captures 27% to 38%. The RSI(2) strategy shows higher win rates and profit factors but
+  trades far less frequently (47 to 62 trades versus 360 to 603 for IBS).
+</p>
+
+<h3>6.3 Walk-Forward Out-of-Sample Results</h3>
+
+<p>
+  To test robustness, both strategies were evaluated using a nine-fold walk-forward framework with
+  expanding training windows. At each fold, the strategy parameters were re-optimised on the training
+  window and evaluated on the subsequent out-of-sample period.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Strategy</th><th>Folds Beating Buy &amp; Hold</th><th>OOS Beat Rate</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>IBS</td><td>2 / 9</td><td>22%</td></tr>
+    <tr><td>RSI(2)</td><td>3 / 9</td><td>33%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Neither strategy beats buy-and-hold consistently out of sample. Walk-forward optimal parameters are
+  unstable across folds, suggesting that the in-sample edge is partially an artefact of parameter fitting
+  rather than a stable structural signal.
+</p>
+
+<h3>6.4 Key Findings</h3>
+
+<div class="finding-box">
+  <strong>Negative result: daily mean-reversion on MT5 CFDs does not outperform buy-and-hold.</strong>
+  IBS replication FAILED (Pagonidis reported 75% win rate; we observe approximately 50%).
+  RSI(2) replication is PARTIAL (genuine but weak signal at 55 to 67% win rate, insufficient to beat
+  buy-and-hold after costs). Neither strategy passes walk-forward validation.
+</div>
+
+<ol>
+  <li><strong>Pagonidis's 75% IBS win rate does not replicate.</strong> We observe approximately 50% across
+  all three indices. The discrepancy likely reflects differences in instrument (equities versus CFDs),
+  cost assumptions, and sample period.</li>
+  <li><strong>RSI(2) shows a genuine but weak signal.</strong> Win rates of 55 to 67% are consistent with
+  Connors and Alvarez (2009) but the edge is too thin to overcome buy-and-hold on a trending asset class.</li>
+  <li><strong>US500 is the worst venue for both strategies.</strong> Higher relative spread costs on the
+  S&amp;P 500 CFD eat the thin mean-reversion edge more aggressively than on US30 or NAS100.</li>
+  <li><strong>Walk-forward parameters are unstable.</strong> Optimal IBS and RSI thresholds shift
+  substantially across folds, indicating that the strategies are fitting noise rather than capturing
+  a stable structural signal.</li>
+  <li><strong>Negative results are informative.</strong> These findings confirm that the research agenda
+  should focus on the novel cross-index gaps identified in Section 4 (spread dynamics, cointegration,
+  regime detection) rather than on single-index mean-reversion at daily frequency.</li>
+</ol>
+
+<h3>6.5 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/summary_comparison_20260316_232903.png" alt="Summary comparison across all strategies and indices" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 1. Summary comparison of IBS and RSI(2) strategies across US30, US500, and NAS100. Neither strategy matches buy-and-hold returns.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/US30_ibs_rsi_study_20260316_232903.png" alt="US30 IBS and RSI study results" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 2. US30 IBS and RSI(2) equity curves and trade distributions.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/US500_ibs_rsi_study_20260316_232903.png" alt="US500 IBS and RSI study results" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 3. US500 IBS and RSI(2) equity curves and trade distributions. US500 shows the weakest performance due to higher relative spread costs.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/NAS100_ibs_rsi_study_20260316_232903.png" alt="NAS100 IBS and RSI study results" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 4. NAS100 IBS and RSI(2) equity curves and trade distributions.</figcaption>
+</figure>
+
+<h2>7. Current Status</h2>
+
+<p>
+  Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
+  The first empirical gap study, replicating the IBS and RSI(2) mean-reversion strategies from the
+  published literature, has been completed. The key finding is a negative result: daily mean-reversion on
+  MT5 CFDs does not outperform buy-and-hold after realistic spread costs. Pagonidis's reported 75% IBS
+  win rate does not replicate (we observe approximately 50%), and while RSI(2) shows a genuine but weak
+  signal (55 to 67% win rate), it fails walk-forward validation on all three indices.
 </p>
 
 <p>
-  The four highest-priority gaps (price-weighted divergence signal, trivariate cointegration regime model,
-  NAS100/DJIA ratio as regime indicator, and cross-index lead-lag at minute frequency) are all testable
-  with the OHLCV data we have available. No alternative data, options data, or order-book data is required.
-  Phases 2 through 4 will proceed sequentially, with this page updated as empirical results become
-  available.
+  This negative result is informative. It confirms that the research agenda should prioritise the novel
+  cross-index gaps identified in Section 4 (spread dynamics, cointegration, regime detection) rather than
+  single-index mean-reversion at daily frequency. The four highest-priority gaps (price-weighted divergence
+  signal, trivariate cointegration regime model, NAS100/DJIA ratio as regime indicator, and cross-index
+  lead-lag at minute frequency) are all testable with the OHLCV data we have available and remain the
+  focus of the next gap studies.
 </p>
 
-<h2>7. References</h2>
+<h2>8. References</h2>
 
 <table>
   <thead>
