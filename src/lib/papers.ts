@@ -5,6 +5,7 @@ import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
 import { content as featurePipelineContent } from "./papers/107-feature-pipeline";
 import { content as dispersionContent } from "./papers/dispersion-trading";
+import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
 import { content as kalmanContent } from "./papers/kalman-hmm-gold";
 
@@ -19,6 +20,17 @@ export interface Paper {
 }
 
 export const papers: Paper[] = [
+  {
+    slug: "us-indexes-prediction",
+    title:
+      "US Index Prediction: A Multi-Index Framework for DJIA, S&P 500, and NAS100",
+    date: "March 2026",
+    category: "Empirical Studies",
+    abstract:
+      "A literature review and research framework for predicting US equity index movements using cross-index dynamics. We identify several unstudied research gaps including price-weighted vs cap-weighted divergence signals and trivariate cointegration regime models. Empirical phases are in progress.",
+    author: "Rahul S. P.",
+    content: usIndexesContent,
+  },
   {
     slug: "gpr-gold",
     title: "Geopolitical Risk and Gold: A 40-Year Empirical Study",

@@ -177,6 +177,35 @@ export default function HomePage() {
         </a>
       </section>
 
+      {/* ── Work-in-Progress Study ── */}
+      <section className="pb-10">
+        <a href="/papers/us-indexes-prediction" className="block group">
+          <div className="rounded-xl border border-[#e5e7eb] hover:border-[#d97706] transition-colors overflow-hidden">
+            <div className="bg-[#fffbeb] px-5 py-2.5 border-b border-[#fde68a] flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#92400e] bg-[#fef3c7] px-2 py-0.5 rounded">In Progress</span>
+              <span className="text-[10px] text-[#9ca3af]">Empirical Studies</span>
+            </div>
+            <div className="p-5 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-[#1a1a2e] group-hover:text-[#d97706] transition-colors mb-2">
+                US Index Prediction: A Multi-Index Framework
+              </h3>
+              <p className="text-sm text-[#374151] leading-relaxed mb-4 line-clamp-2">
+                Cross-index dynamics between DJIA, S&amp;P 500, and NAS100. Literature review complete &mdash;
+                identifying unstudied research gaps in price-weighted divergence signals and trivariate
+                cointegration.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#6b7280]">
+                <span className="px-2 py-0.5 rounded bg-[#fef3c7] text-[#92400e]">Phase 1: Literature Review</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">US30</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">US500</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">NAS100</span>
+                <span className="ml-auto text-[#d97706] group-hover:underline">Read more &rarr;</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </section>
+
       <hr className="border-[#e5e7eb]" />
 
       {/* ── Section Navigation ── */}
