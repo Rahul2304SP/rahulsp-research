@@ -136,6 +136,8 @@ export default function SignalsPage() {
   const grossProfit = closedSignals.filter((s) => (s.pnl ?? 0) > 0).reduce((s, t) => s + (t.pnl ?? 0), 0);
   const grossLoss = Math.abs(closedSignals.filter((s) => (s.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0));
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+  const signalsWithMae = closedSignals.filter((s) => (s as any).mae !== null && (s as any).mae !== undefined);
+  const avgMae = signalsWithMae.length > 0 ? signalsWithMae.reduce((sum, s) => sum + ((s as any).mae ?? 0), 0) / signalsWithMae.length : 0;
 
   // Cumulative PnL for chart
   const sortedClosed = [...closedSignals].sort(
@@ -263,7 +265,7 @@ export default function SignalsPage() {
           { label: "Win Rate", value: closedSignals.length > 0 ? `${winRate.toFixed(1)}%` : "—" },
           { label: "Profit Factor", value: closedSignals.length > 0 ? (profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)) : "—" },
           { label: "Net PnL", value: closedSignals.length > 0 ? `$${totalPnl.toFixed(2)}` : "—", color: totalPnl >= 0 ? "#059669" : "#dc2626" },
-          { label: "Gross Loss", value: closedSignals.length > 0 ? `-$${grossLoss.toFixed(2)}` : "—", color: "#dc2626" },
+          { label: "Avg MAE", value: signalsWithMae.length > 0 ? `$${avgMae.toFixed(2)}` : "—", color: "#d97706" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-lg border border-[#e5e7eb] bg-white p-4">
             <p className="text-xs text-[#6b7280] uppercase tracking-wide">{stat.label}</p>
