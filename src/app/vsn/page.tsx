@@ -149,8 +149,21 @@ export default function VsnPage() {
       {/* Header */}
       <div className="mb-10">
         <h1 className="font-serif text-3xl text-[#1a1a2e]">VSN Feature Attention</h1>
-        <p className="mt-2 text-[#6b7280] text-sm">
-          Live Variable Selection Network weights for GoldSSM-28F. Auto-refreshes every 60 seconds.
+        <p className="mt-3 text-[#374151] text-sm leading-relaxed max-w-3xl">
+          The Variable Selection Network (VSN) is a component of the GoldSSM model that learns
+          <strong> how important each input feature is at every moment in time</strong>. Unlike
+          traditional models that assign fixed weights to features, the VSN dynamically adjusts
+          importance based on current market conditions — for example, upweighting volatility
+          measures during turbulent periods and downweighting them during calm markets.
+        </p>
+        <p className="mt-2 text-[#6b7280] text-sm leading-relaxed max-w-3xl">
+          The bar chart below shows the model&apos;s current feature importance ranking, updated
+          in real time. Higher weights mean the model is paying more attention to that feature
+          right now. The heatmap shows how these weights have evolved over recent bars, revealing
+          which features the model considers most informative as market conditions change.
+        </p>
+        <p className="mt-2 text-[#9ca3af] text-xs">
+          GoldSSM-28F &middot; Long stream &middot; 28 features &middot; Auto-refreshes every 60 seconds
         </p>
       </div>
 
