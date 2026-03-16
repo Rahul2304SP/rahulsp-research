@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/PLACEHOLDER";
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/5kQ5kC65R6sb8c63gV4gg00";
 const STRIPE_CUSTOMER_PORTAL = "https://billing.stripe.com/p/login/PLACEHOLDER";
 
 export default function SubscribePage() {
