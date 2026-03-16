@@ -147,6 +147,36 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* ── Featured Study ── */}
+      <section className="pb-10">
+        <a href="/papers/goldssm" className="block group">
+          <div className="rounded-xl border border-[#e5e7eb] hover:border-[#1e40af] transition-colors overflow-hidden">
+            <div className="bg-[#f8f9fa] px-5 py-2.5 border-b border-[#e5e7eb] flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1e40af] bg-[#eff6ff] px-2 py-0.5 rounded">Featured</span>
+              <span className="text-[10px] text-[#9ca3af]">Architecture &amp; Models</span>
+            </div>
+            <div className="p-5 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-[#1a1a2e] group-hover:text-[#1e40af] transition-colors mb-2">
+                GoldSSM: Selective State Space Models for Gold Price Forecasting
+              </h3>
+              <p className="text-sm text-[#374151] leading-relaxed mb-4 line-clamp-3">
+                A multi-scale selective state space model combining Variable Selection Networks,
+                Mamba SSM encoders, and temporal attention pooling. 2.0M parameters with O(T)
+                complexity — 6x lighter than equivalent Transformer architectures. Drop-in
+                replacement with identical forward signatures.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#6b7280]">
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">Mamba SSM</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">Variable Selection</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">O(T) Complexity</span>
+                <span className="px-2 py-0.5 rounded bg-[#f3f4f6]">2.0M Params</span>
+                <span className="ml-auto text-[#1e40af] group-hover:underline">Read paper &rarr;</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </section>
+
       <hr className="border-[#e5e7eb]" />
 
       {/* ── Section Navigation ── */}
