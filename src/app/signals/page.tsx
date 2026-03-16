@@ -25,7 +25,7 @@ interface Signal {
 type ModelTab = "GoldSSM-34F" | "GoldSSM-28F";
 
 function useMarketStatus() {
-  const [status, setStatus] = useState({ isOpen: false, session: "Closed" });
+  const [status, setStatus] = useState({ isOpen: false, session: "Closed", utcTime: "" });
 
   useEffect(() => {
     function compute() {
@@ -34,13 +34,17 @@ function useMarketStatus() {
       const utcH = now.getUTCHours();
       const utcM = now.getUTCMinutes();
       const t = utcH * 60 + utcM;
+      const utcTime = `${String(utcH).padStart(2, "0")}:${String(utcM).padStart(2, "0")} UTC`;
 
       // Market closed: Fri 22:00 UTC to Sun 22:00 UTC
       const isFriClose = utcDay === 5 && t >= 1320;
       const isSaturday = utcDay === 6;
-      const isSunEarly = utcDay === 0 && t < 1320;
-      if (isFriClose || isSaturday || isSunEarly) {
-        setStatus({ isOpen: false, session: "Closed" });
+      const isSunClose = utcDay === 0 && t < 1320;
+      if (isFriClose || isSaturday || isSunClose) {
+        const opensIn = isSunClose
+          ? `Opens Sun ${22 - utcH}h ${60 - utcM}m`
+          : "Opens Sun 22:00 UTC";
+        setStatus({ isOpen: false, session: opensIn, utcTime });
         return;
       }
 
@@ -54,9 +58,9 @@ function useMarketStatus() {
       if (t >= 780 && t < 1320) sessions.push("New York");
 
       if (sessions.length > 0) {
-        setStatus({ isOpen: true, session: sessions.join(" / ") });
+        setStatus({ isOpen: true, session: sessions.join(" / "), utcTime });
       } else {
-        setStatus({ isOpen: false, session: "Closed" });
+        setStatus({ isOpen: false, session: "Closed", utcTime });
       }
     }
     compute();
@@ -72,7 +76,7 @@ export default function SignalsPage() {
   const [loading, setLoading] = useState(true);
   const [activeModel, setActiveModel] = useState<ModelTab>("GoldSSM-34F");
   const [error, setError] = useState<string | null>(null);
-  const { isOpen: isMarketOpen, session: currentSession } = useMarketStatus();
+  const { isOpen: isMarketOpen, session: currentSession, utcTime } = useMarketStatus();
   const [user, setUser] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
 
@@ -220,7 +224,7 @@ export default function SignalsPage() {
       )}
 
       {/* Market status widget */}
-      <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
+      <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa] flex-wrap">
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${isMarketOpen ? 'bg-[#059669] animate-pulse' : 'bg-[#dc2626]'}`} />
           <span className="text-sm font-medium text-[#1a1a2e]">
@@ -228,10 +232,10 @@ export default function SignalsPage() {
           </span>
         </div>
         <span className="text-xs text-[#6b7280]">
-          {currentSession} Session
+          {currentSession}
         </span>
-        <span className="text-xs text-[#6b7280] ml-auto">
-          XAUUSD
+        <span className="text-xs text-[#6b7280] ml-auto font-mono">
+          {utcTime} &middot; XAUUSD
         </span>
       </div>
 
