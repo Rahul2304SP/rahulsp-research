@@ -75,8 +75,8 @@ export default function HomePage() {
     <div className="mx-auto max-w-4xl px-6">
       {/* ── Identity ── */}
       <section className="pt-20 pb-6">
-        <h1 className="font-serif text-4xl text-[#1a1a2e] mb-4">Rahul S. P.</h1>
-        <p className="text-[#374151] text-xl leading-relaxed max-w-xl">
+        <h1 className="font-serif text-3xl sm:text-4xl text-[#1a1a2e] mb-3">Rahul S. P.</h1>
+        <p className="text-[#374151] text-lg sm:text-xl leading-relaxed max-w-xl">
           I build neural trading systems and test them on live markets.
         </p>
         <p className="text-[#6b7280] text-sm mt-3">
@@ -93,16 +93,16 @@ export default function HomePage() {
       {equity.length > 5 && (
         <section className="pb-10">
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
               <div>
                 <p className="text-xs text-[#6b7280] uppercase tracking-widest">Live Model Performance</p>
-                <p className="text-xs text-[#9ca3af] mt-0.5">
-                  Cumulative PnL across {trades.length} closed trades &middot; GoldSSM-28F &amp; GoldSSM-34F
+                <p className="text-[10px] sm:text-xs text-[#9ca3af] mt-0.5">
+                  {trades.length} closed trades &middot; GoldSSM-28F &amp; 34F
                 </p>
               </div>
               {lastPoint && (
-                <div className="text-right">
-                  <p className={`text-2xl font-bold ${lastPoint.pnl >= 0 ? "text-[#059669]" : "text-[#dc2626]"}`}>
+                <div className="sm:text-right">
+                  <p className={`text-lg sm:text-2xl font-bold ${lastPoint.pnl >= 0 ? "text-[#059669]" : "text-[#dc2626]"}`}>
                     {lastPoint.pnl >= 0 ? "+" : ""}{lastPoint.pnl.toFixed(1)} pts
                   </p>
                   <p className="text-[10px] text-[#9ca3af]">
