@@ -13,7 +13,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence<br/>Gap Study #3 (Trivariate cointegration regime model) complete: negative result; trivariate testing adds nothing beyond pairwise; ECT signal not tradeable (Sharpe 0.28); OOS catastrophic (-18.9%)<br/>All gap studies complete.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1) and feature specification (7.2) finalised: 44 features, 5 groups. Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -386,9 +386,17 @@ export const content = `
   documented as a negative result.
 </p>
 
-<h2>6. Phase 2: IBS and RSI Mean-Reversion Replication</h2>
+<h2>6. Phase 2: Empirical Gap Studies</h2>
 
-<h3>6.1 Objective</h3>
+<p>
+  Six empirical gap studies were conducted to test the research questions identified in Section 4.
+  Studies are presented in order of increasing complexity, from simple single-index strategies to
+  multi-index structural models.
+</p>
+
+<h3>6.1 Gap Study #8: IBS/RSI Mean-Reversion Replication</h3>
+
+<h4>Objective</h4>
 
 <p>
   The first empirical study in Phase 2 replicates two of the most cited OHLCV-only mean-reversion
@@ -405,7 +413,7 @@ export const content = `
   overnight financing, or execution latency. Past performance does not predict future results.
 </div>
 
-<h3>6.2 Full-Sample Results (Literature Parameters)</h3>
+<h4>Full-Sample Results (Literature Parameters)</h4>
 
 <p>
   The IBS strategy enters long when the Internal Bar Strength
@@ -447,7 +455,7 @@ export const content = `
   trades far less frequently (47 to 62 trades versus 360 to 603 for IBS).
 </p>
 
-<h3>6.3 Walk-Forward Out-of-Sample Results</h3>
+<h4>Walk-Forward Out-of-Sample Results</h4>
 
 <p>
   To test robustness, both strategies were evaluated using a nine-fold walk-forward framework with
@@ -471,7 +479,7 @@ export const content = `
   rather than a stable structural signal.
 </p>
 
-<h3>6.4 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <div class="finding-box">
   <strong>Negative result: daily mean-reversion on MT5 CFDs does not outperform buy-and-hold.</strong>
@@ -496,7 +504,7 @@ export const content = `
   regime detection) rather than on single-index mean-reversion at daily frequency.</li>
 </ol>
 
-<h3>6.5 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/summary_comparison_20260316_232903.png" alt="Summary comparison across all strategies and indices" style="max-width: 100%; margin: 1rem 0;" />
@@ -518,9 +526,9 @@ export const content = `
   <figcaption>Figure 4. NAS100 IBS and RSI(2) equity curves and trade distributions.</figcaption>
 </figure>
 
-<h2>6.2 Gap Study #4: Cross-Index Momentum Rotation</h2>
+<h3>6.2 Gap Study #4: Cross-Index Momentum Rotation</h3>
 
-<h3>6.2.1 Objective</h3>
+<h4>Objective</h4>
 
 <p>
   The second empirical study tests whether cross-index momentum rotation can outperform static
@@ -538,7 +546,7 @@ export const content = `
   overnight financing, or execution latency. Past performance does not predict future results.
 </div>
 
-<h3>6.2.2 Strategies and Baselines</h3>
+<h4>Strategies and Baselines</h4>
 
 <p>
   Four rotation strategies were tested, all using daily close prices for the three indices:
@@ -562,7 +570,7 @@ export const content = `
   walk-forward out-of-sample testing.
 </p>
 
-<h3>6.2.3 Baseline Performance</h3>
+<h4>Baseline Performance</h4>
 
 <table>
   <thead>
@@ -583,7 +591,7 @@ export const content = `
   buy-and-hold baselines (Sharpe 0.78).
 </p>
 
-<h3>6.2.4 Full-Sample Results</h3>
+<h4>Full-Sample Results</h4>
 
 <p>
   The table below reports the best configuration for each strategy family (selected by Sharpe ratio).
@@ -616,7 +624,7 @@ export const content = `
   making the short leg a drag on performance.
 </p>
 
-<h3>6.2.5 Why TSMOM Works: Crash Protection</h3>
+<h4>Why TSMOM Works: Crash Protection</h4>
 
 <p>
   TSMOM's edge is not in picking the best index during bull markets. Its edge is almost entirely
@@ -635,7 +643,7 @@ export const content = `
   delayed reaction to regime changes.
 </p>
 
-<h3>6.2.6 Walk-Forward Out-of-Sample Validation</h3>
+<h4>Walk-Forward Out-of-Sample Validation</h4>
 
 <p>
   The TSMOM strategy (1-month lookback, weekly rebalancing) was validated using a two-fold
@@ -661,7 +669,7 @@ export const content = `
   (where going to cash was highly valuable), while Fold 1 has shallower corrections.
 </p>
 
-<h3>6.2.7 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Positive result: TSMOM beats all baselines.</strong>
@@ -693,7 +701,7 @@ export const content = `
   studies (spread dynamics, cointegration, regime detection) identified in Section 4.</li>
 </ol>
 
-<h3>6.2.8 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/full_sample_equity_20260316_235013.png" alt="Full-sample equity curves: TSMOM vs buy-and-hold baselines" style="max-width: 100%; margin: 1rem 0;" />
@@ -715,9 +723,9 @@ export const content = `
   <figcaption>Figure 8. TSMOM allocation timeline showing index rotation over the full sample. Grey bands indicate cash periods where all three indices had negative trailing momentum. These cash periods coincide with the deepest drawdowns in the buy-and-hold baselines.</figcaption>
 </figure>
 
-<h2>6.3 Gap Study #2: NAS100/DJIA Risk-On/Risk-Off Indicator</h2>
+<h3>6.3 Gap Study #2: NAS100/DJIA Risk-On/Risk-Off Indicator</h3>
 
-<h3>6.3.1 Objective</h3>
+<h4>Objective</h4>
 
 <p>
   The NAS100/DJIA price ratio is widely cited as a proxy for risk appetite. When the ratio rises,
@@ -728,7 +736,7 @@ export const content = `
   strategy established in Gap Study #4.
 </p>
 
-<h3>6.3.2 Ratio Construction and Regime Definition</h3>
+<h4>Ratio Construction and Regime Definition</h4>
 
 <p>
   The RORO ratio is computed as NAS100 daily close divided by US30 daily close. A regime label is
@@ -736,7 +744,7 @@ export const content = `
   "risk-off" when below. Lookback windows of 5, 10, 21, 42, and 63 trading days were tested.
 </p>
 
-<h3>6.3.3 Forward Return Predictability</h3>
+<h4>Forward Return Predictability</h4>
 
 <p>
   Using a 21-day lookback to define regimes, we measured the hit rate of the ratio as a directional
@@ -752,7 +760,7 @@ export const content = `
   the ratio is falling, there is no reliable tendency for DJIA to take the lead.
 </p>
 
-<h3>6.3.4 Volatility by Regime</h3>
+<h4>Volatility by Regime</h4>
 
 <p>
   The strongest finding from this study is in volatility, not returns. Risk-off regimes (ratio below
@@ -763,7 +771,7 @@ export const content = `
   index you hold.
 </p>
 
-<h3>6.3.5 Allocation Strategy Results</h3>
+<h4>Allocation Strategy Results</h4>
 
 <p>
   Four families of allocation strategies were tested across all lookback windows. The table below
@@ -798,7 +806,7 @@ export const content = `
   performance does not indicate future results.</em></small>
 </p>
 
-<h3>6.3.6 Walk-Forward Out-of-Sample Validation</h3>
+<h4>Walk-Forward Out-of-Sample Validation</h4>
 
 <p>
   The Follow RORO strategy (42-day lookback) was validated using the same two-fold walk-forward
@@ -808,7 +816,7 @@ export const content = `
   Sharpe of 2.35 in Fold 0 and 0.78 in Fold 1.
 </p>
 
-<h3>6.3.7 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Mixed result: the NAS100/DJIA ratio is a valid regime indicator but not a superior
@@ -837,7 +845,7 @@ export const content = `
   regimes).</li>
 </ol>
 
-<h3>6.3.8 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/roro_ratio_20260316_235656.png" alt="NAS100/US30 ratio with risk-on/risk-off regime shading" style="max-width: 100%; margin: 1rem 0;" />
@@ -859,9 +867,9 @@ export const content = `
   <figcaption>Figure 12. Walk-forward out-of-sample performance comparison. Follow RORO beats equal-weight in both folds but trails TSMOM in both.</figcaption>
 </figure>
 
-<h2>6.4 Gap Study #5: Volatility Regime Strategy Selection</h2>
+<h3>6.4 Gap Study #5: Volatility Regime Strategy Selection</h3>
 
-<h3>6.4.1 Objective</h3>
+<h4>Objective</h4>
 
 <p>
   The three prior gap studies produced a puzzle. Mean-reversion (Study #8) failed outright.
@@ -873,7 +881,7 @@ export const content = `
   on volatility state can recover hidden edges.
 </p>
 
-<h3>6.4.2 Methodology</h3>
+<h4>Methodology</h4>
 
 <p>
   Volatility is measured using the Garman-Klass estimator over a trailing 21-day window. At each
@@ -892,7 +900,7 @@ export const content = `
   overnight financing, or execution latency. Past performance does not predict future results.
 </div>
 
-<h3>6.4.3 Strategy Performance by Volatility Regime</h3>
+<h4>Strategy Performance by Volatility Regime</h4>
 
 <p>
   The results reveal a clear pattern that differs by instrument. For US30 and US500, the same
@@ -921,7 +929,7 @@ export const content = `
   regimes matter) and operationalises it as a concrete strategy selection rule.
 </div>
 
-<h3>6.4.4 Best Meta-Strategy by Instrument</h3>
+<h4>Best Meta-Strategy by Instrument</h4>
 
 <p>
   The best-performing meta-strategy for each instrument, selected by in-sample Sharpe ratio:
@@ -942,7 +950,7 @@ export const content = `
   moves to cash.
 </p>
 
-<h3>6.4.5 Walk-Forward Out-of-Sample Validation</h3>
+<h4>Walk-Forward Out-of-Sample Validation</h4>
 
 <p>
   Walk-forward testing confirms the same pattern observed in Study #4: the meta-strategies beat
@@ -953,7 +961,7 @@ export const content = `
   mechanism for NAS100.
 </p>
 
-<h3>6.4.6 Updated Strategy Leaderboard</h3>
+<h4>Updated Strategy Leaderboard</h4>
 
 <p>
   Across all four gap studies, the cumulative ranking by risk-adjusted performance is:
@@ -971,7 +979,7 @@ export const content = `
   template.</li>
 </ol>
 
-<h3>6.4.7 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <ol>
   <li><strong>Strategy failure can be regime-specific, not absolute.</strong> Mean-reversion was
@@ -993,7 +1001,7 @@ export const content = `
   losses.</li>
 </ol>
 
-<h3>6.4.8 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/summary_sharpe_by_regime_20260317_000356.png" alt="Sharpe ratio by strategy and volatility regime across instruments" style="max-width: 100%; margin: 1rem 0;" />
@@ -1015,9 +1023,9 @@ export const content = `
   <figcaption>Figure 16. US500 volatility regime analysis. The same pattern as US30: buy-and-hold in low vol, TSMOM in high vol.</figcaption>
 </figure>
 
-<h2>6.5 Gap Study #1: Price-Weighted vs Cap-Weighted Divergence</h2>
+<h3>6.5 Gap Study #1: Price-Weighted vs Cap-Weighted Divergence</h3>
 
-<h3>6.5.1 Objective</h3>
+<h4>Objective</h4>
 
 <p>
   This is the highest-novelty study in the series. The DJIA is price-weighted; the S&amp;P 500 and
@@ -1028,7 +1036,7 @@ export const content = `
   entering when the spread reaches extreme Z-scores should capture a reversion to the mean.
 </p>
 
-<h3>6.5.2 Spread Construction</h3>
+<h4>Spread Construction</h4>
 
 <p>
   The spread is defined as the log-ratio between US30 and a capitalisation-weighted index:
@@ -1039,7 +1047,7 @@ export const content = `
   index), and exit occurs when the Z-score reverts below a separate exit threshold.
 </p>
 
-<h3>6.5.3 Stationarity Testing</h3>
+<h4>Stationarity Testing</h4>
 
 <p>
   The Augmented Dickey-Fuller test on the full-sample spread fails to reject the unit root
@@ -1052,7 +1060,7 @@ export const content = `
   is non-stationary.
 </p>
 
-<h3>6.5.4 Full-Sample Results</h3>
+<h4>Full-Sample Results</h4>
 
 <p>
   Despite the non-stationarity, extreme Z-score entries do capture short-horizon reversion.
@@ -1078,7 +1086,7 @@ export const content = `
   not be interpreted as evidence of a reliable trading edge.
 </div>
 
-<h3>6.5.5 Walk-Forward Out-of-Sample Results</h3>
+<h4>Walk-Forward Out-of-Sample Results</h4>
 
 <p>
   Walk-forward validation reveals regime dependence. Both pairs lose in Fold 0 (covering 2022,
@@ -1089,7 +1097,7 @@ export const content = `
   spread trends directionally for extended periods.
 </p>
 
-<h3>6.5.6 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <ol>
   <li><strong>The spread is not stationary.</strong> The ADF test rejects stationarity (p = 0.69)
@@ -1131,7 +1139,7 @@ export const content = `
   documented here appear to be new to the literature.
 </div>
 
-<h3>6.5.7 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/spread_zscore_20260317_001847.png" alt="US30/NAS100 log-ratio spread with Z-score bands" style="max-width: 100%; margin: 1rem 0;" />
@@ -1153,9 +1161,9 @@ export const content = `
   <figcaption>Figure 20. Walk-forward out-of-sample fold comparison. Fold 0 (2022, trending) produces losses; Fold 1 (2024, oscillating) produces gains. The regime dependence is visually clear.</figcaption>
 </figure>
 
-<h2>6.6 Gap Study #3: Trivariate Cointegration Regime Model</h2>
+<h3>6.6 Gap Study #3: Trivariate Cointegration Regime Model</h3>
 
-<h3>6.6.1 Objective</h3>
+<h4>Objective</h4>
 
 <p>
   Gap #3 in the literature review (Section 4) asked whether trivariate cointegration testing across
@@ -1166,7 +1174,7 @@ export const content = `
   when conditioned on volatility regimes from Gap Study #5.
 </p>
 
-<h3>6.6.2 Methodology</h3>
+<h4>Methodology</h4>
 
 <p>
   We applied two complementary cointegration frameworks to daily log-price series for US30, US500,
@@ -1212,7 +1220,7 @@ export const content = `
   interpreted as evidence of a reliable trading edge.
 </div>
 
-<h3>6.6.3 Cointegration Test Results</h3>
+<h4>Cointegration Test Results</h4>
 
 <p>
   The Johansen trace test finds rank = 1, with a trace statistic of 31.30 against a 5% critical
@@ -1230,7 +1238,7 @@ export const content = `
   tests miss. The central hypothesis of this study is disproven.
 </p>
 
-<h3>6.6.4 Rolling Stability</h3>
+<h4>Rolling Stability</h4>
 
 <p>
   Rolling 252-day Johansen tests reveal that even the single cointegrating relationship is highly
@@ -1247,7 +1255,7 @@ export const content = `
   vector estimated in one period is unreliable in the next.
 </p>
 
-<h3>6.6.5 ECT Fade Strategy Results</h3>
+<h4>ECT Fade Strategy Results</h4>
 
 <p>
   The ECT fade strategy produces a best unfiltered Sharpe ratio of 0.28 across all parameter
@@ -1263,7 +1271,7 @@ export const content = `
   had any reversion, leaving only noise.
 </p>
 
-<h3>6.6.6 Walk-Forward Out-of-Sample Results</h3>
+<h4>Walk-Forward Out-of-Sample Results</h4>
 
 <p>
   Walk-forward validation confirms that the in-sample Sharpe of 0.28 does not survive out-of-sample.
@@ -1273,7 +1281,7 @@ export const content = `
   the indices shifted.
 </p>
 
-<h3>6.6.7 Key Findings</h3>
+<h4>Key Findings</h4>
 
 <div class="finding-box">
   <strong>Negative result: trivariate cointegration does not reveal hidden structure beyond pairwise
@@ -1307,7 +1315,7 @@ export const content = `
   tech boom and AI surge invalidates vectors estimated in earlier periods.</li>
 </ol>
 
-<h3>6.6.8 Charts</h3>
+<h4>Charts</h4>
 
 <figure>
   <img src="/charts/us-indexes/trivariate_coint_20260317_002428.png" alt="Rolling cointegration rank and ECT Z-score over time" style="max-width: 100%; margin: 1rem 0;" />
@@ -1457,24 +1465,24 @@ export const content = `
     <tr><th>Feature</th><th>Formula / Definition</th><th>Rationale</th></tr>
   </thead>
   <tbody>
-    <tr><td>ret_60m</td><td>$\ln(p_t / p_{t-60})$</td><td>Recent return momentum</td></tr>
-    <tr><td>ret_120m</td><td>$\ln(p_t / p_{t-120})$</td><td>Medium-horizon return</td></tr>
-    <tr><td>dist_ma120</td><td>$(p_t - \text{MA}_{120}) / \text{MA}_{120}$</td><td>Signed distance from 2h MA</td></tr>
-    <tr><td>dist_ma290</td><td>$(p_t - \text{MA}_{290}) / \text{MA}_{290}$</td><td>Signed distance from session MA</td></tr>
-    <tr><td>stdev60</td><td>$\sigma(\text{ret}_{1m}, w{=}60)$</td><td>Realised volatility (1h)</td></tr>
-    <tr><td>vol_30m</td><td>$\sigma(\text{ret}_{1m}, w{=}30)$</td><td>Short-window volatility</td></tr>
-    <tr><td>vol_session_ratio</td><td>$\sigma_{30m} / \sigma_{\text{session}}$</td><td>Intraday vol regime</td></tr>
-    <tr><td>vol_of_vol_60</td><td>$\sigma(\sigma_{30m}, w{=}60)$</td><td>Volatility clustering intensity</td></tr>
-    <tr><td>vol_regime_ratio</td><td>$\sigma_{60m} / \sigma_{240m}$</td><td>Short vs long vol ratio</td></tr>
-    <tr><td>vol_surprise</td><td>$(\sigma_{30m} - \mu_{\sigma,240}) / \sigma_{\sigma,240}$</td><td>Vol Z-score (surprise detection)</td></tr>
+    <tr><td>ret_60m</td><td>$\\ln(p_t / p_{t-60})$</td><td>Recent return momentum</td></tr>
+    <tr><td>ret_120m</td><td>$\\ln(p_t / p_{t-120})$</td><td>Medium-horizon return</td></tr>
+    <tr><td>dist_ma120</td><td>$(p_t - \\text{MA}_{120}) / \\text{MA}_{120}$</td><td>Signed distance from 2h MA</td></tr>
+    <tr><td>dist_ma290</td><td>$(p_t - \\text{MA}_{290}) / \\text{MA}_{290}$</td><td>Signed distance from session MA</td></tr>
+    <tr><td>stdev60</td><td>$\\sigma(\\text{ret}_{1m}, w{=}60)$</td><td>Realised volatility (1h)</td></tr>
+    <tr><td>vol_30m</td><td>$\\sigma(\\text{ret}_{1m}, w{=}30)$</td><td>Short-window volatility</td></tr>
+    <tr><td>vol_session_ratio</td><td>$\\sigma_{30m} / \\sigma_{\\text{session}}$</td><td>Intraday vol regime</td></tr>
+    <tr><td>vol_of_vol_60</td><td>$\\sigma(\\sigma_{30m}, w{=}60)$</td><td>Volatility clustering intensity</td></tr>
+    <tr><td>vol_regime_ratio</td><td>$\\sigma_{60m} / \\sigma_{240m}$</td><td>Short vs long vol ratio</td></tr>
+    <tr><td>vol_surprise</td><td>$(\\sigma_{30m} - \\mu_{\\sigma,240}) / \\sigma_{\\sigma,240}$</td><td>Vol Z-score (surprise detection)</td></tr>
     <tr><td>channel_width</td><td>$Q_{0.95} - Q_{0.05}$ (rolling 120 bars)</td><td>Quantile regression channel</td></tr>
     <tr><td>skew_240m</td><td>Rolling skewness, $w{=}240$</td><td>Return distribution asymmetry</td></tr>
     <tr><td>kurt_240m</td><td>Rolling kurtosis, $w{=}240$</td><td>Tail heaviness</td></tr>
-    <tr><td>er60</td><td>$|\Delta p_{60}| / \sum_{i=1}^{60}|\Delta p_i|$</td><td>Kaufman efficiency ratio $[0,1]$</td></tr>
+    <tr><td>er60</td><td>$|\\Delta p_{60}| / \\sum_{i=1}^{60}|\\Delta p_i|$</td><td>Kaufman efficiency ratio $[0,1]$</td></tr>
     <tr><td>momentum_regime</td><td>Binary: MA crossover aligned with return sign</td><td>Trend alignment indicator</td></tr>
-    <tr><td>trend_strength</td><td>$\text{sign}(\text{ret}_{60m}) \times \text{ER}_{60} \times |\text{ret}_{60m}| / \sigma_{60m}$</td><td>Signed ER x normalised magnitude</td></tr>
-    <tr><td>tod_sin</td><td>$\sin(2\pi \cdot \text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
-    <tr><td>tod_cos</td><td>$\cos(2\pi \cdot \text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
+    <tr><td>trend_strength</td><td>$\\text{sign}(\\text{ret}_{60m}) \\times \\text{ER}_{60} \\times |\\text{ret}_{60m}| / \\sigma_{60m}$</td><td>Signed ER x normalised magnitude</td></tr>
+    <tr><td>tod_sin</td><td>$\\sin(2\\pi \\cdot \\text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
+    <tr><td>tod_cos</td><td>$\\cos(2\\pi \\cdot \\text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
   </tbody>
 </table>
 
@@ -1490,17 +1498,17 @@ export const content = `
     <tr><th>Feature</th><th>Formula / Definition</th><th>Source</th></tr>
   </thead>
   <tbody>
-    <tr><td>tsmom_self_21d</td><td>$\text{sgn}\bigl(\sum_{i=1}^{21} r_i\bigr)$, trailing monthly return</td><td>Study #4 (TSMOM)</td></tr>
+    <tr><td>tsmom_self_21d</td><td>$\\text{sgn}\\bigl(\\sum_{i=1}^{21} r_i\\bigr)$, trailing monthly return</td><td>Study #4 (TSMOM)</td></tr>
     <tr><td>tsmom_idx2_21d</td><td>Same, for second index</td><td>Study #4</td></tr>
     <tr><td>tsmom_idx3_21d</td><td>Same, for third index</td><td>Study #4</td></tr>
-    <tr><td>roro_ratio</td><td>$\ln(\text{NAS100} / \text{US30})$</td><td>Study #2 (RORO)</td></tr>
+    <tr><td>roro_ratio</td><td>$\\ln(\\text{NAS100} / \\text{US30})$</td><td>Study #2 (RORO)</td></tr>
     <tr><td>roro_vs_sma21</td><td>Binary: RORO ratio above/below 21d SMA</td><td>Study #2</td></tr>
     <tr><td>gk_vol_21d</td><td>Garman-Klass volatility, 21-day rolling</td><td>Study #5 (Vol regime)</td></tr>
     <tr><td>gk_vol_pctile</td><td>Expanding percentile rank of GK vol</td><td>Study #5</td></tr>
-    <tr><td>ibs</td><td>$(\text{close} - \text{low}) / (\text{high} - \text{low})$, daily</td><td>Study #8 (conditional on vol regime)</td></tr>
-    <tr><td>cross_idx_dispersion</td><td>$\sigma(\text{ret}_{60m}^{(i)})$ across all 3 indices</td><td>Study #4 (rotation signal)</td></tr>
-    <tr><td>log_spread_us30_us500</td><td>$\ln(\text{US30}) - \ln(\text{US500})$</td><td>Study #1 (novel)</td></tr>
-    <tr><td>log_spread_us30_nas100</td><td>$\ln(\text{US30}) - \ln(\text{NAS100})$</td><td>Study #1 (novel)</td></tr>
+    <tr><td>ibs</td><td>$(\\text{close} - \\text{low}) / (\\text{high} - \\text{low})$, daily</td><td>Study #8 (conditional on vol regime)</td></tr>
+    <tr><td>cross_idx_dispersion</td><td>$\\sigma(\\text{ret}_{60m}^{(i)})$ across all 3 indices</td><td>Study #4 (rotation signal)</td></tr>
+    <tr><td>log_spread_us30_us500</td><td>$\\ln(\\text{US30}) - \\ln(\\text{US500})$</td><td>Study #1 (novel)</td></tr>
+    <tr><td>log_spread_us30_nas100</td><td>$\\ln(\\text{US30}) - \\ln(\\text{NAS100})$</td><td>Study #1 (novel)</td></tr>
   </tbody>
 </table>
 
@@ -1524,12 +1532,12 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>vix_level</td><td>VIX spot value</td><td>Fear gauge level</td></tr>
-    <tr><td>vix_chg_60m</td><td>$\Delta\text{VIX}_{60m}$</td><td>VIX momentum (shock detection)</td></tr>
-    <tr><td>dxy_ret_60m</td><td>$\ln(\text{DXY}_t / \text{DXY}_{t-60})$</td><td>Dollar strength</td></tr>
+    <tr><td>vix_chg_60m</td><td>$\\Delta\\text{VIX}_{60m}$</td><td>VIX momentum (shock detection)</td></tr>
+    <tr><td>dxy_ret_60m</td><td>$\\ln(\\text{DXY}_t / \\text{DXY}_{t-60})$</td><td>Dollar strength</td></tr>
     <tr><td>dxy_corr_30</td><td>Rolling 30-bar correlation(index, DXY)</td><td>Dollar correlation regime</td></tr>
-    <tr><td>usdjpy_ret_60m</td><td>$\ln(\text{USDJPY}_t / \text{USDJPY}_{t-60})$</td><td>Yen carry proxy</td></tr>
-    <tr><td>btcusd_ret_60m</td><td>$\ln(\text{BTCUSD}_t / \text{BTCUSD}_{t-60})$</td><td>Crypto risk appetite</td></tr>
-    <tr><td>brent_ret_60m</td><td>$\ln(\text{BRENT}_t / \text{BRENT}_{t-60})$</td><td>Energy / inflation proxy</td></tr>
+    <tr><td>usdjpy_ret_60m</td><td>$\\ln(\\text{USDJPY}_t / \\text{USDJPY}_{t-60})$</td><td>Yen carry proxy</td></tr>
+    <tr><td>btcusd_ret_60m</td><td>$\\ln(\\text{BTCUSD}_t / \\text{BTCUSD}_{t-60})$</td><td>Crypto risk appetite</td></tr>
+    <tr><td>brent_ret_60m</td><td>$\\ln(\\text{BRENT}_t / \\text{BRENT}_{t-60})$</td><td>Energy / inflation proxy</td></tr>
   </tbody>
 </table>
 
@@ -1550,9 +1558,9 @@ export const content = `
     <tr><th>Model</th><th>Top-5 Constituents</th><th>Dispersion Feature</th></tr>
   </thead>
   <tbody>
-    <tr><td>US30</td><td>GS, MSFT, HD, CAT, V</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
-    <tr><td>NAS100</td><td>AAPL, MSFT, NVDA, AMZN, GOOG</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
-    <tr><td>US500</td><td>AAPL, MSFT, NVDA, AMZN, JPM</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
+    <tr><td>US30</td><td>GS, MSFT, HD, CAT, V</td><td>$\\sigma(\\text{ret}_{60m}^{(k)})$, $k \\in \\{1..5\\}$</td></tr>
+    <tr><td>NAS100</td><td>AAPL, MSFT, NVDA, AMZN, GOOG</td><td>$\\sigma(\\text{ret}_{60m}^{(k)})$, $k \\in \\{1..5\\}$</td></tr>
+    <tr><td>US500</td><td>AAPL, MSFT, NVDA, AMZN, JPM</td><td>$\\sigma(\\text{ret}_{60m}^{(k)})$, $k \\in \\{1..5\\}$</td></tr>
   </tbody>
 </table>
 
@@ -1629,96 +1637,22 @@ export const content = `
 <h2>8. Current Status</h2>
 
 <p>
-  Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is complete.
-  Six empirical gap studies have been completed, covering all identified gaps in the literature review.
-  Phase 3 (Model Development) is in progress. The data inventory (Section 7.1) documents the full dataset
-  available for neural net development: three target indexes, seven cross-asset instruments, and fifteen
-  constituent stocks across a common 4.7-year training window. The feature specification (Section 7.2) is
-  finalised: 44 features per M1 bar across five groups, with every cross-index feature traceable to a
-  specific Phase 2 empirical result. Model architecture selection and training are the next steps.
+  Phase 1 (Literature Review) and Phase 2 (Empirical Gap Studies) are complete. Six gap studies
+  were conducted across the identified research gaps. The headline result is that time-series momentum
+  rotation (TSMOM, Gap Study #4) delivers the best risk-adjusted performance: Sharpe 1.27 with a
+  maximum drawdown of -9.4%, outperforming every buy-and-hold baseline. Volatility regime conditioning
+  (Gap Study #5) reveals that mean-reversion is viable within high-volatility NAS100 regimes
+  (Sharpe 0.99), rehabilitating a strategy that failed in aggregate in Gap Study #8. Trivariate
+  cointegration (Gap Study #3) produced a clear negative result: the Johansen vector adds nothing
+  beyond pairwise tests, and the ECT signal produced catastrophic out-of-sample losses.
 </p>
 
 <p>
-  <strong>Gap Study #8 (IBS/RSI replication):</strong> The first study replicated two well-known
-  mean-reversion strategies on MT5 CFDs. The key finding is a negative result: daily mean-reversion
-  does not outperform buy-and-hold after realistic spread costs. Pagonidis's reported 75% IBS win
-  rate does not replicate (we observe approximately 50%), and while RSI(2) shows a genuine but weak
-  signal (55 to 67% win rate), it fails walk-forward validation on all three indices.
-</p>
-
-<p>
-  <strong>Gap Study #4 (Cross-index momentum rotation):</strong> The second study tested time-series
-  momentum (TSMOM) rotation across the three indices. This produced the first positive result in the
-  series: TSMOM with a 1-month lookback and weekly rebalancing delivers a Sharpe ratio of 1.27
-  (1.7 times the best buy-and-hold baseline) with a maximum drawdown of only -9.4%. The edge is
-  primarily in crash protection, as TSMOM moves to cash when all three indices have negative trailing
-  momentum. Walk-forward validation confirms the result in 2/2 out-of-sample folds, though the edge
-  is strongest during periods containing significant drawdowns.
-</p>
-
-<p>
-  <strong>Gap Study #2 (NAS100/DJIA RORO ratio):</strong> The third study tested the NAS100/DJIA
-  price ratio as a risk-on/risk-off regime indicator and allocation signal. This produced a mixed
-  result. The ratio reliably identifies high-volatility regimes (20 to 28% higher realised vol
-  during risk-off periods) and has asymmetric directional predictability (53 to 63% hit rate for
-  risk-on, below 50% for risk-off). However, as an allocation signal, no RORO-based strategy beats
-  the TSMOM benchmark from Gap Study #4. The best RORO configuration achieves a Sharpe of 0.79
-  versus 1.27 for TSMOM. The ratio's primary value is as a supplementary volatility signal for
-  position sizing and drawdown management rather than as a standalone allocator.
-</p>
-
-<p>
-  <strong>Gap Study #5 (Volatility regime strategy selection):</strong> The fourth study tested
-  whether conditioning strategy choice on Garman-Klass volatility regime could recover edges that
-  failed in aggregate. It produced the most integrative result in the series. For US30 and US500,
-  the optimal template is buy-and-hold in low-vol regimes and TSMOM in high-vol regimes, confirming
-  that TSMOM's edge is a volatility regime response. For NAS100, mean-reversion (from Study #8,
-  which failed overall) delivers a Sharpe of 0.99 specifically in high-vol regimes. The best
-  NAS100 meta-strategy returns 20.3% annualised with Sharpe 0.92, the highest raw return of any
-  strategy tested, though with larger drawdowns (-18.4%) than TSMOM. Walk-forward validation shows
-  the same crash-protection signature as TSMOM: the meta-strategies beat buy-and-hold in 100% of
-  bear-market folds but trail in bull-market folds.
-</p>
-
-<p>
-  <strong>Gap Study #1 (Price-weighted vs cap-weighted divergence):</strong> The fifth study is the
-  highest-novelty contribution in the series, testing whether the log-ratio spread between
-  price-weighted US30 and capitalisation-weighted indices (US500, NAS100) is mean-reverting and
-  tradeable. The key finding is a qualified negative: the spread fails the ADF stationarity test
-  (p = 0.69) with a half-life of approximately 320 to 349 days, meaning it reflects genuine
-  structural shifts rather than stationary noise. Despite this, extreme Z-score entries (above 2.0)
-  do capture short-horizon reversion with high win rates, but trade counts are very low (9 trades
-  in the best configuration) and walk-forward results are regime-dependent (losing during 2022
-  trends, winning during 2024 oscillation). The best configuration (US30/NAS100, Sharpe 1.08)
-  does not beat TSMOM (Sharpe 1.27). The academic contribution stands regardless: this appears
-  to be the first systematic empirical test of the divergence, and the non-stationarity result
-  is itself a novel finding.
-</p>
-
-<p>
-  <strong>Gap Study #3 (Trivariate cointegration regime model):</strong> The sixth and final study
-  tested the hypothesis that Johansen trivariate cointegration testing would reveal hidden
-  equilibrium vectors not visible in pairwise Engle-Granger tests. This is a clear negative result.
-  The Johansen trace test finds marginal rank = 1 cointegration (trace stat 31.30 vs 29.80 critical),
-  but the max-eigenvalue test does not reject. Pairwise tests already identify the cointegrated pairs
-  (US30/US500 p = 0.002, US30/NAS100 p = 0.031; US500/NAS100 not cointegrated at p = 0.203).
-  No hidden trivariate vector exists. Rolling analysis shows cointegration absent 71.4% of the time.
-  The ECT fade strategy achieves a best Sharpe of only 0.28, regime filtering degrades it to 0.06,
-  and walk-forward validation produces catastrophic losses (-18.9% in Fold 1). The structural shift
-  in NAS100's relationship to the other indices (tech boom, correction, AI surge) invalidates
-  cointegrating vectors estimated in earlier periods.
-</p>
-
-<p>
-  These results together show that single-index mean-reversion at daily frequency is not viable on
-  MT5 CFDs when applied uniformly, but works within specific volatility regimes for NAS100.
-  Cross-index momentum signals contain the most robust exploitable structure, and volatility regime
-  is the unifying mechanism across the first four studies. The price-weighted divergence study adds
-  a market-neutral dimension with genuine academic novelty, though its practical trading edge
-  remains unproven. Trivariate cointegration adds nothing beyond what pairwise tests already reveal,
-  and the ECT signal is not tradeable. All identified gap studies are now complete. Phase 3 is now
-  in progress, beginning with the data inventory documented in Section 7.1. Model development will
-  build on the TSMOM and volatility-regime findings that produced the strongest results in Phase 2.
+  Phase 3 (Model Development) is underway. The data inventory (Section 7.1) covers three target
+  indexes, seven cross-asset instruments, and fifteen constituent stocks across a common 4.7-year
+  training window. The feature specification (Section 7.2) is finalised at 44 features per M1 bar
+  across five groups. Every cross-index feature traces directly to a Phase 2 empirical result.
+  Model architecture selection and training are the next steps.
 </p>
 
 <h2>9. References</h2>
