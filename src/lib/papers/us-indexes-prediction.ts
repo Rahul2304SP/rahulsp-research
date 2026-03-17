@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -714,11 +714,155 @@ export const content = `
   <figcaption>Figure 8. TSMOM allocation timeline showing index rotation over the full sample. Grey bands indicate cash periods where all three indices had negative trailing momentum. These cash periods coincide with the deepest drawdowns in the buy-and-hold baselines.</figcaption>
 </figure>
 
+<h2>6.3 Gap Study #2: NAS100/DJIA Risk-On/Risk-Off Indicator</h2>
+
+<h3>6.3.1 Objective</h3>
+
+<p>
+  The NAS100/DJIA price ratio is widely cited as a proxy for risk appetite. When the ratio rises,
+  technology-heavy NAS100 is outperforming value-heavy DJIA, which practitioners interpret as a
+  "risk-on" environment. The hypothesis is that this ratio, smoothed over a trailing window, can
+  serve as an allocation signal: overweight NAS100 during risk-on regimes and rotate into DJIA
+  during risk-off regimes. This study tests whether the RORO ratio adds value beyond the TSMOM
+  strategy established in Gap Study #4.
+</p>
+
+<h3>6.3.2 Ratio Construction and Regime Definition</h3>
+
+<p>
+  The RORO ratio is computed as NAS100 daily close divided by US30 daily close. A regime label is
+  assigned at each date: "risk-on" when the ratio is above its N-day simple moving average, and
+  "risk-off" when below. Lookback windows of 5, 10, 21, 42, and 63 trading days were tested.
+</p>
+
+<h3>6.3.3 Forward Return Predictability</h3>
+
+<p>
+  Using a 21-day lookback to define regimes, we measured the hit rate of the ratio as a directional
+  predictor at multiple forward horizons. The results are asymmetric. Risk-on regimes correctly
+  predict NAS100 outperforming US30 with hit rates between 53% and 63%, peaking at 62.7% at the
+  63-day forward horizon. Risk-off regimes, however, fail to predict US30 outperforming NAS100,
+  with hit rates below 50% at all horizons tested.
+</p>
+
+<p>
+  This asymmetry means the ratio is better described as a NAS100 momentum signal than as a balanced
+  risk-on/risk-off indicator. When the ratio is rising, NAS100 tends to keep outperforming. When
+  the ratio is falling, there is no reliable tendency for DJIA to take the lead.
+</p>
+
+<h3>6.3.4 Volatility by Regime</h3>
+
+<p>
+  The strongest finding from this study is in volatility, not returns. Risk-off regimes (ratio below
+  its moving average) exhibit 20 to 28% higher realised volatility than risk-on regimes, and this
+  holds across all three indices and all lookback windows tested. This is a reliable and economically
+  meaningful regime distinction. Even though the ratio does not reliably predict which index will
+  outperform during risk-off, it does predict that volatility will be elevated regardless of which
+  index you hold.
+</p>
+
+<h3>6.3.5 Allocation Strategy Results</h3>
+
+<p>
+  Four families of allocation strategies were tested across all lookback windows. The table below
+  shows the best configuration from each family alongside the TSMOM benchmark from Gap Study #4.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Strategy</th><th>Lookback</th><th>Ann. Return</th><th>Sharpe</th><th>Max DD</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr style="font-weight: 600; background: #f0fdf4;"><td>TSMOM (Study #4)</td><td>1 month</td><td>16.0%</td><td>1.27</td><td>-9.4%</td><td>Benchmark</td></tr>
+    <tr><td>Contrarian RORO</td><td>5 days</td><td>15.5%</td><td>0.79</td><td>-22.4%</td><td>393 switches, fragile</td></tr>
+    <tr><td>Follow Blend</td><td>21 days</td><td>12.8%</td><td>0.76</td><td>-27.5%</td><td></td></tr>
+    <tr><td>Follow RORO</td><td>42 days</td><td>12.3%</td><td>0.71</td><td>-26.2%</td><td></td></tr>
+    <tr><td>RORO + TSMOM</td><td>21 days</td><td>8.9%</td><td>0.67</td><td>-18.6%</td><td>Combination underperforms pure TSMOM</td></tr>
+  </tbody>
+</table>
+
+<p>
+  No RORO-based strategy beats TSMOM on a risk-adjusted basis. The closest competitor is the
+  contrarian configuration with a 5-day lookback, which achieves a higher raw return than most
+  RORO variants but at the cost of 393 regime switches over the sample, a Sharpe ratio of 0.79
+  (versus 1.27 for TSMOM), and a maximum drawdown of -22.4% (versus -9.4%). The RORO + TSMOM
+  combination actually underperforms pure TSMOM, suggesting that the RORO signal adds noise
+  rather than complementary information to the momentum signal.
+</p>
+
+<p>
+  <small><em>Simulated results. All backtests use daily OHLCV data from MT5 CFDs over the period
+  2019 to 2026. Returns are gross of transaction costs beyond the embedded CFD spread. Past
+  performance does not indicate future results.</em></small>
+</p>
+
+<h3>6.3.6 Walk-Forward Out-of-Sample Validation</h3>
+
+<p>
+  The Follow RORO strategy (42-day lookback) was validated using the same two-fold walk-forward
+  framework as Gap Study #4. Follow RORO beats the equal-weight baseline in both folds (Fold 0:
+  Sharpe 1.05, Fold 1: Sharpe 0.47), confirming that the signal contains some genuine information
+  out of sample. However, it still trails TSMOM substantially. For comparison, TSMOM achieved a
+  Sharpe of 2.35 in Fold 0 and 0.78 in Fold 1.
+</p>
+
+<h3>6.3.7 Key Findings</h3>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Mixed result: the NAS100/DJIA ratio is a valid regime indicator but not a superior
+  allocation signal.</strong> The ratio reliably identifies high-volatility regimes (20 to 28%
+  higher realised vol during risk-off) and has asymmetric directional predictability (works for
+  risk-on, fails for risk-off). As an allocation signal, every configuration tested underperforms
+  the TSMOM strategy from Gap Study #4 on Sharpe ratio and maximum drawdown.
+</div>
+
+<ol>
+  <li><strong>The ratio is asymmetrically predictive.</strong> Risk-on regimes correctly predict
+  NAS100 outperformance at 53 to 63% hit rates. Risk-off regimes fail to predict DJIA
+  outperformance at any horizon. The ratio is a NAS100 momentum signal, not a balanced regime
+  indicator.</li>
+  <li><strong>The strongest use case is volatility forecasting.</strong> Risk-off regimes show 20
+  to 28% higher realised volatility across all instruments and lookback windows. This is consistent,
+  robust, and potentially useful for position sizing and risk management even if the directional
+  signal is weak.</li>
+  <li><strong>As an allocation signal, RORO underperforms pure TSMOM.</strong> The best RORO
+  strategy (Contrarian, 5-day) achieves a Sharpe of 0.79, versus 1.27 for TSMOM. Combining RORO
+  with TSMOM degrades rather than improves performance.</li>
+  <li><strong>Practical use: supplementary signal, not primary allocator.</strong> The RORO ratio
+  has three plausible applications that do not require it to beat TSMOM as a standalone strategy:
+  volatility-based position sizing (reduce size during risk-off), TSMOM tiebreaker (when momentum
+  signals conflict across indices), and drawdown management (tighten stops during risk-off
+  regimes).</li>
+</ol>
+
+<h3>6.3.8 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/roro_ratio_20260316_235656.png" alt="NAS100/US30 ratio with risk-on/risk-off regime shading" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 9. NAS100/US30 ratio with risk-on/risk-off regime shading. The ratio trends upward over the full sample, reflecting NAS100's structural outperformance of DJIA. Risk-off regimes (shaded) cluster around drawdown periods.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/predictability_heatmap_20260316_235656.png" alt="Forward return predictability by lookback and horizon" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 10. Forward return predictability by lookback and horizon. The asymmetry is visible: risk-on hit rates (upper rows) reach 63%, while risk-off hit rates (lower rows) remain near or below 50%.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/strategy_equity_20260316_235656.png" alt="RORO allocation strategy equity curves vs baselines" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 11. RORO allocation strategy equity curves vs baselines. All RORO variants trail the TSMOM benchmark (green) established in Gap Study #4.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/walkforward_oos_20260316_235656.png" alt="Walk-forward OOS performance comparison" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 12. Walk-forward out-of-sample performance comparison. Follow RORO beats equal-weight in both folds but trails TSMOM in both.</figcaption>
+</figure>
+
 <h2>7. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
-  Two empirical gap studies have been completed.
+  Three empirical gap studies have been completed.
 </p>
 
 <p>
@@ -740,11 +884,23 @@ export const content = `
 </p>
 
 <p>
+  <strong>Gap Study #2 (NAS100/DJIA RORO ratio):</strong> The third study tested the NAS100/DJIA
+  price ratio as a risk-on/risk-off regime indicator and allocation signal. This produced a mixed
+  result. The ratio reliably identifies high-volatility regimes (20 to 28% higher realised vol
+  during risk-off periods) and has asymmetric directional predictability (53 to 63% hit rate for
+  risk-on, below 50% for risk-off). However, as an allocation signal, no RORO-based strategy beats
+  the TSMOM benchmark from Gap Study #4. The best RORO configuration achieves a Sharpe of 0.79
+  versus 1.27 for TSMOM. The ratio's primary value is as a supplementary volatility signal for
+  position sizing and drawdown management rather than as a standalone allocator.
+</p>
+
+<p>
   These results together confirm that single-index mean-reversion at daily frequency is not viable on
-  MT5 CFDs, but cross-index signals contain exploitable structure. The remaining highest-priority gaps
-  (price-weighted divergence signal, trivariate cointegration regime model, NAS100/DJIA ratio as
-  regime indicator, and cross-index lead-lag at minute frequency) are all testable with the OHLCV
-  data we have available and remain the focus of the next gap studies.
+  MT5 CFDs, but cross-index signals contain exploitable structure. The RORO ratio adds a useful
+  volatility regime dimension but does not improve on momentum-based allocation. The remaining
+  highest-priority gaps (price-weighted divergence signal, trivariate cointegration regime model,
+  and cross-index lead-lag at minute frequency) are all testable with the OHLCV data we have
+  available and remain the focus of the next gap studies.
 </p>
 
 <h2>8. References</h2>
