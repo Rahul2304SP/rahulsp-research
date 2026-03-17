@@ -1,8 +1,8 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Data inventory, feature specification, and normaliser selection finalised (44 features across 5 groups,
-  rolling z-score selected as universal normaliser); model architecture selection underway.
+  Data inventory, feature specification, and normaliser selection finalised (45 features across 5 groups,
+  per-feature normaliser selection: 17 passthrough / 28 rolling z-score); model architecture selection underway.
   This page will be updated as results become available.
 </div>
 
@@ -15,7 +15,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), and normaliser selection (7.3) finalised: 44 features, 5 groups, rolling z-score universal normaliser. Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), and normaliser selection (7.3) finalised: 45 features, 5 groups, per-feature normaliser selection (17 passthrough / 28 rolling_z). Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1449,7 +1449,7 @@ export const content = `
 <h3>7.2 Feature Specification</h3>
 
 <p>
-  Each model receives approximately 44 features per M1 bar, organised into five groups. Every feature
+  Each model receives approximately 45 features per M1 bar, organised into five groups. Every feature
   is justified either by Phase 1 literature or by Phase 2 empirical results. The prediction target is
   the forward 60-minute return, encoded via double-barrier labelling (up / down / hold).
 </p>
@@ -1651,7 +1651,7 @@ export const content = `
 <h4>Methodology</h4>
 
 <p>
-  Each of the 35 continuous features was tested under three normalisation strategies on the validation
+  Each of the 36 continuous features was tested under three normalisation strategies on the validation
   set (2025-07 to 2026-03):
 </p>
 
@@ -1673,16 +1673,78 @@ export const content = `
 </p>
 
 <p>
-  <strong>Decision rule:</strong> Use rolling_z if it gains $\\geq 0.002$ AUC versus raw. Otherwise
-  use rolling_z anyway as drift protection. Bounded or binary features use passthrough.
+  <strong>Decision rule:</strong>
 </p>
+<ol>
+  <li>Compute gain = AUC(rolling_z) $-$ AUC(raw) for each feature on each index.</li>
+  <li>Average across all 3 indices.</li>
+  <li>If avg gain $&lt; -0.001$ AND rolling_z hurts on at least 2/3 indices &rarr; passthrough.</li>
+  <li>If already bounded/binary &rarr; passthrough.</li>
+  <li>Otherwise &rarr; rolling_z (safe default for drift protection).</li>
+</ol>
 
 <p>
-  Nine features are passthrough (already bounded or categorical): er60 $[0,1]$,
-  momentum_regime $\\{0,1\\}$, tod_sin / tod_cos $[-1,1]$, roro_vs_sma21 $\\{0,1\\}$,
-  gk_vol_pctile $[0,1]$, ibs $[0,1]$, dxy_corr_30 $[-1,1]$, session_flag $\\{0,1,2\\}$,
-  minutes_since_us_open $[0,1]$.
+  The rolling_winsor_z strategy (percentile clip instead of $\\sigma$-clip) was never chosen. Gains
+  over rolling_z were marginal and inconsistent across the three indices.
 </p>
+
+<h4>Final Split: 17 Passthrough / 28 Rolling Z-Score</h4>
+
+<p>
+  The per-feature decision rule produces a clear split: 17 features are passed through without
+  normalisation, and 28 features use rolling_z.
+</p>
+
+<h4>Passthrough Features (17)</h4>
+
+<p>
+  These fall into two categories:
+</p>
+
+<p><strong>Bounded/binary (9):</strong></p>
+<ul>
+  <li>er60 $[0,1]$</li>
+  <li>momentum_regime $\\{0,1\\}$</li>
+  <li>tod_sin $[-1,1]$, tod_cos $[-1,1]$</li>
+  <li>roro_vs_sma21 $\\{0,1\\}$</li>
+  <li>gk_vol_pctile $[0,1]$</li>
+  <li>ibs $[0,1]$</li>
+  <li>dxy_corr_30 $[-1,1]$</li>
+  <li>session_flag $\\{0,1,2\\}$</li>
+  <li>minutes_since_us_open $[0,1]$</li>
+</ul>
+
+<p><strong>Scale-is-signal (8):</strong></p>
+<ul>
+  <li><strong>ret_60m</strong> &mdash; naturally mean-zero and stationary</li>
+  <li><strong>stdev60</strong> and <strong>vol_30m</strong> &mdash; realised volatility is stationary; raw level encodes regime</li>
+  <li><strong>vol_session_ratio</strong> and <strong>vol_surprise</strong> &mdash; self-normalising ratios</li>
+  <li><strong>gk_vol_21d</strong> &mdash; daily Garman-Klass vol, naturally bounded (avg gain $-0.0022$)</li>
+  <li><strong>cross_idx_dispersion</strong> &mdash; strongest negative (avg gain $-0.0037$)</li>
+  <li><strong>vix_level</strong> &mdash; highest drift (2.72) but rolling_z kills regime signal (avg gain $-0.0037$)</li>
+</ul>
+
+<h4>Rolling Z-Score Features (28)</h4>
+
+<p>
+  All other continuous features use rolling_z. Key beneficiaries:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Avg $\\Delta$AUC</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>kurt_240m</td><td style="color: #059669; font-weight: 600;">+0.0020</td><td>High drift 1.67&ndash;1.75</td></tr>
+    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0020</td><td>&mdash;</td></tr>
+    <tr><td>channel_width</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>High drift 4.5&ndash;4.8</td></tr>
+    <tr><td>tsmom_idx3_21d</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>Consistently positive all 3 indices</td></tr>
+    <tr><td>log_spread_us30_us500</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>Drifts by construction</td></tr>
+    <tr><td>abs_dist_ma120</td><td style="color: #059669; font-weight: 600;">+0.0009</td><td>Consistently positive all 3 indices</td></tr>
+    <tr><td>dxy_ret_60m</td><td style="color: #059669; font-weight: 600;">+0.0006</td><td>Consistently positive all 3 indices</td></tr>
+    <tr><td colspan="3"><em>All constituent stock returns: rolling_z protects against earnings/split outliers</em></td></tr>
+  </tbody>
+</table>
 
 <h4>Cross-Instrument Results</h4>
 
@@ -1726,41 +1788,33 @@ export const content = `
   </tbody>
 </table>
 
-<h4>The Pattern</h4>
-
-<p>
-  High-drift features (kurtosis, channel width, VIX level) have drift scores above 1.0, but the
-  AUC response to normalisation is mixed. Features where the raw <em>level</em> encodes information
-  &mdash; VIX absolute level, dispersion magnitude, vol ratios &mdash; lose predictive power when
-  z-scored, because the neural net can no longer distinguish "VIX at 15" from "VIX at 35" once both
-  are mapped to similar z-scores within their local windows. Conversely, features with heavy tails
-  (kurtosis, skewness) benefit from clipping because extreme outliers otherwise dominate the gradient.
-</p>
-
-<p>
-  The rolling_winsor_z strategy (percentile clip instead of $\\sigma$-clip) showed no consistent
-  advantage over rolling_z across the three indices. The two strategies produced nearly identical
-  AUC on 31 of 35 features, with rolling_winsor_z marginally better on skew_240m (+0.0003) and
-  marginally worse on kurt_240m (-0.0002). Given the negligible difference, we chose rolling_z for
-  simplicity.
-</p>
-
 <h4>Final Decision</h4>
 
 <div class="finding-box">
-  <strong>Normaliser selection:</strong> Use rolling_z (causal 30-day rolling $3\\sigma$ clip + z-score)
-  universally for all 35 continuous features. The 9 bounded/binary features use passthrough.
+  <strong>Per-feature normaliser selection:</strong> The decision rule reveals two distinct feature
+  populations. Features where the raw <em>level</em> encodes regime information (volatility, VIX,
+  dispersion) lose predictive power when z-scored because the model needs to distinguish
+  &ldquo;VIX at 12 vs VIX at 30&rdquo;, not &ldquo;VIX is 1 standard deviation above recent mean.&rdquo;
+  Features with heavy tails or structural drift (kurtosis, channel width, log spreads) benefit because
+  clipping removes outliers and z-scoring stabilises the input distribution. Final split:
+  <strong>17 passthrough</strong> (9 bounded + 8 scale-dependent) / <strong>28 rolling_z</strong>.
 </div>
 
+<table>
+  <thead>
+    <tr><th>Normaliser</th><th>Count</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>passthrough</td><td>17 (9 bounded + 8 scale-dependent)</td></tr>
+    <tr><td>rolling_z</td><td>28</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>45</strong></td></tr>
+  </tbody>
+</table>
+
 <p>
-  The AUC losses from z-scoring scale-dependent features are small (maximum $-0.006$) and will be
-  partially recovered by the neural net learning from normalised scale &mdash; the model can still
-  rank observations by their z-score even if absolute levels are lost. The risk of <em>not</em>
-  normalising is substantially larger: gradient explosion from heavy-tailed features, regime-dependent
-  feature dominance where a single drifting input overwhelms the loss landscape, and poor
-  generalisation when the model encounters VIX or volatility levels outside the training distribution.
-  A universal normaliser also simplifies the inference pipeline &mdash; no per-feature routing logic
-  is needed at prediction time.
+  <strong>VIX note:</strong> VIX has the highest drift (2.72) but is passthrough. If training
+  instability is observed, $\\log(\\text{VIX})$ is a fallback that is more stationary while
+  preserving regime information.
 </p>
 
 <h4>Normaliser AUC Heatmaps</h4>
@@ -1850,13 +1904,14 @@ export const content = `
 <p>
   Phase 3 (Model Development) is underway. The data inventory (Section 7.1) covers three target
   indexes, seven cross-asset instruments, and fifteen constituent stocks across a common 4.7-year
-  training window. The feature specification (Section 7.2) is finalised at 44 features per M1 bar
+  training window. The feature specification (Section 7.2) is finalised at 45 features per M1 bar
   across five groups. Every cross-index feature traces directly to a Phase 2 empirical result.
-  Normaliser selection (Section 7.3) is complete: rolling z-score (causal 30-day, $3\\sigma$ clip)
-  was chosen as the universal normaliser for all 35 continuous features, with 9 bounded/binary
-  features using passthrough. The AUC cost of normalising scale-dependent features (max $-0.006$)
-  is accepted as a worthwhile trade-off against gradient stability and regime robustness.
-  Model architecture selection and training are the next steps.
+  Normaliser selection (Section 7.3) is complete: per-feature normaliser selection based on
+  AUC gain/loss across all three indices, yielding a split of 17 passthrough features
+  (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $3\\sigma$ clip).
+  Scale-dependent features (VIX level, dispersion, volatility ratios) retain their raw values
+  to preserve regime information; heavy-tailed and drifting features use rolling_z for gradient
+  stability. Model architecture selection and training are the next steps.
 </p>
 
 <h2>9. References</h2>
