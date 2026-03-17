@@ -1403,28 +1403,26 @@ export const content = `
   in the US30 set, making it the only stock present across all three models.
 </p>
 
-<h4>Train / Validation / Test Split</h4>
+<h4>Train / Validation Split</h4>
 
 <p>
-  All splits are strictly chronological with no overlap. No data from a later split is used during
-  training or hyperparameter selection in an earlier split.
+  All splits are strictly chronological with no overlap. No data from the validation set is used during
+  training or hyperparameter selection.
 </p>
 
 <table>
   <thead>
-    <tr><th>Split</th><th>Period</th><th>Duration</th></tr>
+    <tr><th>Split</th><th>Period</th><th>Duration</th><th>Share</th></tr>
   </thead>
   <tbody>
-    <tr><td>Train</td><td>2021-07-01 to 2024-06-30</td><td>3.0 years</td></tr>
-    <tr><td>Validation</td><td>2024-07-01 to 2025-06-30</td><td>1.0 year</td></tr>
-    <tr><td>Test</td><td>2025-07-01 to 2026-03-17</td><td>~8.5 months</td></tr>
+    <tr><td>Train</td><td>2021-07-01 to 2025-06-30</td><td>4.0 years</td><td>83%</td></tr>
+    <tr><td>Validation</td><td>2025-07-01 to 2026-03-17</td><td>~8.5 months</td><td>17%</td></tr>
   </tbody>
 </table>
 
 <p>
-  The test set includes the 2025 tariff volatility regime as an out-of-sample stress test. This period
-  saw sharp drawdowns and sector rotation driven by trade policy uncertainty, providing a demanding
-  evaluation environment for any model trained on pre-2025 data.
+  All splits are strictly chronological. The validation set includes the 2025 tariff volatility regime.
+  The real out-of-sample test is live execution on MT5.
 </p>
 
 <h4>Data Quality Notes</h4>
