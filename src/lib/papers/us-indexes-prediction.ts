@@ -2,7 +2,7 @@ export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
   Data inventory, feature specification, normaliser selection, and model configuration finalised
-  (45 features, 17 passthrough / 28 rolling z-score, TCN+Transformer with 4 temporal streams);
+  (45 features, 17 passthrough / 28 rolling z-score, VSN+TCN+Transformer with 4 temporal streams);
   training and backtesting underway.
   This page will be updated as results become available.
 </div>
@@ -16,7 +16,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, TCN+Transformer with 4 temporal streams, double-barrier labels. Training and backtesting underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. Training and backtesting underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1927,12 +1927,15 @@ export const content = `
   </tbody>
 </table>
 
-<h4>Architecture: TCN + Transformer</h4>
+<h4>Architecture: VSN + TCN + Transformer</h4>
 
 <p>
-  The model uses a Temporal Convolutional Network (TCN) frontend feeding into a Transformer encoder
-  with self-attention. The adaptive denoise filter (used in the XAUUSD base model) is disabled here
-  because index composites already smooth microstructure noise inherent in single-instrument tick data.
+  The model pipeline is: Features &rarr; Variable Selection Network (VSN) &rarr; Temporal Convolutional
+  Network (TCN) &rarr; Transformer encoder &rarr; prediction heads. The VSN produces a dense embedding
+  from the raw feature vector at each timestep; the TCN extracts local temporal patterns from the
+  embedding sequence; the Transformer captures global dependencies across the full window. The adaptive
+  denoise filter (used in the XAUUSD base model) is disabled here because index composites already
+  smooth microstructure noise inherent in single-instrument tick data.
 </p>
 
 <p>
@@ -1956,7 +1959,91 @@ export const content = `
   without inflating sequence length.
 </p>
 
-<h4>Transformer Hyperparameters</h4>
+<h4>Variable Selection Network (VSN)</h4>
+
+<p>
+  The VSN is a learned, per-timestep soft feature gate based on the Variable Selection Network
+  introduced by Lim et al. (2021) in the Temporal Fusion Transformer. Given $F$ input features at each
+  timestep, the VSN produces softmax-normalised importance weights via a selector MLP, then projects
+  the weighted features into a dense embedding of dimension $E$. This allows the model to suppress
+  noisy or irrelevant features on a bar-by-bar basis rather than treating all 44 inputs equally.
+</p>
+
+<p>
+  The VSN computes two complementary paths and combines them via element-wise addition:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Path</th><th>Computation</th><th>What It Captures</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Value path</td><td>$$x \\odot w \\rightarrow \\text{Linear}(F, E)$$</td><td>How much each feature contributes (magnitude-aware)</td></tr>
+    <tr><td>Prototype path</td><td>$$w^\\top \\cdot \\text{Prototypes}(F, E)$$</td><td>Which features are active (identity-aware)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The value path multiplies each raw feature by its importance weight and projects the result to the
+  embedding dimension. The prototype path takes the dot product of the weight vector with a learnable
+  prototype matrix, producing an embedding that reflects which features are selected regardless of their
+  magnitude. The element-wise sum passes through LayerNorm to produce the final embedding fed to the TCN.
+</p>
+
+<p>
+  <strong>Why VSN before TCN.</strong> Each layer in the pipeline operates on a different axis and is
+  blind to what the others handle:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Component</th><th>Operates Across</th><th>Learns</th><th>Blind To</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VSN</td><td>Features ($F$ axis)</td><td>Which features matter at this timestep</td><td>Temporal patterns</td></tr>
+    <tr><td>TCN</td><td>Time ($T$ axis)</td><td>Local temporal patterns (15-bar kernel)</td><td>Feature quality</td></tr>
+    <tr><td>Transformer</td><td>Time ($T$ axis)</td><td>Global dependencies across full window</td><td>Local patterns</td></tr>
+  </tbody>
+</table>
+
+<p>
+  By composing VSN &rarr; TCN &rarr; Transformer, each layer handles what it does best. The VSN says
+  &ldquo;at this bar, dxy_ret_60m and vol_surprise are the key inputs; suppress noisy constituents.&rdquo;
+  The TCN says &ldquo;over the last 15 bars of those selected features, there is momentum acceleration.&rdquo;
+  The Transformer says &ldquo;across the full window, trend context supports this direction.&rdquo;
+</p>
+
+<p>
+  <strong>Why not feed raw features directly to the TCN.</strong> The 44 features range from near-random
+  (AUC 0.5004) to meaningfully predictive (AUC 0.5367). Without the VSN, the TCN treats every feature
+  channel equally, wasting capacity on noise. Furthermore, feature importance is regime-dependent:
+  momentum features matter during trends, while volatility features matter in mean-reverting markets.
+  The VSN adapts per-timestep, allowing the downstream TCN to operate on a cleaned, regime-appropriate
+  representation.
+</p>
+
+<p>
+  <strong>VSN hyperparameters:</strong>
+</p>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Hidden dim</td><td>64</td><td>Selector MLP hidden size</td></tr>
+    <tr><td>Dropout</td><td>0.15</td><td>Matches model-wide dropout</td></tr>
+    <tr><td>Context dim</td><td>0</td><td>No regime context ($K = 1$)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Parameter cost:</strong> approximately 11,648 parameters total (selector MLP ~5,760,
+  value projection ~2,880, prototypes ~2,880, LayerNorm ~128). This is negligible relative to the
+  Transformer encoder and does not meaningfully increase training time or memory.
+</p>
+
+<h4>TCN + Transformer Hyperparameters</h4>
 
 <table>
   <thead>
@@ -2021,13 +2108,15 @@ export const content = `
 <div style="display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; margin: 1.5rem 0; font-size: 0.9em;">
   <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #1e40af;">M1 OHLCV</div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
-  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Feature builder<br/><small style="color: #6b7280;">44 features</small></div>
+  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Feature builder<br/><small style="color: #6b7280;">45 features</small></div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
   <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Normaliser<br/><small style="color: #6b7280;">17 passthrough / 28 rolling_z</small></div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
   <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Double-barrier<br/><small style="color: #6b7280;">labels</small></div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
   <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Sequence dataset<br/><small style="color: #6b7280;">4 windows</small></div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #92400e;">VSN<br/><small style="color: #6b7280;">soft feature gate</small></div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
   <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$$</small></div>
 </div>
@@ -2055,9 +2144,11 @@ export const content = `
   (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $3\\sigma$ clip).
   Scale-dependent features (VIX level, dispersion, volatility ratios) retain their raw values
   to preserve regime information; heavy-tailed and drifting features use rolling_z for gradient
-  stability. Model configuration (Section 7.4) is finalised: a TCN+Transformer architecture with
+  stability. Model configuration (Section 7.4) is finalised: a VSN+TCN+Transformer architecture with
   four parallel temporal streams (1h, 2h, 4h, 30d), symmetric double-barrier labelling with
-  per-index barriers, and training hyperparameters validated on the XAUUSD base model.
+  per-index barriers, and training hyperparameters validated on the XAUUSD base model. A Variable
+  Selection Network (Lim et al., 2021) provides learned per-timestep soft feature gating before the
+  TCN, allowing the model to suppress noisy inputs and adapt feature importance across regimes.
   Training and backtesting are the next steps.
 </p>
 
@@ -2096,6 +2187,7 @@ export const content = `
     <tr><td>26</td><td>CME Group</td><td>&mdash;</td><td>Stock Index Spread Opportunities</td><td>Education Whitepaper</td></tr>
     <tr><td>27</td><td>Nasdaq</td><td>2020</td><td>A Tale of Three Crises in the Past Two Decades</td><td>Whitepaper</td></tr>
     <tr><td>28</td><td>Nasdaq</td><td>2025</td><td>Understanding the DJIA: Price-Weighted vs. Cap-Weighted Attribution</td><td>Whitepaper</td></tr>
+    <tr><td>29</td><td>Lim, B., Ar&iacute;k, S.&Ouml;., Loeff, N. &amp; Pfister, T.</td><td>2021</td><td>Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting</td><td><em>International Journal of Forecasting</em></td></tr>
   </tbody>
 </table>
 `;
