@@ -180,13 +180,25 @@ def upload_new_signals():
             except ValueError:
                 continue
 
+            # MT5 broker writes in EET/EEST but labels as +00:00 — correct to UTC
+            if trade_ts.tzinfo is None:
+                trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+            month = trade_ts.month
+            is_summer = 4 <= month <= 9
+            if month == 3:
+                last_sun = 31 - (datetime(trade_ts.year, 3, 31).weekday() + 1) % 7
+                is_summer = trade_ts.day >= last_sun
+            elif month == 10:
+                last_sun = 31 - (datetime(trade_ts.year, 10, 31).weekday() + 1) % 7
+                is_summer = trade_ts.day < last_sun
+            broker_offset = 3 if is_summer else 2
+            trade_ts = trade_ts - timedelta(hours=broker_offset)
+
             # Skip if already uploaded
             if last_ts and trade_ts <= last_ts:
                 continue
 
-            # Enforce 15-min delay
-            if trade_ts.tzinfo is None:
-                trade_ts = trade_ts.replace(tzinfo=timezone.utc)
+            # Enforce delay
             if trade_ts > delay_cutoff:
                 continue
 

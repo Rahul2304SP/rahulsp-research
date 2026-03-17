@@ -54,18 +54,18 @@ def load_feature_names() -> list[str]:
     return []
 
 
-def get_last_uploaded_bar() -> int:
-    """Get the most recent bar number we've uploaded."""
+def get_last_uploaded_ts() -> datetime | None:
+    """Get the most recent timestamp we've uploaded."""
     result = (
         supabase.table("vsn_weights")
-        .select("bar")
-        .order("bar", desc=True)
+        .select("timestamp")
+        .order("timestamp", desc=True)
         .limit(1)
         .execute()
     )
     if result.data:
-        return result.data[0]["bar"]
-    return 0
+        return datetime.fromisoformat(result.data[0]["timestamp"])
+    return None
 
 
 def upload_new_weights():
@@ -76,7 +76,7 @@ def upload_new_weights():
 
     now = datetime.now(timezone.utc)
     delay_cutoff = now - timedelta(minutes=DELAY_MINUTES)
-    last_bar = get_last_uploaded_bar()
+    last_ts = get_last_uploaded_ts()
     feature_names = load_feature_names()
 
     rows_to_upload = []
@@ -92,18 +92,32 @@ def upload_new_weights():
             if stream != "long":
                 continue
 
-            # Skip already uploaded
-            if bar <= last_bar:
-                continue
-
-            # Parse timestamp and enforce delay
+            # Parse timestamp — MT5 broker writes in EET (Europe/Helsinki)
+            # but labels as +00:00. Re-interpret as EET then convert to UTC.
             try:
                 ts = datetime.fromisoformat(ts_str)
-                if ts.tzinfo is None:
-                    ts = ts.replace(tzinfo=timezone.utc)
-                if ts > delay_cutoff:
-                    continue
+                # Treat the naive/mislabeled timestamp as broker local time (EET/EEST)
+                # EET = UTC+2 (winter), EEST = UTC+3 (summer)
+                # Summer: last Sunday of March to last Sunday of October
+                month = ts.month
+                is_summer = 4 <= month <= 9  # approximate DST
+                if month == 3:
+                    last_sun = 31 - (datetime(ts.year, 3, 31).weekday() + 1) % 7
+                    is_summer = ts.day >= last_sun
+                elif month == 10:
+                    last_sun = 31 - (datetime(ts.year, 10, 31).weekday() + 1) % 7
+                    is_summer = ts.day < last_sun
+                broker_offset = 3 if is_summer else 2
+                ts = ts.replace(tzinfo=timezone.utc) - timedelta(hours=broker_offset)
             except ValueError:
+                continue
+
+            # Skip already uploaded (compare by timestamp, not bar number)
+            if last_ts and ts <= last_ts:
+                continue
+
+            # Enforce delay
+            if ts > delay_cutoff:
                 continue
 
             # Extract weights as dict with feature names

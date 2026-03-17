@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Work in Progress</strong> &mdash; Phase 1 complete, Phase 2 complete (6 gap studies finished).
-  Phase 3 (Model Development) is next. This page will be updated as results become available.
+  <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
+  Data inventory finalised; model development underway. This page will be updated as results become available.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence<br/>Gap Study #3 (Trivariate cointegration regime model) complete: negative result; trivariate testing adds nothing beyond pairwise; ECT signal not tradeable (Sharpe 0.28); OOS catastrophic (-18.9%)<br/>All gap studies complete.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1318,11 +1318,134 @@ export const content = `
   <figcaption>Figure 22. Pairwise vs trivariate cointegration test comparison. The pairwise Engle-Granger p-values (US30/US500 at 0.002, US30/NAS100 at 0.031) clearly identify the cointegrated pairs. The trivariate Johansen test adds no information beyond what pairwise tests already reveal.</figcaption>
 </figure>
 
-<h2>7. Current Status</h2>
+<h2>7. Phase 3: Neural Net Model Development</h2>
+
+<h3>7.1 Data Inventory</h3>
+
+<p>
+  This section documents the data available for model development. All three index models share a common
+  training window, cross-asset feature set, and chronological train/validation/test split. The binding
+  constraint on the common window is META, whose M1 data begins on 2021-06-30.
+</p>
+
+<h4>Common Training Window</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Window</td><td>2021-07-01 to 2026-03-17 (~4.7 years)</td></tr>
+    <tr><td>Binding constraint</td><td>META (starts 2021-06-30)</td></tr>
+    <tr><td>Bar frequency</td><td>M1 (1-minute OHLCV)</td></tr>
+    <tr><td>Source</td><td>MT5 CFD data + Databento XNAS backfill (TLT, META)</td></tr>
+  </tbody>
+</table>
+
+<h4>Target Indexes</h4>
+
+<p>
+  Each model predicts the forward 60-minute return using a double-barrier label (up/down/hold).
+</p>
+
+<table>
+  <thead>
+    <tr><th>Instrument</th><th>Full Span</th><th>M1 Rows</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30 (DJIA)</td><td>2020-08 to 2026-03</td><td>1,982,699</td></tr>
+    <tr><td>US500 (S&amp;P 500)</td><td>2018-05 to 2026-03</td><td>2,743,872</td></tr>
+    <tr><td>NAS100 (Nasdaq 100)</td><td>2018-05 to 2026-03</td><td>2,792,656</td></tr>
+  </tbody>
+</table>
+
+<h4>Cross-Asset Instruments</h4>
+
+<p>
+  The following instruments provide cross-asset features for all three models.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Instrument</th><th>Full Span</th><th>M1 Rows</th><th>Feature Use</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VIX</td><td>2018-05 to 2026-03</td><td>760,033</td><td>Fear gauge, vol regime</td></tr>
+    <tr><td>DXY (Dollar Index)</td><td>2018-12 to 2026-03</td><td>2,194,608</td><td>Dollar strength</td></tr>
+    <tr><td>USDJPY</td><td>2008-09 to 2026-03</td><td>2,133,765</td><td>Carry trade / risk proxy</td></tr>
+    <tr><td>BTCUSD</td><td>2017-06 to 2026-03</td><td>2,325,662</td><td>Risk appetite proxy</td></tr>
+    <tr><td>XAUUSD (Gold)</td><td>2018-05 to 2026-03</td><td>2,802,955</td><td>Safe haven flow</td></tr>
+    <tr><td>BRENT (Crude Oil)</td><td>2016-01 to 2026-03</td><td>1,839,566</td><td>Energy / inflation proxy</td></tr>
+    <tr><td>TLT (20Y+ Treasury Bond ETF)</td><td>2018-05 to 2026-02</td><td>971,662</td><td>Bond proxy, equity/bond rotation</td></tr>
+  </tbody>
+</table>
+
+<h4>Constituent Stocks</h4>
+
+<p>
+  The top 5 constituents per index provide 60-minute returns as features and intra-index dispersion
+  measures. Several stocks appear in multiple index models.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Top 5 Constituents</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>GS, MSFT, HD, CAT, V</td></tr>
+    <tr><td>NAS100</td><td>AAPL, MSFT, NVDA, AMZN, GOOG</td></tr>
+    <tr><td>US500</td><td>AAPL, MSFT, NVDA, AMZN, META (binding constraint)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  AAPL, MSFT, NVDA, and AMZN appear in both the NAS100 and US500 constituent sets. MSFT also appears
+  in the US30 set, making it the only stock present across all three models.
+</p>
+
+<h4>Train / Validation / Test Split</h4>
+
+<p>
+  All splits are strictly chronological with no overlap. No data from a later split is used during
+  training or hyperparameter selection in an earlier split.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Split</th><th>Period</th><th>Duration</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Train</td><td>2021-07-01 to 2024-06-30</td><td>3.0 years</td></tr>
+    <tr><td>Validation</td><td>2024-07-01 to 2025-06-30</td><td>1.0 year</td></tr>
+    <tr><td>Test</td><td>2025-07-01 to 2026-03-17</td><td>~8.5 months</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The test set includes the 2025 tariff volatility regime as an out-of-sample stress test. This period
+  saw sharp drawdowns and sector rotation driven by trade policy uncertainty, providing a demanding
+  evaluation environment for any model trained on pre-2025 data.
+</p>
+
+<h4>Data Quality Notes</h4>
+
+<ul>
+  <li>All files are clean M1 bars, verified via interval analysis (no duplicate timestamps, no
+  gaps exceeding expected market closures).</li>
+  <li>Missing minutes in lower-volume stocks reflect thin liquidity during off-peak hours, not
+  data errors. These gaps are expected and handled during feature construction.</li>
+  <li>Stock constituents only trade 13:30 to 20:00 UTC (US cash session). Outside these hours,
+  constituent features are forward-filled from the last available bar.</li>
+</ul>
+
+<h2>8. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is complete.
   Six empirical gap studies have been completed, covering all identified gaps in the literature review.
+  Phase 3 (Model Development) has begun. The data inventory (Section 7.1) documents the full dataset
+  available for neural net development: three target indexes, seven cross-asset instruments, and fifteen
+  constituent stocks across a common 4.7-year training window.
 </p>
 
 <p>
@@ -1403,12 +1526,12 @@ export const content = `
   is the unifying mechanism across the first four studies. The price-weighted divergence study adds
   a market-neutral dimension with genuine academic novelty, though its practical trading edge
   remains unproven. Trivariate cointegration adds nothing beyond what pairwise tests already reveal,
-  and the ECT signal is not tradeable. All identified gap studies are now complete. The next phase
-  will focus on model development and backtesting, building on the TSMOM and volatility-regime
-  findings that produced the strongest results.
+  and the ECT signal is not tradeable. All identified gap studies are now complete. Phase 3 is now
+  in progress, beginning with the data inventory documented in Section 7.1. Model development will
+  build on the TSMOM and volatility-regime findings that produced the strongest results in Phase 2.
 </p>
 
-<h2>8. References</h2>
+<h2>9. References</h2>
 
 <table>
   <thead>
