@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -858,11 +858,167 @@ export const content = `
   <figcaption>Figure 12. Walk-forward out-of-sample performance comparison. Follow RORO beats equal-weight in both folds but trails TSMOM in both.</figcaption>
 </figure>
 
+<h2>6.4 Gap Study #5: Volatility Regime Strategy Selection</h2>
+
+<h3>6.4.1 Objective</h3>
+
+<p>
+  The three prior gap studies produced a puzzle. Mean-reversion (Study #8) failed outright.
+  TSMOM (Study #4) succeeded with Sharpe 1.27. The RORO ratio (Study #2) reliably identified
+  high-volatility regimes but did not beat TSMOM as an allocation signal. This study asks the
+  natural follow-up question: what if the right strategy is not a single rule applied uniformly,
+  but a different sub-strategy selected by the prevailing volatility regime? The hypothesis is
+  that some strategies that fail in aggregate may work in specific regimes, and that conditioning
+  on volatility state can recover hidden edges.
+</p>
+
+<h3>6.4.2 Methodology</h3>
+
+<p>
+  Volatility is measured using the Garman-Klass estimator over a trailing 21-day window. At each
+  date, the current GK volatility is classified into one of three regimes (Low, Medium, High)
+  using expanding-window percentile thresholds. Because the percentiles are computed only on data
+  available up to that date, there is no lookahead bias. The test then evaluates which sub-strategy
+  performs best within each regime. The candidate sub-strategies are: time-series momentum (TSMOM,
+  from Study #4), mean-reversion (IBS-based, from Study #8), buy-and-hold, and cash. Eight
+  meta-strategy combinations were tested, each assigning a different sub-strategy to each of the
+  three volatility buckets.
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from historical backtests on
+  MT5 CFD daily bars with spread costs deducted on every entry. They do not account for slippage,
+  overnight financing, or execution latency. Past performance does not predict future results.
+</div>
+
+<h3>6.4.3 Strategy Performance by Volatility Regime</h3>
+
+<p>
+  The results reveal a clear pattern that differs by instrument. For US30 and US500, the same
+  template holds: buy-and-hold wins in low-volatility regimes (Sharpe 0.67 for US30, 1.85 for
+  US500), while TSMOM wins in high-volatility regimes (Sharpe 1.38 for US30, 1.02 for US500).
+  This is consistent with the TSMOM finding from Study #4, which showed that TSMOM's edge is
+  primarily in crash protection. Low-vol periods are calm trending markets where being long is
+  the right trade; high-vol periods are where momentum's ability to go flat preserves capital.
+</p>
+
+<p>
+  NAS100 is the outlier. In low-volatility regimes, buy-and-hold dominates (Sharpe 2.14), which
+  is unsurprising given NAS100's strong secular trend. In medium-volatility regimes, however,
+  mean-reversion takes the lead (Sharpe 0.70). And in high-volatility regimes, mean-reversion
+  wins again (Sharpe 0.99). This is a striking rehabilitation of a strategy that failed
+  completely in Study #8 when applied without regime conditioning.
+</p>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  <strong>Mean-reversion rehabilitation: the edge was hidden by regime mixing.</strong>
+  The IBS mean-reversion strategy that produced negative results in Gap Study #8 delivers a
+  Sharpe of 0.99 when applied specifically to high-volatility NAS100 regimes. The overall failure
+  was not because the signal lacked predictive power, but because applying it uniformly across
+  all volatility states diluted the high-vol edge with noise from low-vol and medium-vol periods
+  where the signal does not work. This validates the RORO finding from Study #2 (volatility
+  regimes matter) and operationalises it as a concrete strategy selection rule.
+</div>
+
+<h3>6.4.4 Best Meta-Strategy by Instrument</h3>
+
+<p>
+  The best-performing meta-strategy for each instrument, selected by in-sample Sharpe ratio:
+</p>
+
+<p>
+  US30 uses the "buy-and-hold in low vol, TSMOM in high vol" template (bh_low_mom_high),
+  returning 5.7% annualised with a Sharpe of 0.58. US500 uses the same template, returning
+  10.2% annualised with a Sharpe of 0.87. NAS100 uses the opposite pattern
+  (mom_low_mr_high, meaning TSMOM in low vol, mean-reversion in high vol), returning 20.3%
+  annualised with a Sharpe of 0.92 and a maximum drawdown of -18.4%.
+</p>
+
+<p>
+  The NAS100 result is notable for delivering the highest raw return of any strategy tested in
+  this series. It trails TSMOM on risk-adjusted terms (0.92 vs 1.27 Sharpe) but provides a
+  meaningfully different return profile, concentrating its edge in volatile periods where TSMOM
+  moves to cash.
+</p>
+
+<h3>6.4.5 Walk-Forward Out-of-Sample Validation</h3>
+
+<p>
+  Walk-forward testing confirms the same pattern observed in Study #4: the meta-strategies beat
+  buy-and-hold in 100% of bear-market folds but trail in bull-market folds. This is the familiar
+  crash-protection signature. The regime-conditioned approach does not add a new source of edge
+  beyond what TSMOM already captures; rather, it confirms that the volatility dimension is the
+  mechanism through which TSMOM works and shows that mean-reversion can participate in that same
+  mechanism for NAS100.
+</p>
+
+<h3>6.4.6 Updated Strategy Leaderboard</h3>
+
+<p>
+  Across all four gap studies, the cumulative ranking by risk-adjusted performance is:
+</p>
+
+<ol>
+  <li><strong>TSMOM (Gap Study #4):</strong> Sharpe 1.27, -9.4% max drawdown. Still the best
+  risk-adjusted strategy. Its crash-protection mechanism is now better understood as a volatility
+  regime response.</li>
+  <li><strong>NAS100 mom_low_mr_high (this study):</strong> 20.3% annualised return, Sharpe 0.92,
+  -18.4% max drawdown. The highest raw return of any strategy tested, driven by mean-reversion
+  working in high-vol NAS100 regimes.</li>
+  <li><strong>US500 bh_low_mom_high (this study):</strong> 10.2% annualised return, Sharpe 0.87.
+  A clean implementation of the "be long in calm markets, follow momentum in volatile markets"
+  template.</li>
+</ol>
+
+<h3>6.4.7 Key Findings</h3>
+
+<ol>
+  <li><strong>Strategy failure can be regime-specific, not absolute.</strong> Mean-reversion was
+  dismissed after Study #8 as non-viable at daily frequency on MT5 CFDs. That conclusion was
+  correct in aggregate but masked a regime-conditional edge. The signal works in high-volatility
+  NAS100 environments where price overreactions are larger and more likely to revert.</li>
+  <li><strong>Volatility regime is the common thread.</strong> All four studies converge on the same
+  mechanism. TSMOM works because it avoids high-vol drawdowns. The RORO ratio works as a volatility
+  identifier. Mean-reversion works within high-vol regimes. The unifying insight is that strategy
+  selection conditioned on realised volatility captures most of the exploitable structure in daily
+  US index returns.</li>
+  <li><strong>Instrument-specific behaviour matters.</strong> NAS100 responds to mean-reversion in
+  high-vol regimes while US30 and US500 respond to momentum. This likely reflects NAS100's higher
+  beta and more pronounced overreaction-reversal pattern during volatile periods, consistent with
+  its technology-heavy composition and the flow dynamics studied in Gap Study #2.</li>
+  <li><strong>Risk-return tradeoffs remain.</strong> The highest-return strategy (NAS100
+  mom_low_mr_high at 20.3%) comes with nearly double the drawdown of TSMOM (-18.4% vs -9.4%).
+  There is no free lunch; the regime-conditioned approach trades better returns for larger peak
+  losses.</li>
+</ol>
+
+<h3>6.4.8 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/summary_sharpe_by_regime_20260317_000356.png" alt="Sharpe ratio by strategy and volatility regime across instruments" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 13. Sharpe ratio by strategy and volatility regime across instruments. The divergence between NAS100 (where mean-reversion leads in high vol) and US30/US500 (where TSMOM leads in high vol) is clearly visible.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/NAS100_vol_regime_20260317_000356.png" alt="NAS100 volatility regime classification and strategy equity curves" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 14. NAS100 volatility regime classification and strategy equity curves. The mean-reversion sub-strategy (orange) gains ground during shaded high-vol periods where buy-and-hold and TSMOM both struggle.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/US30_vol_regime_20260317_000356.png" alt="US30 volatility regime analysis" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 15. US30 volatility regime analysis. TSMOM dominates high-vol regimes while buy-and-hold leads during calm periods.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/US500_vol_regime_20260317_000356.png" alt="US500 volatility regime analysis" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 16. US500 volatility regime analysis. The same pattern as US30: buy-and-hold in low vol, TSMOM in high vol.</figcaption>
+</figure>
+
 <h2>7. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
-  Three empirical gap studies have been completed.
+  Four empirical gap studies have been completed.
 </p>
 
 <p>
@@ -895,12 +1051,26 @@ export const content = `
 </p>
 
 <p>
-  These results together confirm that single-index mean-reversion at daily frequency is not viable on
-  MT5 CFDs, but cross-index signals contain exploitable structure. The RORO ratio adds a useful
-  volatility regime dimension but does not improve on momentum-based allocation. The remaining
-  highest-priority gaps (price-weighted divergence signal, trivariate cointegration regime model,
-  and cross-index lead-lag at minute frequency) are all testable with the OHLCV data we have
-  available and remain the focus of the next gap studies.
+  <strong>Gap Study #5 (Volatility regime strategy selection):</strong> The fourth study tested
+  whether conditioning strategy choice on Garman-Klass volatility regime could recover edges that
+  failed in aggregate. It produced the most integrative result in the series. For US30 and US500,
+  the optimal template is buy-and-hold in low-vol regimes and TSMOM in high-vol regimes, confirming
+  that TSMOM's edge is a volatility regime response. For NAS100, mean-reversion (from Study #8,
+  which failed overall) delivers a Sharpe of 0.99 specifically in high-vol regimes. The best
+  NAS100 meta-strategy returns 20.3% annualised with Sharpe 0.92, the highest raw return of any
+  strategy tested, though with larger drawdowns (-18.4%) than TSMOM. Walk-forward validation shows
+  the same crash-protection signature as TSMOM: the meta-strategies beat buy-and-hold in 100% of
+  bear-market folds but trail in bull-market folds.
+</p>
+
+<p>
+  These results together show that single-index mean-reversion at daily frequency is not viable on
+  MT5 CFDs when applied uniformly, but works within specific volatility regimes for NAS100.
+  Cross-index momentum signals contain the most robust exploitable structure, and volatility regime
+  is the unifying mechanism across all four studies. The remaining highest-priority gaps
+  (price-weighted divergence signal, trivariate cointegration regime model, and cross-index
+  lead-lag at minute frequency) are all testable with the OHLCV data we have available and remain
+  the focus of the next gap studies.
 </p>
 
 <h2>8. References</h2>
