@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Work in Progress</strong> &mdash; Phase 1 complete, Phase 2 in progress.
-  Empirical gap studies are underway. This page will be updated as results become available.
+  <strong>Work in Progress</strong> &mdash; Phase 1 complete, Phase 2 complete (6 gap studies finished).
+  Phase 3 (Model Development) is next. This page will be updated as results become available.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence<br/>Gap Study #3 (Trivariate cointegration regime model) complete: negative result; trivariate testing adds nothing beyond pairwise; ECT signal not tradeable (Sharpe 0.28); OOS catastrophic (-18.9%)<br/>All gap studies complete.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -1152,11 +1152,177 @@ export const content = `
   <figcaption>Figure 20. Walk-forward out-of-sample fold comparison. Fold 0 (2022, trending) produces losses; Fold 1 (2024, oscillating) produces gains. The regime dependence is visually clear.</figcaption>
 </figure>
 
+<h2>6.6 Gap Study #3: Trivariate Cointegration Regime Model</h2>
+
+<h3>6.6.1 Objective</h3>
+
+<p>
+  Gap #3 in the literature review (Section 4) asked whether trivariate cointegration testing across
+  US30, US500, and NAS100 would reveal hidden equilibrium relationships that pairwise tests miss. The
+  hypothesis was that the Johansen trace test on the three-index system would uncover a second
+  cointegrating vector invisible to two-variable Engle-Granger tests, and that fading deviations
+  from this vector (the error-correction term, or ECT) would produce a tradeable signal, especially
+  when conditioned on volatility regimes from Gap Study #5.
+</p>
+
+<h3>6.6.2 Methodology</h3>
+
+<p>
+  We applied two complementary cointegration frameworks to daily log-price series for US30, US500,
+  and NAS100 over the full sample period (January 2020 to December 2025).
+</p>
+
+<p>
+  <strong>Johansen trace and max-eigenvalue tests</strong> were run on the trivariate system with
+  lag order selected by AIC. These test for the number of linearly independent cointegrating
+  relationships (the cointegration rank) in the three-index system.
+</p>
+
+<p>
+  <strong>Pairwise Engle-Granger tests</strong> were run on all three index pairs (US30/US500,
+  US30/NAS100, US500/NAS100) as a baseline to determine whether any trivariate structure existed
+  beyond what pairwise tests already capture.
+</p>
+
+<p>
+  <strong>Rolling stability analysis</strong> used 252-day rolling windows to track how the
+  cointegration rank evolves over time, testing whether the equilibrium relationship is persistent
+  or transient.
+</p>
+
+<p>
+  <strong>ECT fade strategy:</strong> When the Johansen procedure identifies a cointegrating vector,
+  the ECT measures how far the system has drifted from equilibrium. We constructed a trading signal
+  that fades extreme ECT deviations (entering when the Z-scored ECT exceeds a threshold and exiting
+  on mean reversion). We tested this both unfiltered and filtered by the Garman-Klass volatility
+  regimes from Gap Study #5.
+</p>
+
+<p>
+  <strong>Walk-forward validation</strong> used the same two-fold expanding-window protocol as the
+  previous studies, with in-sample parameter selection and strictly out-of-sample evaluation.
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from historical backtests on
+  MT5 CFD daily bars with spread costs deducted on every entry. They do not account for slippage,
+  partial fills, or margin constraints. The cointegrating vectors are estimated in-sample and may
+  not persist out-of-sample, as the walk-forward results confirm. These results should not be
+  interpreted as evidence of a reliable trading edge.
+</div>
+
+<h3>6.6.3 Cointegration Test Results</h3>
+
+<p>
+  The Johansen trace test finds rank = 1, with a trace statistic of 31.30 against a 5% critical
+  value of 29.80. This barely rejects the null of rank = 0, meaning there is marginal evidence for
+  one cointegrating relationship in the trivariate system. The max-eigenvalue test, which is more
+  conservative, does not reject rank = 0. The two tests disagree, which is itself a signal that the
+  cointegration is weak and sample-dependent.
+</p>
+
+<p>
+  Pairwise Engle-Granger tests tell a clearer story. US30/US500 is cointegrated (p = 0.002) and
+  US30/NAS100 is cointegrated (p = 0.031), both at conventional significance levels. US500/NAS100
+  is not cointegrated (p = 0.203). This means the pairwise tests already identify the two pairs
+  that drive the single Johansen vector. There is no hidden trivariate relationship that pairwise
+  tests miss. The central hypothesis of this study is disproven.
+</p>
+
+<h3>6.6.4 Rolling Stability</h3>
+
+<p>
+  Rolling 252-day Johansen tests reveal that even the single cointegrating relationship is highly
+  unstable. Cointegration of rank 1 or higher is present in only 28.6% of rolling windows.
+  In the remaining 71.4% of the sample, the three indices show no cointegrating relationship at all.
+  The cointegration that does appear concentrates in specific regimes (primarily the 2020-2021
+  recovery period and brief windows in late 2023) and vanishes during trend-dominated periods.
+</p>
+
+<p>
+  This instability is not surprising in hindsight. The NAS100 experienced a tech-driven boom through
+  late 2021 followed by a sharp correction in 2022, then a second AI-driven surge in 2023-2024. These
+  structural shifts in the NAS100's relationship to the other indices mean that any cointegrating
+  vector estimated in one period is unreliable in the next.
+</p>
+
+<h3>6.6.5 ECT Fade Strategy Results</h3>
+
+<p>
+  The ECT fade strategy produces a best unfiltered Sharpe ratio of 0.28 across all parameter
+  combinations. This is well below the TSMOM benchmark of 1.27 from Gap Study #4 and below the
+  meta-strategy Sharpe of 0.92 from Gap Study #5.
+</p>
+
+<p>
+  Regime filtering, which improved results in Gap Study #5, makes the ECT strategy worse. The
+  best regime-filtered Sharpe ratio is 0.06. The reason is that the ECT signal and the volatility
+  regime are correlated: extreme ECT deviations tend to occur during the same high-volatility
+  periods that the regime filter flags as trading windows. Filtering removes the few trades that
+  had any reversion, leaving only noise.
+</p>
+
+<h3>6.6.6 Walk-Forward Out-of-Sample Results</h3>
+
+<p>
+  Walk-forward validation confirms that the in-sample Sharpe of 0.28 does not survive out-of-sample.
+  Fold 1 produces a return of -18.9% unfiltered and -11.6% regime-filtered. Both represent
+  catastrophic losses. The cointegrating vector estimated during the 2020-2022 training window
+  is simply invalid for the 2023-2025 test window, because the structural relationships between
+  the indices shifted.
+</p>
+
+<h3>6.6.7 Key Findings</h3>
+
+<div class="finding-box">
+  <strong>Negative result: trivariate cointegration does not reveal hidden structure beyond pairwise
+  tests, and the ECT signal is not tradeable.</strong>
+  The Johansen trace test finds marginal rank = 1 cointegration (trace stat 31.30 vs 29.80 critical),
+  but the max-eigenvalue test does not reject rank = 0. Pairwise Engle-Granger tests already identify
+  the same pairs (US30/US500 p = 0.002, US30/NAS100 p = 0.031) that drive this vector. No hidden
+  trivariate relationship exists. The cointegration is absent 71.4% of the time in rolling windows,
+  the best ECT fade Sharpe is 0.28 (far below TSMOM's 1.27), regime filtering degrades it to 0.06,
+  and walk-forward validation produces catastrophic losses (-18.9%).
+</div>
+
+<ol>
+  <li><strong>Trivariate cointegration exists but is marginal.</strong> The Johansen trace test barely
+  rejects rank = 0 (31.30 vs 29.80 critical value) and the max-eigenvalue test does not reject at
+  all. The two tests disagree, indicating weak and sample-dependent cointegration.</li>
+  <li><strong>Pairwise tests were sufficient.</strong> The central hypothesis that trivariate testing
+  would reveal hidden equilibrium vectors not visible in pairwise tests is disproven. US30/US500 and
+  US30/NAS100 are individually cointegrated; US500/NAS100 is not. The Johansen vector simply
+  combines these two known pairwise relationships.</li>
+  <li><strong>Cointegration is unstable.</strong> Rolling analysis shows cointegration absent in 71.4%
+  of the sample. The equilibrium relationship is transient, not structural.</li>
+  <li><strong>The ECT signal is not tradeable.</strong> The best unfiltered Sharpe of 0.28 is far below
+  the TSMOM benchmark (1.27) and below every other strategy tested in this series except raw
+  mean-reversion from Gap Study #8.</li>
+  <li><strong>Regime filtering makes it worse.</strong> Unlike Gap Study #5, where volatility conditioning
+  recovered hidden edges, here it degrades the Sharpe from 0.28 to 0.06. The ECT and volatility
+  regime signals are redundant rather than complementary.</li>
+  <li><strong>Out-of-sample failure is catastrophic.</strong> Walk-forward losses of -18.9% confirm
+  that the cointegrating vector is not stable enough to trade. The structural shift driven by NAS100's
+  tech boom and AI surge invalidates vectors estimated in earlier periods.</li>
+</ol>
+
+<h3>6.6.8 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/trivariate_coint_20260317_002428.png" alt="Rolling cointegration rank and ECT Z-score over time" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 21. Rolling cointegration rank and ECT Z-score over time. The cointegration rank fluctuates between 0 and 1, with rank 1 present in only 28.6% of rolling windows. ECT Z-score excursions are large but occur during periods where the cointegrating vector is itself unstable.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/pairwise_vs_trivariate_20260317_002428.png" alt="Pairwise vs trivariate cointegration test comparison" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 22. Pairwise vs trivariate cointegration test comparison. The pairwise Engle-Granger p-values (US30/US500 at 0.002, US30/NAS100 at 0.031) clearly identify the cointegrated pairs. The trivariate Johansen test adds no information beyond what pairwise tests already reveal.</figcaption>
+</figure>
+
 <h2>7. Current Status</h2>
 
 <p>
-  Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
-  Five empirical gap studies have been completed.
+  Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is complete.
+  Six empirical gap studies have been completed, covering all identified gaps in the literature review.
 </p>
 
 <p>
@@ -1217,14 +1383,29 @@ export const content = `
 </p>
 
 <p>
+  <strong>Gap Study #3 (Trivariate cointegration regime model):</strong> The sixth and final study
+  tested the hypothesis that Johansen trivariate cointegration testing would reveal hidden
+  equilibrium vectors not visible in pairwise Engle-Granger tests. This is a clear negative result.
+  The Johansen trace test finds marginal rank = 1 cointegration (trace stat 31.30 vs 29.80 critical),
+  but the max-eigenvalue test does not reject. Pairwise tests already identify the cointegrated pairs
+  (US30/US500 p = 0.002, US30/NAS100 p = 0.031; US500/NAS100 not cointegrated at p = 0.203).
+  No hidden trivariate vector exists. Rolling analysis shows cointegration absent 71.4% of the time.
+  The ECT fade strategy achieves a best Sharpe of only 0.28, regime filtering degrades it to 0.06,
+  and walk-forward validation produces catastrophic losses (-18.9% in Fold 1). The structural shift
+  in NAS100's relationship to the other indices (tech boom, correction, AI surge) invalidates
+  cointegrating vectors estimated in earlier periods.
+</p>
+
+<p>
   These results together show that single-index mean-reversion at daily frequency is not viable on
   MT5 CFDs when applied uniformly, but works within specific volatility regimes for NAS100.
   Cross-index momentum signals contain the most robust exploitable structure, and volatility regime
   is the unifying mechanism across the first four studies. The price-weighted divergence study adds
   a market-neutral dimension with genuine academic novelty, though its practical trading edge
-  remains unproven. The remaining highest-priority gaps (trivariate cointegration regime model
-  and cross-index lead-lag at minute frequency) are testable with the OHLCV data we have available
-  and remain the focus of the next gap studies.
+  remains unproven. Trivariate cointegration adds nothing beyond what pairwise tests already reveal,
+  and the ECT signal is not tradeable. All identified gap studies are now complete. The next phase
+  will focus on model development and backtesting, building on the TSMOM and volatility-regime
+  findings that produced the strongest results.
 </p>
 
 <h2>8. References</h2>
