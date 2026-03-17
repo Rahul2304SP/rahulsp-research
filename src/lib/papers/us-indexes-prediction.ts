@@ -1,7 +1,8 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Data inventory finalised; model development underway. This page will be updated as results become available.
+  Data inventory and feature specification finalised (44 features across 5 groups); model architecture
+  selection underway. This page will be updated as results become available.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +14,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence<br/>Gap Study #3 (Trivariate cointegration regime model) complete: negative result; trivariate testing adds nothing beyond pairwise; ECT signal not tradeable (Sharpe 0.28); OOS catastrophic (-18.9%)<br/>All gap studies complete.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1) and feature specification (7.2) finalised: 44 features, 5 groups. Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1436,14 +1437,205 @@ export const content = `
   constituent features are forward-filled from the last available bar.</li>
 </ul>
 
+<h3>7.2 Feature Specification</h3>
+
+<p>
+  Each model receives approximately 44 features per M1 bar, organised into five groups. Every feature
+  is justified either by Phase 1 literature or by Phase 2 empirical results. The prediction target is
+  the forward 60-minute return, encoded via double-barrier labelling (up / down / hold).
+</p>
+
+<h4>Group 1: Own-Instrument Core (18 features)</h4>
+
+<p>
+  These features are proven predictors from the XAUUSD base model, adapted for equity indices. They
+  capture returns, volatility structure, trend quality, distribution shape, and time-of-day cyclicality.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Formula / Definition</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>ret_60m</td><td>$\ln(p_t / p_{t-60})$</td><td>Recent return momentum</td></tr>
+    <tr><td>ret_120m</td><td>$\ln(p_t / p_{t-120})$</td><td>Medium-horizon return</td></tr>
+    <tr><td>dist_ma120</td><td>$(p_t - \text{MA}_{120}) / \text{MA}_{120}$</td><td>Signed distance from 2h MA</td></tr>
+    <tr><td>dist_ma290</td><td>$(p_t - \text{MA}_{290}) / \text{MA}_{290}$</td><td>Signed distance from session MA</td></tr>
+    <tr><td>stdev60</td><td>$\sigma(\text{ret}_{1m}, w{=}60)$</td><td>Realised volatility (1h)</td></tr>
+    <tr><td>vol_30m</td><td>$\sigma(\text{ret}_{1m}, w{=}30)$</td><td>Short-window volatility</td></tr>
+    <tr><td>vol_session_ratio</td><td>$\sigma_{30m} / \sigma_{\text{session}}$</td><td>Intraday vol regime</td></tr>
+    <tr><td>vol_of_vol_60</td><td>$\sigma(\sigma_{30m}, w{=}60)$</td><td>Volatility clustering intensity</td></tr>
+    <tr><td>vol_regime_ratio</td><td>$\sigma_{60m} / \sigma_{240m}$</td><td>Short vs long vol ratio</td></tr>
+    <tr><td>vol_surprise</td><td>$(\sigma_{30m} - \mu_{\sigma,240}) / \sigma_{\sigma,240}$</td><td>Vol Z-score (surprise detection)</td></tr>
+    <tr><td>channel_width</td><td>$Q_{0.95} - Q_{0.05}$ (rolling 120 bars)</td><td>Quantile regression channel</td></tr>
+    <tr><td>skew_240m</td><td>Rolling skewness, $w{=}240$</td><td>Return distribution asymmetry</td></tr>
+    <tr><td>kurt_240m</td><td>Rolling kurtosis, $w{=}240$</td><td>Tail heaviness</td></tr>
+    <tr><td>er60</td><td>$|\Delta p_{60}| / \sum_{i=1}^{60}|\Delta p_i|$</td><td>Kaufman efficiency ratio $[0,1]$</td></tr>
+    <tr><td>momentum_regime</td><td>Binary: MA crossover aligned with return sign</td><td>Trend alignment indicator</td></tr>
+    <tr><td>trend_strength</td><td>$\text{sign}(\text{ret}_{60m}) \times \text{ER}_{60} \times |\text{ret}_{60m}| / \sigma_{60m}$</td><td>Signed ER x normalised magnitude</td></tr>
+    <tr><td>tod_sin</td><td>$\sin(2\pi \cdot \text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
+    <tr><td>tod_cos</td><td>$\cos(2\pi \cdot \text{minute} / 1440)$</td><td>Cyclical time-of-day encoding</td></tr>
+  </tbody>
+</table>
+
+<h4>Group 2: Cross-Index Features (11 features)</h4>
+
+<p>
+  Every feature in this group traces directly to a specific Phase 2 gap study. These encode
+  cross-index momentum, risk regime, volatility state, and structural spread dynamics.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Formula / Definition</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>tsmom_self_21d</td><td>$\text{sgn}\bigl(\sum_{i=1}^{21} r_i\bigr)$, trailing monthly return</td><td>Study #4 (TSMOM)</td></tr>
+    <tr><td>tsmom_idx2_21d</td><td>Same, for second index</td><td>Study #4</td></tr>
+    <tr><td>tsmom_idx3_21d</td><td>Same, for third index</td><td>Study #4</td></tr>
+    <tr><td>roro_ratio</td><td>$\ln(\text{NAS100} / \text{US30})$</td><td>Study #2 (RORO)</td></tr>
+    <tr><td>roro_vs_sma21</td><td>Binary: RORO ratio above/below 21d SMA</td><td>Study #2</td></tr>
+    <tr><td>gk_vol_21d</td><td>Garman-Klass volatility, 21-day rolling</td><td>Study #5 (Vol regime)</td></tr>
+    <tr><td>gk_vol_pctile</td><td>Expanding percentile rank of GK vol</td><td>Study #5</td></tr>
+    <tr><td>ibs</td><td>$(\text{close} - \text{low}) / (\text{high} - \text{low})$, daily</td><td>Study #8 (conditional on vol regime)</td></tr>
+    <tr><td>cross_idx_dispersion</td><td>$\sigma(\text{ret}_{60m}^{(i)})$ across all 3 indices</td><td>Study #4 (rotation signal)</td></tr>
+    <tr><td>log_spread_us30_us500</td><td>$\ln(\text{US30}) - \ln(\text{US500})$</td><td>Study #1 (novel)</td></tr>
+    <tr><td>log_spread_us30_nas100</td><td>$\ln(\text{US30}) - \ln(\text{NAS100})$</td><td>Study #1 (novel)</td></tr>
+  </tbody>
+</table>
+
+<div class="finding-box">
+  <strong>Provenance.</strong> Every cross-index feature traces to a specific Phase 2 empirical result.
+  The two novel features (log_spread_us30_us500, log_spread_us30_nas100) have no academic precedent;
+  they were first tested in Gap Study #1 and are included on the basis of the extreme Z-score reversion
+  effect documented there.
+</div>
+
+<h4>Group 3: Cross-Asset Macro (7 features)</h4>
+
+<p>
+  Macro features capture risk appetite, dollar strength, carry dynamics, and energy/inflation pressure.
+  Three candidates were dropped due to insufficient history in the common training window.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Formula / Definition</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>vix_level</td><td>VIX spot value</td><td>Fear gauge level</td></tr>
+    <tr><td>vix_chg_60m</td><td>$\Delta\text{VIX}_{60m}$</td><td>VIX momentum (shock detection)</td></tr>
+    <tr><td>dxy_ret_60m</td><td>$\ln(\text{DXY}_t / \text{DXY}_{t-60})$</td><td>Dollar strength</td></tr>
+    <tr><td>dxy_corr_30</td><td>Rolling 30-bar correlation(index, DXY)</td><td>Dollar correlation regime</td></tr>
+    <tr><td>usdjpy_ret_60m</td><td>$\ln(\text{USDJPY}_t / \text{USDJPY}_{t-60})$</td><td>Yen carry proxy</td></tr>
+    <tr><td>btcusd_ret_60m</td><td>$\ln(\text{BTCUSD}_t / \text{BTCUSD}_{t-60})$</td><td>Crypto risk appetite</td></tr>
+    <tr><td>brent_ret_60m</td><td>$\ln(\text{BRENT}_t / \text{BRENT}_{t-60})$</td><td>Energy / inflation proxy</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Dropped instruments:</strong> TLT (only 3 months of M1 data in common window), LQD (3 months),
+  USOIL (4 months; replaced by BRENT which has full coverage from 2016).
+</p>
+
+<h4>Group 4: Constituent Returns (6 features per model)</h4>
+
+<p>
+  The top 5 constituents by index weight provide 60-minute returns as individual features. A sixth feature,
+  constituent_dispersion, measures intra-index disagreement. The constituent set differs per model.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Model</th><th>Top-5 Constituents</th><th>Dispersion Feature</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>GS, MSFT, HD, CAT, V</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
+    <tr><td>NAS100</td><td>AAPL, MSFT, NVDA, AMZN, GOOG</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
+    <tr><td>US500</td><td>AAPL, MSFT, NVDA, AMZN, JPM</td><td>$\sigma(\text{ret}_{60m}^{(k)})$, $k \in \{1..5\}$</td></tr>
+  </tbody>
+</table>
+
+<h4>Group 5: Intraday Seasonality (2 features)</h4>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Definition</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>session_flag</td><td>Asia = 0, London = 1, US = 2</td><td>Session regime (liquidity + volatility differ by session)</td></tr>
+    <tr><td>minutes_since_us_open</td><td>Minutes elapsed since 13:30 UTC</td><td>Distance from highest-activity period</td></tr>
+  </tbody>
+</table>
+
+<h4>Feature Count Summary</h4>
+
+<table>
+  <thead>
+    <tr><th>Group</th><th>Features</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Own-Instrument Core</td><td>18</td></tr>
+    <tr><td>Cross-Index</td><td>11</td></tr>
+    <tr><td>Cross-Asset Macro</td><td>7</td></tr>
+    <tr><td>Constituent Returns</td><td>6</td></tr>
+    <tr><td>Intraday Seasonality</td><td>2</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>44</strong></td></tr>
+  </tbody>
+</table>
+
+<h4>Normalisation</h4>
+
+<table>
+  <thead>
+    <tr><th>Method</th><th>Applied To</th><th>Window</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>rolling_z</td><td>Continuous non-stationary features (returns, distances, vol levels)</td><td>$w = 1440$ (24 hours)</td></tr>
+    <tr><td>zscore (expanding)</td><td>Stable distributions (GK vol percentile, kurtosis)</td><td>Expanding from start of training set</td></tr>
+    <tr><td>passthrough</td><td>Bounded or naturally scaled features (ER, IBS, session_flag, tod_sin/cos)</td><td>None</td></tr>
+  </tbody>
+</table>
+
+<h4>Lookahead Prevention</h4>
+
+<p>
+  All features are strictly causal. Daily IBS uses the previous completed day only. TSMOM signals use
+  completed daily returns only. No feature reads future prices. Rolling windows use only data available
+  at time $t$, with no forward-looking statistics.
+</p>
+
+<h4>Feature Provenance</h4>
+
+<p>
+  The following table summarises the link between cross-index / cross-asset features and the Phase 2
+  gap studies that justified their inclusion.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature(s)</th><th>Phase 2 Study</th><th>Key Finding</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>tsmom_self_21d, tsmom_idx2_21d, tsmom_idx3_21d, cross_idx_dispersion</td><td>Study #4 (Cross-index momentum)</td><td>TSMOM rotation: Sharpe 1.27</td></tr>
+    <tr><td>roro_ratio, roro_vs_sma21</td><td>Study #2 (RORO ratio)</td><td>Valid vol regime indicator; 20-28% higher vol in risk-off</td></tr>
+    <tr><td>gk_vol_21d, gk_vol_pctile</td><td>Study #5 (Vol regime selection)</td><td>MR works in high-vol NAS100 (Sharpe 0.99)</td></tr>
+    <tr><td>ibs</td><td>Study #8 (IBS/RSI replication)</td><td>Conditional on vol regime only; fails in aggregate</td></tr>
+    <tr><td>log_spread_us30_us500, log_spread_us30_nas100</td><td>Study #1 (PW vs CW divergence)</td><td>Novel; extreme Z-score reversion observed</td></tr>
+    <tr><td>session_flag, minutes_since_us_open</td><td>Study #9 (Intraday seasonality)</td><td>Vol and momentum differ by session</td></tr>
+  </tbody>
+</table>
+
 <h2>8. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is complete.
   Six empirical gap studies have been completed, covering all identified gaps in the literature review.
-  Phase 3 (Model Development) has begun. The data inventory (Section 7.1) documents the full dataset
+  Phase 3 (Model Development) is in progress. The data inventory (Section 7.1) documents the full dataset
   available for neural net development: three target indexes, seven cross-asset instruments, and fifteen
-  constituent stocks across a common 4.7-year training window.
+  constituent stocks across a common 4.7-year training window. The feature specification (Section 7.2) is
+  finalised: 44 features per M1 bar across five groups, with every cross-index feature traceable to a
+  specific Phase 2 empirical result. Model architecture selection and training are the next steps.
 </p>
 
 <p>
