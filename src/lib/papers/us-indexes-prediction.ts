@@ -1,8 +1,9 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Data inventory and feature specification finalised (44 features across 5 groups); model architecture
-  selection underway. This page will be updated as results become available.
+  Data inventory, feature specification, and normaliser selection finalised (44 features across 5 groups,
+  rolling z-score selected as universal normaliser); model architecture selection underway.
+  This page will be updated as results become available.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -14,7 +15,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1) and feature specification (7.2) finalised: 44 features, 5 groups. Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), and normaliser selection (7.3) finalised: 44 features, 5 groups, rolling z-score universal normaliser. Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1634,6 +1635,205 @@ export const content = `
   </tbody>
 </table>
 
+<h3>7.3 Normaliser Selection</h3>
+
+<h4>Why Normalisation Matters</h4>
+
+<p>
+  Raw features can drift across regimes &mdash; VIX level, channel width, and kurtosis all exhibit
+  non-stationary behaviour over months-long windows. Without normalisation, drifting features dominate
+  the neural net's gradient updates, causing training instability or the model learning spurious
+  regime-dependent patterns. But normalisation can also destroy information, particularly in features
+  where the raw scale <em>is</em> the signal. Absolute volatility levels, dispersion magnitudes, and
+  vol ratios all carry meaning in their raw units that z-scoring can erase.
+</p>
+
+<h4>Methodology</h4>
+
+<p>
+  Each of the 35 continuous features was tested under three normalisation strategies on the validation
+  set (2025-07 to 2026-03):
+</p>
+
+<table>
+  <thead>
+    <tr><th>Strategy</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>raw</strong></td><td>No normalisation (baseline)</td></tr>
+    <tr><td><strong>rolling_z</strong></td><td>Causal 30-day rolling $3\\sigma$ clip + z-score</td></tr>
+    <tr><td><strong>rolling_winsor_z</strong></td><td>Causal 30-day rolling 1st&ndash;99th percentile clip + z-score</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Static normalisation (global mean/std computed over the full dataset) was excluded because it leaks
+  regime information and fails on drifting features &mdash; a model trained during a low-VIX period
+  would see systematically biased inputs during a high-VIX regime.
+</p>
+
+<p>
+  <strong>Decision rule:</strong> Use rolling_z if it gains $\\geq 0.002$ AUC versus raw. Otherwise
+  use rolling_z anyway as drift protection. Bounded or binary features use passthrough.
+</p>
+
+<p>
+  Nine features are passthrough (already bounded or categorical): er60 $[0,1]$,
+  momentum_regime $\\{0,1\\}$, tod_sin / tod_cos $[-1,1]$, roro_vs_sma21 $\\{0,1\\}$,
+  gk_vol_pctile $[0,1]$, ibs $[0,1]$, dxy_corr_30 $[-1,1]$, session_flag $\\{0,1,2\\}$,
+  minutes_since_us_open $[0,1]$.
+</p>
+
+<h4>Cross-Instrument Results</h4>
+
+<p>
+  The following tables summarise AUC gains from rolling_z versus raw on each index. A positive value
+  means normalisation helped; a negative value means the raw scale carried predictive information that
+  z-scoring destroyed.
+</p>
+
+<p><strong>Features where rolling_z helps most</strong> (AUC gain $> 0.002$ on at least one index):</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>US30 $\\Delta$AUC</th><th>NAS100 $\\Delta$AUC</th><th>US500 $\\Delta$AUC</th><th>Drift Score</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>kurt_240m</td><td style="color: #059669; font-weight: 600;">+0.0074</td><td>+0.0018</td><td>&mdash;</td><td>1.67 / 1.75</td></tr>
+    <tr><td>log_spread_us30_us500</td><td style="color: #059669; font-weight: 600;">+0.0063</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0045</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>aapl_ret_60m</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0043</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>constituent_dispersion</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0042</td><td>&mdash;</td></tr>
+    <tr><td>vix_chg_60m</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0036</td><td>&mdash;</td></tr>
+    <tr><td>tsmom_self_21d</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0026</td><td>&mdash;</td></tr>
+    <tr><td>amzn_ret_60m</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0025</td><td>&mdash;</td><td>&mdash;</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Features where rolling_z hurts most</strong> (raw scale carries predictive information):</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>US30 $\\Delta$AUC</th><th>NAS100 $\\Delta$AUC</th><th>US500 $\\Delta$AUC</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>cross_idx_dispersion</td><td style="color: #dc2626; font-weight: 600;">-0.0061</td><td style="color: #dc2626; font-weight: 600;">-0.0032</td><td>&mdash;</td></tr>
+    <tr><td>vix_level</td><td style="color: #dc2626; font-weight: 600;">-0.0059</td><td>&mdash;</td><td style="color: #dc2626; font-weight: 600;">-0.0063</td></tr>
+    <tr><td>vol_session_ratio</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>vol_surprise</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>vol_30m</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>stdev60</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>&mdash;</td><td>&mdash;</td></tr>
+  </tbody>
+</table>
+
+<h4>The Pattern</h4>
+
+<p>
+  High-drift features (kurtosis, channel width, VIX level) have drift scores above 1.0, but the
+  AUC response to normalisation is mixed. Features where the raw <em>level</em> encodes information
+  &mdash; VIX absolute level, dispersion magnitude, vol ratios &mdash; lose predictive power when
+  z-scored, because the neural net can no longer distinguish "VIX at 15" from "VIX at 35" once both
+  are mapped to similar z-scores within their local windows. Conversely, features with heavy tails
+  (kurtosis, skewness) benefit from clipping because extreme outliers otherwise dominate the gradient.
+</p>
+
+<p>
+  The rolling_winsor_z strategy (percentile clip instead of $\\sigma$-clip) showed no consistent
+  advantage over rolling_z across the three indices. The two strategies produced nearly identical
+  AUC on 31 of 35 features, with rolling_winsor_z marginally better on skew_240m (+0.0003) and
+  marginally worse on kurt_240m (-0.0002). Given the negligible difference, we chose rolling_z for
+  simplicity.
+</p>
+
+<h4>Final Decision</h4>
+
+<div class="finding-box">
+  <strong>Normaliser selection:</strong> Use rolling_z (causal 30-day rolling $3\\sigma$ clip + z-score)
+  universally for all 35 continuous features. The 9 bounded/binary features use passthrough.
+</div>
+
+<p>
+  The AUC losses from z-scoring scale-dependent features are small (maximum $-0.006$) and will be
+  partially recovered by the neural net learning from normalised scale &mdash; the model can still
+  rank observations by their z-score even if absolute levels are lost. The risk of <em>not</em>
+  normalising is substantially larger: gradient explosion from heavy-tailed features, regime-dependent
+  feature dominance where a single drifting input overwhelms the loss landscape, and poor
+  generalisation when the model encounters VIX or volatility levels outside the training distribution.
+  A universal normaliser also simplifies the inference pipeline &mdash; no per-feature routing logic
+  is needed at prediction time.
+</p>
+
+<h4>Normaliser AUC Heatmaps</h4>
+
+<p>
+  The following heatmaps show directional AUC (one-vs-rest classifier on the double-barrier label)
+  for each feature under each normalisation strategy. Green cells indicate AUC above baseline (0.5);
+  darker shading indicates stronger signal.
+</p>
+
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/heatmap_US30.png" alt="US30 normaliser AUC heatmap across features and strategies" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 normaliser AUC heatmap across features and strategies</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/heatmap_US500.png" alt="US500 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 normaliser AUC heatmap</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/heatmap_NAS100.png" alt="NAS100 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 normaliser AUC heatmap</figcaption>
+  </figure>
+</div>
+
+<h4>AUC Improvement from Rolling Z-Score</h4>
+
+<p>
+  Bar charts showing the per-feature AUC change when switching from raw to rolling_z. Positive bars
+  (green) indicate features that benefit from normalisation; negative bars (red) indicate features
+  where the raw scale carries signal.
+</p>
+
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/improvement_US30.png" alt="US30 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 AUC improvement from rolling_z vs raw</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/improvement_US500.png" alt="US500 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 AUC improvement from rolling_z vs raw</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/improvement_NAS100.png" alt="NAS100 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 AUC improvement from rolling_z vs raw</figcaption>
+  </figure>
+</div>
+
+<h4>Drift Score vs. Normalisation AUC Gain</h4>
+
+<p>
+  Scatter plots of feature drift score (x-axis, measured as the ratio of inter-month variance to
+  intra-month variance) against AUC gain from rolling_z (y-axis). Features in the upper-right
+  quadrant are high-drift features that benefit from normalisation. Features in the lower-right
+  are high-drift features where normalisation hurts &mdash; these are the scale-dependent features
+  (VIX level, dispersion) where drift is real but informative.
+</p>
+
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/drift_vs_gain_US30.png" alt="US30 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 drift score vs normalisation AUC gain</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/drift_vs_gain_US500.png" alt="US500 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 drift score vs normalisation AUC gain</figcaption>
+  </figure>
+  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
+    <img src="/charts/us-indexes/drift_vs_gain_NAS100.png" alt="NAS100 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
+    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 drift score vs normalisation AUC gain</figcaption>
+  </figure>
+</div>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -1652,6 +1852,10 @@ export const content = `
   indexes, seven cross-asset instruments, and fifteen constituent stocks across a common 4.7-year
   training window. The feature specification (Section 7.2) is finalised at 44 features per M1 bar
   across five groups. Every cross-index feature traces directly to a Phase 2 empirical result.
+  Normaliser selection (Section 7.3) is complete: rolling z-score (causal 30-day, $3\\sigma$ clip)
+  was chosen as the universal normaliser for all 35 continuous features, with 9 bounded/binary
+  features using passthrough. The AUC cost of normalising scale-dependent features (max $-0.006$)
+  is accepted as a worthwhile trade-off against gradient stability and regime robustness.
   Model architecture selection and training are the next steps.
 </p>
 
