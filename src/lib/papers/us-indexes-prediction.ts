@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>Gap Study #8 (IBS/RSI replication) complete: mean-reversion at daily frequency does not outperform buy-and-hold<br/>Gap Study #4 (Cross-index momentum) complete: TSMOM beats all baselines (Sharpe 1.27)<br/>Gap Study #2 (NAS100/DJIA RORO ratio) complete: valid volatility regime indicator but does not beat TSMOM as allocation signal<br/>Gap Study #5 (Volatility regime strategy selection) complete: mean-reversion works in high-vol NAS100 regimes (Sharpe 0.99), unifying findings from Studies #2, #4, and #8<br/>Gap Study #1 (Price-weighted vs cap-weighted divergence) complete: first systematic test; spread is non-stationary (ADF p=0.69); extreme Z-score reversion exists but too few trades for statistical confidence</small></td><td style="color: #d97706; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting</td><td style="color: #6b7280;">Planned</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -1014,11 +1014,149 @@ export const content = `
   <figcaption>Figure 16. US500 volatility regime analysis. The same pattern as US30: buy-and-hold in low vol, TSMOM in high vol.</figcaption>
 </figure>
 
+<h2>6.5 Gap Study #1: Price-Weighted vs Cap-Weighted Divergence</h2>
+
+<h3>6.5.1 Objective</h3>
+
+<p>
+  This is the highest-novelty study in the series. The DJIA is price-weighted; the S&amp;P 500 and
+  NAS100 are capitalisation-weighted. When these weighting schemes disagree on direction, the
+  log-ratio spread between them widens. No published academic study has systematically tested
+  whether extreme divergences in this spread are mean-reverting and tradeable. The hypothesis is
+  that the spread reflects transient dislocations rather than permanent structural shifts, and that
+  entering when the spread reaches extreme Z-scores should capture a reversion to the mean.
+</p>
+
+<h3>6.5.2 Spread Construction</h3>
+
+<p>
+  The spread is defined as the log-ratio between US30 and a capitalisation-weighted index:
+  log(US30) minus log(US500), and separately log(US30) minus log(NAS100). Taking logs ensures
+  the spread is symmetric and interpretable as a percentage divergence. A rolling Z-score is
+  computed over a configurable lookback window to normalise the spread for time-varying levels.
+  Entry occurs when the Z-score exceeds a threshold (long the lagging index, short the leading
+  index), and exit occurs when the Z-score reverts below a separate exit threshold.
+</p>
+
+<h3>6.5.3 Stationarity Testing</h3>
+
+<p>
+  The Augmented Dickey-Fuller test on the full-sample spread fails to reject the unit root
+  null hypothesis (p = 0.69 for US30/NAS100). The estimated half-life of mean reversion is
+  approximately 320 to 349 days depending on the pair. This is a critical negative finding:
+  the spread is not stationary over the full sample. It drifts, reflecting genuine structural
+  shifts in the relative performance of price-weighted versus capitalisation-weighted indices
+  (e.g., the technology sector's growing dominance in capitalisation-weighted indices). Any
+  mean-reversion strategy on this spread must contend with the fact that the "mean" itself
+  is non-stationary.
+</p>
+
+<h3>6.5.4 Full-Sample Results</h3>
+
+<p>
+  Despite the non-stationarity, extreme Z-score entries do capture short-horizon reversion.
+  The best configuration for US30/NAS100 uses a Z-score entry threshold of 2.5, an exit
+  threshold below 0.0, and a 126-day lookback window. This produces 9 trades with a 100%
+  win rate, a profit factor of 999 (effectively infinite, as there are zero losing trades),
+  a Sharpe ratio of 1.08, and an annualised return of 7.6%. The US30/US500 pair is weaker,
+  with a Sharpe of 0.78 under its best configuration.
+</p>
+
+<p>
+  The obvious concern is statistical power. Nine trades over a multi-year sample is far too
+  few to draw confident conclusions about the strategy's true edge. A 100% win rate on 9 trades
+  is consistent with genuine edge but also consistent with luck. The result should be read as
+  "promising but unproven" rather than "validated."
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from historical backtests on
+  MT5 CFD daily bars with spread costs deducted on every entry. They do not account for slippage,
+  partial fills, or margin constraints. Trade counts are very low (9 trades in the best
+  configuration), making all performance statistics statistically fragile. These results should
+  not be interpreted as evidence of a reliable trading edge.
+</div>
+
+<h3>6.5.5 Walk-Forward Out-of-Sample Results</h3>
+
+<p>
+  Walk-forward validation reveals regime dependence. Both pairs lose in Fold 0 (covering 2022,
+  a period of strong secular trends driven by the Federal Reserve tightening cycle) and win
+  in Fold 1 (covering 2024, a period of oscillation and rotation). The pattern is consistent
+  with what we would expect from a mean-reversion strategy applied to a non-stationary spread:
+  it works when the spread oscillates around a relatively stable level and fails when the
+  spread trends directionally for extended periods.
+</p>
+
+<h3>6.5.6 Key Findings</h3>
+
+<ol>
+  <li><strong>The spread is not stationary.</strong> The ADF test rejects stationarity (p = 0.69)
+  and the half-life is 320 to 349 days. This reflects genuine structural shifts in the relative
+  composition of price-weighted and capitalisation-weighted indices, not transient noise.</li>
+
+  <li><strong>Short-horizon mean-reversion exists at extreme Z-scores.</strong> Win rates of 75%
+  to 100% are observed at Z-score thresholds of 2.0 and above, but the number of trades is very
+  low (single digits), making these statistics unreliable.</li>
+
+  <li><strong>US30/NAS100 is the stronger pair.</strong> Sharpe 1.08 versus 0.78 for US30/US500.
+  This makes sense: the construction difference between price-weighted and technology-heavy
+  capitalisation-weighted is larger than between price-weighted and broad capitalisation-weighted.</li>
+
+  <li><strong>Out-of-sample results are mixed.</strong> The strategy is regime-dependent, winning
+  in oscillating markets and losing during secular trends. This is not surprising given the
+  non-stationarity finding, but it limits practical applicability.</li>
+
+  <li><strong>Market-neutral with zero beta.</strong> Because the strategy is always long one index
+  and short another, it has essentially zero exposure to the broad equity market. This makes it a
+  potential diversifier for portfolios that already hold directional equity exposure.</li>
+
+  <li><strong>Does not beat TSMOM.</strong> The best spread configuration (Sharpe 1.08) narrowly
+  trails TSMOM (Sharpe 1.27) and does so with far fewer trades and weaker statistical support.
+  TSMOM remains the benchmark to beat in this series.</li>
+
+  <li><strong>Academic contribution stands regardless of trading viability.</strong> To our knowledge,
+  this is the first systematic empirical test of mean-reversion in the price-weighted versus
+  capitalisation-weighted divergence. The negative stationarity result and the regime-dependent
+  out-of-sample performance are themselves novel findings that fill a gap in the literature.</li>
+</ol>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  <strong>First Systematic Test.</strong> We are not aware of any published academic study that
+  formally tests mean-reversion in the log-ratio spread between price-weighted (DJIA) and
+  capitalisation-weighted (S&amp;P 500, NAS100) indices. The CME Group's "Stock Index Spread
+  Opportunities" whitepaper describes the trade conceptually but provides no backtested results.
+  The stationarity failure (ADF p = 0.69, half-life ~320 days) and regime-dependent OOS performance
+  documented here appear to be new to the literature.
+</div>
+
+<h3>6.5.7 Charts</h3>
+
+<figure>
+  <img src="/charts/us-indexes/spread_zscore_20260317_001847.png" alt="US30/NAS100 log-ratio spread with Z-score bands" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 17. US30/NAS100 log-ratio spread with Z-score bands. The spread drifts over time, consistent with the ADF stationarity failure. Extreme Z-score excursions are rare but tend to revert within weeks.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/sharpe_heatmap_20260317_001847.png" alt="Sharpe ratio heatmap across Z-entry and lookback parameters" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 18. Sharpe ratio heatmap across Z-entry and lookback parameters. The best performance concentrates at high Z-score thresholds (2.0+) with medium lookback windows (63 to 126 days), but the surface is sparse due to low trade counts.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/equity_curves_20260317_001847.png" alt="Spread strategy equity curves vs baselines" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 19. Spread strategy equity curves versus baselines. The spread strategy's flat periods reflect the long waits between extreme Z-score entries. TSMOM's smoother equity curve reflects its higher trade frequency and directional flexibility.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/walkforward_oos_20260317_001847.png" alt="Walk-forward out-of-sample fold comparison" style="max-width: 100%; margin: 1rem 0;" />
+  <figcaption>Figure 20. Walk-forward out-of-sample fold comparison. Fold 0 (2022, trending) produces losses; Fold 1 (2024, oscillating) produces gains. The regime dependence is visually clear.</figcaption>
+</figure>
+
 <h2>7. Current Status</h2>
 
 <p>
   Phase 1 (Literature Review) is complete. Phase 2 (Data Collection and Feature Engineering) is in progress.
-  Four empirical gap studies have been completed.
+  Five empirical gap studies have been completed.
 </p>
 
 <p>
@@ -1064,13 +1202,29 @@ export const content = `
 </p>
 
 <p>
+  <strong>Gap Study #1 (Price-weighted vs cap-weighted divergence):</strong> The fifth study is the
+  highest-novelty contribution in the series, testing whether the log-ratio spread between
+  price-weighted US30 and capitalisation-weighted indices (US500, NAS100) is mean-reverting and
+  tradeable. The key finding is a qualified negative: the spread fails the ADF stationarity test
+  (p = 0.69) with a half-life of approximately 320 to 349 days, meaning it reflects genuine
+  structural shifts rather than stationary noise. Despite this, extreme Z-score entries (above 2.0)
+  do capture short-horizon reversion with high win rates, but trade counts are very low (9 trades
+  in the best configuration) and walk-forward results are regime-dependent (losing during 2022
+  trends, winning during 2024 oscillation). The best configuration (US30/NAS100, Sharpe 1.08)
+  does not beat TSMOM (Sharpe 1.27). The academic contribution stands regardless: this appears
+  to be the first systematic empirical test of the divergence, and the non-stationarity result
+  is itself a novel finding.
+</p>
+
+<p>
   These results together show that single-index mean-reversion at daily frequency is not viable on
   MT5 CFDs when applied uniformly, but works within specific volatility regimes for NAS100.
   Cross-index momentum signals contain the most robust exploitable structure, and volatility regime
-  is the unifying mechanism across all four studies. The remaining highest-priority gaps
-  (price-weighted divergence signal, trivariate cointegration regime model, and cross-index
-  lead-lag at minute frequency) are all testable with the OHLCV data we have available and remain
-  the focus of the next gap studies.
+  is the unifying mechanism across the first four studies. The price-weighted divergence study adds
+  a market-neutral dimension with genuine academic novelty, though its practical trading edge
+  remains unproven. The remaining highest-priority gaps (trivariate cointegration regime model
+  and cross-index lead-lag at minute frequency) are testable with the OHLCV data we have available
+  and remain the focus of the next gap studies.
 </p>
 
 <h2>8. References</h2>
