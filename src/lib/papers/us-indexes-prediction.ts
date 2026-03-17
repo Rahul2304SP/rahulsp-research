@@ -1,8 +1,9 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Data inventory, feature specification, and normaliser selection finalised (45 features across 5 groups,
-  per-feature normaliser selection: 17 passthrough / 28 rolling z-score); model architecture selection underway.
+  Data inventory, feature specification, normaliser selection, and model configuration finalised
+  (45 features, 17 passthrough / 28 rolling z-score, TCN+Transformer with 4 temporal streams);
+  training and backtesting underway.
   This page will be updated as results become available.
 </div>
 
@@ -15,7 +16,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), and normaliser selection (7.3) finalised: 45 features, 5 groups, per-feature normaliser selection (17 passthrough / 28 rolling_z). Model architecture selection underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, TCN+Transformer with 4 temporal streams, double-barrier labels. Training and backtesting underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -1888,6 +1889,149 @@ export const content = `
   </figure>
 </div>
 
+<h3>7.4 Model Configuration</h3>
+
+<h4>Target Variable</h4>
+
+<p>
+  The target is the forward 60-minute return, labelled via symmetric double-barrier classification.
+  Every bar receives a directional prediction &mdash; there is no trade/no-trade gate at the model level.
+  The barrier is set per-index to account for different price levels:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Barrier</th><th>Approx %</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>\\$100</td><td>~0.24%</td><td>DJIA ~42,000</td></tr>
+    <tr><td>US500</td><td>\\$30</td><td>~0.52%</td><td>S&amp;P 500 ~5,800</td></tr>
+    <tr><td>NAS100</td><td>\\$200</td><td>~1.0%</td><td>NASDAQ-100 ~20,000</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Bars where price stays within the barrier for the full 60-minute horizon are labelled "hold."
+</p>
+
+<h4>Trading Costs</h4>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Spread</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>\\$1.20</td></tr>
+    <tr><td>US500</td><td>\\$0.50</td></tr>
+    <tr><td>NAS100</td><td>\\$2.00</td></tr>
+  </tbody>
+</table>
+
+<h4>Architecture: TCN + Transformer</h4>
+
+<p>
+  The model uses a Temporal Convolutional Network (TCN) frontend feeding into a Transformer encoder
+  with self-attention. The adaptive denoise filter (used in the XAUUSD base model) is disabled here
+  because index composites already smooth microstructure noise inherent in single-instrument tick data.
+</p>
+
+<p>
+  Four parallel ContextTCNTransformer modules operate at different temporal scales:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Bars</th><th>Duration</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short</td><td>60</td><td>1 hour</td><td>Immediate momentum</td></tr>
+    <tr><td>Mid</td><td>120</td><td>2 hours</td><td>Medium-term trend</td></tr>
+    <tr><td>Long</td><td>240</td><td>4 hours</td><td>Full session context</td></tr>
+    <tr><td>Slow</td><td>720</td><td>30 days</td><td>Macro regime (H1 resampled)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The slow stream resamples to H1 bars (720 H1 bars = 30 trading days) for long-range regime context
+  without inflating sequence length.
+</p>
+
+<h4>Transformer Hyperparameters</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Embedding dimension</td><td>128</td></tr>
+    <tr><td>Layers</td><td>1</td></tr>
+    <tr><td>Attention heads</td><td>4 (32 per head)</td></tr>
+    <tr><td>Dropout</td><td>0.15</td></tr>
+    <tr><td>TCN channels</td><td>64</td></tr>
+    <tr><td>TCN kernel</td><td>15 (15-min receptive field)</td></tr>
+  </tbody>
+</table>
+
+<h4>Training Configuration</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Epochs</td><td>50</td><td>With warmup + cosine schedule</td></tr>
+    <tr><td>Batch size</td><td>210</td><td>Fits GPU with 4 streams</td></tr>
+    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td><td>Standard Transformer LR</td></tr>
+    <tr><td>Weight decay</td><td>0.005</td><td>Regularisation</td></tr>
+    <tr><td>Expected PnL loss</td><td>Disabled</td><td>Use supervised BCE/CE for direction</td></tr>
+    <tr><td>Regime clusters</td><td>$$K = 1$$</td><td>No clustering; learn direction first</td></tr>
+  </tbody>
+</table>
+
+<h4>Design Decisions</h4>
+
+<p>
+  <strong>$$K = 1$$ regime clustering.</strong> A single prediction head is used. Regime clustering with
+  $$K > 1$$ fragments the already limited data across multiple heads, each seeing a fraction of the
+  training samples. The model learns direction first; regime specialisation can be added once the base
+  model demonstrates signal.
+</p>
+
+<p>
+  <strong>No trade gate.</strong> Every bar receives an up/down/hold prediction. The trade/no-trade
+  decision is made by the executor based on confidence thresholds, not by the model. This keeps the
+  model focused on directional classification and avoids conflating two separate objectives in a single
+  output.
+</p>
+
+<p>
+  <strong>Dropout 0.15.</strong> Higher than the typical 0.05&ndash;0.10 used in NLP Transformers,
+  because financial features are substantially noisier than language tokens. This value was validated
+  on the XAUUSD base model, where lower dropout (0.05) led to overfitting on training data.
+</p>
+
+<p>
+  <strong>Learning rate $$3 \\times 10^{-4}$$.</strong> Standard for Transformer architectures. Higher
+  rates (e.g., $$10^{-2}$$) cause catastrophic early updates that destroy the attention mechanism before
+  it can learn meaningful patterns. Lower rates (e.g., $$10^{-5}$$) converge too slowly within 50 epochs.
+</p>
+
+<h4>Data Pipeline</h4>
+
+<div style="display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; margin: 1.5rem 0; font-size: 0.9em;">
+  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #1e40af;">M1 OHLCV</div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Feature builder<br/><small style="color: #6b7280;">44 features</small></div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Normaliser<br/><small style="color: #6b7280;">17 passthrough / 28 rolling_z</small></div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Double-barrier<br/><small style="color: #6b7280;">labels</small></div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center;">Sequence dataset<br/><small style="color: #6b7280;">4 windows</small></div>
+  <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
+  <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$$</small></div>
+</div>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -1911,7 +2055,10 @@ export const content = `
   (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $3\\sigma$ clip).
   Scale-dependent features (VIX level, dispersion, volatility ratios) retain their raw values
   to preserve regime information; heavy-tailed and drifting features use rolling_z for gradient
-  stability. Model architecture selection and training are the next steps.
+  stability. Model configuration (Section 7.4) is finalised: a TCN+Transformer architecture with
+  four parallel temporal streams (1h, 2h, 4h, 30d), symmetric double-barrier labelling with
+  per-index barriers, and training hyperparameters validated on the XAUUSD base model.
+  Training and backtesting are the next steps.
 </p>
 
 <h2>9. References</h2>
