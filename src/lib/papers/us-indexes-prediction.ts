@@ -2201,8 +2201,8 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Target</td><td>US30</td></tr>
-    <tr><td>Barrier</td><td>$$\\$100$$</td></tr>
-    <tr><td>Spread</td><td>$$\\$1.20$$</td></tr>
+    <tr><td>Barrier</td><td>&dollar;100</td></tr>
+    <tr><td>Spread</td><td>&dollar;1.20</td></tr>
     <tr><td>Batch size</td><td>512</td></tr>
     <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$ (warmup + cosine)</td></tr>
     <tr><td>Epochs</td><td>18 / 50 (early termination)</td></tr>
@@ -2331,7 +2331,7 @@ export const content = `
 <h4>Label Distribution</h4>
 
 <p>
-  The $$\\$100$$ symmetric barrier produced 45.2% UP and 54.8% DOWN labels with 0% HOLD. Every
+  The &dollar;100 symmetric barrier produced 45.2% UP and 54.8% DOWN labels with 0% HOLD. Every
   single bar hit the barrier within 60 minutes, meaning the barrier is too narrow relative to
   US30's intraday volatility. A wider barrier would create HOLD labels for ambiguous bars,
   potentially improving signal quality by excluding noise. This is a candidate change for
@@ -2380,8 +2380,8 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Target</td><td>US500.f</td></tr>
-    <tr><td>Barrier</td><td>$$\\$30$$</td></tr>
-    <tr><td>Spread</td><td>$$\\$0.50$$</td></tr>
+    <tr><td>Barrier</td><td>&dollar;30</td></tr>
+    <tr><td>Spread</td><td>&dollar;0.50</td></tr>
     <tr><td>Batch size</td><td>512</td></tr>
     <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td></tr>
     <tr><td>Epochs</td><td>9 / 50</td></tr>
@@ -2455,10 +2455,10 @@ export const content = `
 </p>
 
 <p>
-  <strong>$$\\$30$$ barrier too tight.</strong> The barrier produced 0% HOLD labels &mdash; every
-  single bar hit the $$\\$30$$ barrier within 60 minutes. US500's typical hourly range is
-  $$\\$15$$&ndash;$$\\$25$$, so $$\\$30$$ is only 1.2&ndash;2x the typical move. A wider barrier
-  ($$\\$50$$) would create HOLD labels for ambiguous bars, improving label quality by excluding
+  <strong>&dollar;30 barrier too tight.</strong> The barrier produced 0% HOLD labels &mdash; every
+  single bar hit the &dollar;30 barrier within 60 minutes. US500's typical hourly range is
+  &dollar;15&ndash;&dollar;25, so &dollar;30 is only 1.2&ndash;2x the typical move. A wider barrier
+  (&dollar;50) would create HOLD labels for ambiguous bars, improving label quality by excluding
   noise periods.
 </p>
 
@@ -2523,7 +2523,7 @@ export const content = `
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Weaker generalisation than US30.</strong> US500 shows 63.1% vs 67.8% validation accuracy
-  with faster overfitting (val loss never improved past epoch 1). The $$\\$30$$ barrier produces
+  with faster overfitting (val loss never improved past epoch 1). The &dollar;30 barrier produces
   noisier labels (0% HOLD), and the model develops a strong bullish bias. The consistent feature
   preferences across both indices validate the feature set, but US500 likely needs a wider barrier
   and stronger regularisation to close the accuracy gap.
@@ -2536,7 +2536,7 @@ export const content = `
     <tr><th>Change</th><th>Run 1</th><th>Run 2</th><th>Rationale</th></tr>
   </thead>
   <tbody>
-    <tr><td>Barrier</td><td>$$\\$30$$</td><td>$$\\$50$$</td><td>0% HOLD rate; barrier too tight for US500 volatility</td></tr>
+    <tr><td>Barrier</td><td>&dollar;30</td><td>&dollar;50</td><td>0% HOLD rate; barrier too tight for US500 volatility</td></tr>
     <tr><td>Early stopping</td><td>None</td><td>5-epoch patience</td><td>Val loss never improved past epoch 1</td></tr>
     <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Reduce memorisation; overfitting faster than US30</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger L2 regularisation</td></tr>
@@ -2584,7 +2584,7 @@ export const content = `
   US500 bullish) despite near-balanced label distributions. The consistent VSN feature preferences
   across both indices (cross_idx_dispersion #1 in both) validate the feature set. Run 2 for both
   indices is planned with stronger regularisation (dropout 0.25, weight decay 0.01), early stopping
-  with 5-epoch patience, and wider barriers for US500 ($$\\$50$$ from $$\\$30$$).
+  with 5-epoch patience, and wider barriers for US500 (&dollar;50 from &dollar;30).
 </p>
 
 <h2>9. References</h2>
