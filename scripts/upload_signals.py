@@ -65,26 +65,54 @@ def extract_live_trades(rows: list[dict], model_name: str) -> list[dict]:
     """
     signals = []
     current_trade = None
+    prev_entry_side = "0"
 
     for row in rows:
         action = row.get("action", "").strip()
         bar_ts = row.get("bar_ts", "").strip()
         exit_reason = row.get("exit_reason", "").strip()
         hold_bars = row.get("hold_bars", "0").strip()
+        entry_side = row.get("entry_side", "").strip() or "0"
 
         if not bar_ts:
             continue
+
+        # Detect exit via entry_side dropping to 0 while we have an open trade
+        # (hold -> skip/er_block transition without an explicit exit_reason)
+        if current_trade and current_trade["status"] == "open" and prev_entry_side != "0" and entry_side == "0" and action not in ENTRY_ACTIONS:
+            close_price = float(row.get("close", 0))
+            entry_price = current_trade["entry_price"]
+            if current_trade["direction"] == "LONG":
+                pnl = close_price - entry_price
+            else:
+                pnl = entry_price - close_price
+
+            current_trade["status"] = "closed"
+            current_trade["exit_reason"] = "flat"
+            current_trade["exit_price"] = close_price
+            current_trade["pnl"] = round(pnl, 2)
+            current_trade["hold_bars"] = int(current_trade.get("_last_hold_bars") or hold_bars or 0)
+            signals.append(current_trade)
+            current_trade = None
 
         # New entry
         if action in ENTRY_ACTIONS:
             # Close previous trade if still open
             if current_trade and current_trade["status"] == "open":
+                close_price = float(row.get("close", 0))
+                entry_price = current_trade["entry_price"]
+                if current_trade["direction"] == "LONG":
+                    pnl = close_price - entry_price
+                else:
+                    pnl = entry_price - close_price
                 current_trade["status"] = "closed"
                 current_trade["exit_reason"] = "new_entry"
+                current_trade["exit_price"] = close_price
+                current_trade["pnl"] = round(pnl, 2)
+                current_trade["hold_bars"] = int(current_trade.get("_last_hold_bars") or 0)
                 signals.append(current_trade)
 
             direction = "LONG" if "long" in action.lower() else "SHORT"
-            entry_side = row.get("entry_side", "").strip()
             if entry_side == "1":
                 direction = "LONG"
             elif entry_side == "-1":
@@ -104,9 +132,10 @@ def extract_live_trades(rows: list[dict], model_name: str) -> list[dict]:
                 "exit_price": None,
                 "pnl": None,
                 "hold_bars": None,
+                "_last_hold_bars": 0,
             }
 
-        # Hold row with exit
+        # Hold row with explicit exit
         elif action == "hold" and current_trade and exit_reason and exit_reason != "0":
             close_price = float(row.get("close", 0))
             entry_price = current_trade["entry_price"]
@@ -123,9 +152,19 @@ def extract_live_trades(rows: list[dict], model_name: str) -> list[dict]:
             signals.append(current_trade)
             current_trade = None
 
+        # Track last hold_bars for exit detection
+        elif action == "hold" and current_trade:
+            current_trade["_last_hold_bars"] = int(hold_bars) if hold_bars else 0
+
+        prev_entry_side = entry_side
+
     # If there's a trade still open at the end, add it as open
     if current_trade and current_trade["status"] == "open":
         signals.append(current_trade)
+
+    # Strip internal tracking keys before returning
+    for s in signals:
+        s.pop("_last_hold_bars", None)
 
     return signals
 
@@ -176,30 +215,31 @@ def upload_new_signals():
         new_trades = []
         for t in trades:
             try:
-                trade_ts = datetime.fromisoformat(t["bar_ts"])
+                raw_ts = datetime.fromisoformat(t["bar_ts"])
             except ValueError:
                 continue
 
-            # MT5 broker writes in EET/EEST but labels as +00:00 — correct to UTC
-            if trade_ts.tzinfo is None:
-                trade_ts = trade_ts.replace(tzinfo=timezone.utc)
-            month = trade_ts.month
-            is_summer = 4 <= month <= 9
-            if month == 3:
-                last_sun = 31 - (datetime(trade_ts.year, 3, 31).weekday() + 1) % 7
-                is_summer = trade_ts.day >= last_sun
-            elif month == 10:
-                last_sun = 31 - (datetime(trade_ts.year, 10, 31).weekday() + 1) % 7
-                is_summer = trade_ts.day < last_sun
-            broker_offset = 3 if is_summer else 2
-            trade_ts = trade_ts - timedelta(hours=broker_offset)
+            if raw_ts.tzinfo is None:
+                raw_ts = raw_ts.replace(tzinfo=timezone.utc)
 
-            # Skip if already uploaded
-            if last_ts and trade_ts <= last_ts:
+            # Skip if already uploaded (compare in raw broker time,
+            # since both DB and CSV store broker timestamps)
+            if last_ts and raw_ts <= last_ts:
                 continue
 
-            # Enforce delay
-            if trade_ts > delay_cutoff:
+            # Enforce delay using UTC-corrected time
+            month = raw_ts.month
+            is_summer = 4 <= month <= 9
+            if month == 3:
+                last_sun = 31 - (datetime(raw_ts.year, 3, 31).weekday() + 1) % 7
+                is_summer = raw_ts.day >= last_sun
+            elif month == 10:
+                last_sun = 31 - (datetime(raw_ts.year, 10, 31).weekday() + 1) % 7
+                is_summer = raw_ts.day < last_sun
+            broker_offset = 3 if is_summer else 2
+            utc_ts = raw_ts - timedelta(hours=broker_offset)
+
+            if utc_ts > delay_cutoff:
                 continue
 
             new_trades.append(t)

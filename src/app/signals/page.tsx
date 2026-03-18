@@ -100,7 +100,7 @@ export default function SignalsPage() {
     try {
       const delayFilter = isPro
         ? ""
-        : `&bar_ts=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
+        : `&published_at=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/signals?model=eq.${activeModel}${delayFilter}&order=bar_ts.desc&limit=200`,
         {
