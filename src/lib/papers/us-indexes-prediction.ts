@@ -2295,6 +2295,49 @@ export const content = `
   <figcaption>Per-class accuracy: DOWN (70.5%) consistently beats UP (64.5%), suggesting the model captures bearish patterns more reliably in the validation window.</figcaption>
 </figure>
 
+<h4>VSN Per-Stream Feature Preferences</h4>
+
+<p>
+  Each of the four temporal streams learned to attend to different features, validating the
+  multi-scale architecture. The VSN softmax weights started near-uniform (max/min ratio ~1.2x)
+  and gradually differentiated to a 3.1x ratio by the final epoch.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Duration</th><th>Top Features</th><th>Interpretation</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short (60 bars)</td><td>1 hour</td><td>dist_ma120, dist_ma_290, tod_cos</td><td>Price distance from MAs and time-of-day: short-term mean-reversion signals</td></tr>
+    <tr><td>Mid (120 bars)</td><td>2 hours</td><td>vix_chg_60m, cross_idx_dispersion, cat_ret_60m</td><td>Volatility changes and cross-index dynamics: risk sentiment</td></tr>
+    <tr><td>Long (240 bars)</td><td>4 hours</td><td>roro_ratio, log_spread_us30_nas100, cross_idx_dispersion</td><td>Risk-on/risk-off and cross-index spreads: regime-level signals</td></tr>
+    <tr><td>Slow (720 bars)</td><td>12 hours</td><td>ret_60m, dist_ma120, abs_dist_ma120</td><td>Recent returns and MA distance: daily trend context</td></tr>
+  </tbody>
+</table>
+
+<p>
+  This specialisation is exactly what the VSN was designed to produce. Short-term streams focus on
+  price action and intraday timing; longer streams focus on cross-index regime signals from Phase 2
+  studies. The RORO ratio and log spreads (novel features from Gap Studies #1 and #2) appear
+  prominently in the long stream, confirming they carry regime-level information.
+</p>
+
+<p>
+  <strong>Consistently neglected features:</strong> log_spread_us30_us500 (lowest in 3/4 streams),
+  er60 (efficiency ratio), vol_30m (redundant with stdev60), and individual constituent returns
+  gs_ret_60m and hd_ret_60m. These are candidates for removal in future feature pruning.
+</p>
+
+<h4>Label Distribution</h4>
+
+<p>
+  The $$\\$100$$ symmetric barrier produced 45.2% UP and 54.8% DOWN labels with 0% HOLD. Every
+  single bar hit the barrier within 60 minutes, meaning the barrier is too narrow relative to
+  US30's intraday volatility. A wider barrier would create HOLD labels for ambiguous bars,
+  potentially improving signal quality by excluding noise. This is a candidate change for
+  future runs.
+</p>
+
 <h4>Diagnosis</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
