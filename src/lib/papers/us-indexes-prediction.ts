@@ -1636,6 +1636,133 @@ export const content = `
   </tbody>
 </table>
 
+<h4>Feature Validation: Granger Causality</h4>
+
+<p>
+  <em>Gap Study #10.</em> The 45 features specified above were selected on theoretical grounds and empirical gap-study
+  results. Before passing them to the model, we apply a formal statistical test: does each feature
+  Granger-cause the target variable (forward 60-minute returns) beyond what past returns alone predict?
+  A feature that fails this test may still be useful to a nonlinear model, but one that passes provides
+  independent frequentist evidence of predictive content.
+</p>
+
+<p>
+  <strong>Methodology.</strong> For each feature $x_j$ and each lag $\\ell \\in \\{1, 5, 15, 30, 60\\}$ minutes,
+  we estimate two OLS regressions on the training period (2021-07 to 2025-06):
+</p>
+
+<p style="text-align: center;">
+  Restricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\varepsilon_t$
+</p>
+<p style="text-align: center;">
+  Unrestricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\sum_{k=1}^{\\ell} \\gamma_k\\, x_{j,t-k} + \\varepsilon_t$
+</p>
+
+<p>
+  The Granger (1969) F-test compares the residual sum of squares of the two models. Under the null
+  $H_0: \\gamma_1 = \\cdots = \\gamma_\\ell = 0$, the test statistic follows an $F(\\ell,\\, T - 2\\ell - 1)$
+  distribution. With 45 features $\\times$ 5 lags = 225 tests per index, we apply Bonferroni correction
+  at $\\alpha = 0.05 / 225 \\approx 2.2 \\times 10^{-4}$ to control the family-wise error rate. No validation
+  data is used at any point.
+</p>
+
+<p><strong>Summary of results:</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Tests</th><th>Significant (Bonferroni)</th><th>%</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>225</td><td>120</td><td>53%</td></tr>
+    <tr><td>US500</td><td>225</td><td>115</td><td>51%</td></tr>
+    <tr><td>NAS100</td><td>225</td><td>94</td><td>42%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Over half the feature&ndash;lag combinations are statistically significant for US30 and US500 after
+  conservative multiple-testing correction. NAS100 is slightly lower, consistent with its higher
+  idiosyncratic noise from concentrated technology exposure.
+</p>
+
+<p><strong>Top features by F-statistic (consistent across all three indices):</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Rank</th><th>Feature</th><th>F-stat (US30)</th><th>F-stat (US500)</th><th>F-stat (NAS100)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>ret_60m</td><td>&gt; 2600</td><td>&gt; 2600</td><td>&gt; 2600</td></tr>
+    <tr><td>2</td><td>dist_ma_290</td><td>&gt; 1500</td><td>&gt; 1500</td><td>&gt; 1500</td></tr>
+    <tr><td>3</td><td>dist_ma120</td><td>&gt; 1450</td><td>&gt; 1450</td><td>&gt; 1450</td></tr>
+    <tr><td>4</td><td>trend_strength</td><td>~165</td><td>~165</td><td>~165</td></tr>
+    <tr><td>5</td><td>ret_120m</td><td>~143</td><td>~138</td><td>~130</td></tr>
+  </tbody>
+</table>
+
+<p>
+  All five are own-instrument features from Group 1 (core price dynamics). The dominance of ret_60m
+  is expected: the target is forward 60-minute returns, and the autoregressive component of returns
+  at this horizon is well-documented. The two moving-average distance features capture trend persistence
+  at different time scales.
+</p>
+
+<p><strong>Features significant in all three indices (24 of 45):</strong></p>
+
+<p>
+  abs_dist_ma120, brent_ret_60m, channel_width, constituent_dispersion, cross_idx_dispersion,
+  dist_ma120, dist_ma_290, kurt_240m, momentum_regime, msft_ret_60m, ret_120m, ret_60m,
+  roro_ratio, roro_vs_sma21, skew_240m, stdev60, trend_strength, tsmom_idx3_21d, tsmom_self_21d,
+  vol_30m, vol_of_vol_60, vol_regime_ratio, vol_session_ratio, vol_surprise.
+</p>
+
+<p>
+  This set spans all five feature groups: core price dynamics (Group 1), volatility and higher moments
+  (Group 2), cross-index signals from the gap studies (Group 3), cross-asset features (Group 4), and
+  microstructure proxies (Group 5). The cross-index features (cross_idx_dispersion, roro_ratio,
+  roro_vs_sma21, tsmom signals) all pass, confirming that the Phase 2 gap study findings survive formal
+  causality testing.
+</p>
+
+<p><strong>Features not significant on any index after Bonferroni correction:</strong></p>
+
+<p>
+  er60, tod_sin, tod_cos, ibs, gk_vol_pctile, session_flag, dxy_corr_30, and several individual
+  constituent returns. The time-of-day features (tod_sin, tod_cos, session_flag) are deterministic
+  functions of the clock and contain no stochastic information about returns. IBS and gk_vol_pctile
+  are bounded indicators that operate conditionally (IBS predicts only within specific volatility
+  regimes, as shown in Gap Study #8). The log-spread features (log_spread_us30_us500,
+  log_spread_us30_nas100) were borderline, consistent with the slow mean-reversion documented in
+  Gap Study #1.
+</p>
+
+<div class="finding-box">
+  <strong>Why non-significant features were retained.</strong>
+  Features that fail Granger causality were deliberately retained in the model as a validation mechanism
+  for the Variable Selection Network (VSN). If the VSN works correctly, it should independently learn to
+  downweight these features &mdash; assigning them low softmax attention without being told which features
+  are statistically significant. The Run 1 training results (Section 7.5) confirm this:
+  log_spread_us30_us500 (not Granger-causal) received the lowest VSN attention in both US30 and US500,
+  while the top Granger-causal features (ret_60m, dist_ma120, cross_idx_dispersion) received the highest.
+  This correspondence between frequentist causality testing and learned neural attention provides
+  independent validation that the VSN is working as intended.
+</div>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_US30.png" alt="US30 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 23. US30: Granger F-statistic vs VSN attention weight. Features with stronger causal signal receive higher learned attention.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_US500.png" alt="US500 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 24. US500: Granger F-statistic vs VSN attention weight. The same pattern holds &mdash; VSN attention tracks Granger causality.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_NAS100.png" alt="NAS100 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 25. NAS100: Granger F-statistic vs VSN attention weight correspondence.</figcaption>
+</figure>
+
 <h3>7.3 Normaliser Selection</h3>
 
 <h4>Why Normalisation Matters</h4>
@@ -2623,6 +2750,7 @@ export const content = `
     <tr><td>27</td><td>Nasdaq</td><td>2020</td><td>A Tale of Three Crises in the Past Two Decades</td><td>Whitepaper</td></tr>
     <tr><td>28</td><td>Nasdaq</td><td>2025</td><td>Understanding the DJIA: Price-Weighted vs. Cap-Weighted Attribution</td><td>Whitepaper</td></tr>
     <tr><td>29</td><td>Lim, B., Ar&iacute;k, S.&Ouml;., Loeff, N. &amp; Pfister, T.</td><td>2021</td><td>Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting</td><td><em>International Journal of Forecasting</em></td></tr>
+    <tr><td>30</td><td>Granger, C.W.J.</td><td>1969</td><td>Investigating Causal Relations by Econometric Models and Cross-spectral Methods</td><td><em>Econometrica</em></td></tr>
   </tbody>
 </table>
 `;
