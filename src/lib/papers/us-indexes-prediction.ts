@@ -2076,7 +2076,7 @@ export const content = `
     <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
   </thead>
   <tbody>
-    <tr><td>$$\\lambda_{\\text{vsn}}$$</td><td>0.001</td><td>Deliberately small: direction loss (~1.0) dominates; entropy term (~0.003) acts as a gentle nudge</td></tr>
+    <tr><td>$$\\lambda_{\\text{vsn}}$$</td><td>0.002</td><td>Deliberately small: direction loss (~1.0) dominates; entropy term (~0.006) acts as a gentle nudge</td></tr>
   </tbody>
 </table>
 
@@ -2085,8 +2085,8 @@ export const content = `
     <tr><th>Scenario</th><th>Entropy</th><th>Effect on Loss</th></tr>
   </thead>
   <tbody>
-    <tr><td>Uniform attention (all 45 features)</td><td>~3.8</td><td>Loss reduced by ~0.0038</td></tr>
-    <tr><td>Concentrated on 5 features</td><td>~1.6</td><td>Loss reduced by ~0.0016</td></tr>
+    <tr><td>Uniform attention (all 45 features)</td><td>~3.8</td><td>Loss reduced by ~0.0076</td></tr>
+    <tr><td>Concentrated on 5 features</td><td>~1.6</td><td>Loss reduced by ~0.0032</td></tr>
     <tr><td>Collapsed to 1 feature</td><td>~0.0</td><td>No entropy benefit</td></tr>
   </tbody>
 </table>
