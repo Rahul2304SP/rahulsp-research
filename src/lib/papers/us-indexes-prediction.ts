@@ -2175,7 +2175,9 @@ export const content = `
   <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$$</small></div>
 </div>
 
-<h3>7.5 Training Results: US30 Run 1</h3>
+<h3>7.5 Training Results</h3>
+
+<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US30 &mdash; Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
