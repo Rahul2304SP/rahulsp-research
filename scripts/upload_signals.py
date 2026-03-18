@@ -135,8 +135,8 @@ def extract_live_trades(rows: list[dict], model_name: str) -> list[dict]:
                 "_last_hold_bars": 0,
             }
 
-        # Hold row with explicit exit
-        elif action == "hold" and current_trade and exit_reason and exit_reason != "0":
+        # Row with explicit exit (hold with exit_reason, or close action)
+        elif action in ("hold", "close") and current_trade and exit_reason and exit_reason != "0":
             close_price = float(row.get("close", 0))
             entry_price = current_trade["entry_price"]
             if current_trade["direction"] == "LONG":
@@ -148,7 +148,11 @@ def extract_live_trades(rows: list[dict], model_name: str) -> list[dict]:
             current_trade["exit_reason"] = exit_reason
             current_trade["exit_price"] = close_price
             current_trade["pnl"] = round(pnl, 2)
-            current_trade["hold_bars"] = int(hold_bars) if hold_bars else None
+            # close rows often have hold_bars=0; use last tracked value + 1
+            hb = int(hold_bars) if hold_bars and int(hold_bars) > 0 else None
+            if hb is None and current_trade.get("_last_hold_bars"):
+                hb = current_trade["_last_hold_bars"] + 1
+            current_trade["hold_bars"] = hb
             signals.append(current_trade)
             current_trade = None
 
