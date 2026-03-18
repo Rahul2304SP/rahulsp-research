@@ -2067,7 +2067,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Epochs</td><td>50</td><td>With warmup + cosine schedule</td></tr>
-    <tr><td>Batch size</td><td>210</td><td>Fits GPU with 4 streams</td></tr>
+    <tr><td>Batch size</td><td>512</td><td>Fits GPU with 4 streams</td></tr>
     <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td><td>Standard Transformer LR</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>Regularisation</td></tr>
     <tr><td>Expected PnL loss</td><td>Disabled</td><td>Use supervised BCE/CE for direction</td></tr>
@@ -2149,7 +2149,7 @@ export const content = `
   per-index barriers, and training hyperparameters validated on the XAUUSD base model. A Variable
   Selection Network (Lim et al., 2021) provides learned per-timestep soft feature gating before the
   TCN, allowing the model to suppress noisy inputs and adapt feature importance across regimes.
-  Training and backtesting are the next steps.
+  Training is underway.
 </p>
 
 <h2>9. References</h2>
