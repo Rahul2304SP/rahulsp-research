@@ -2363,6 +2363,188 @@ export const content = `
   </tbody>
 </table>
 
+<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US500 &mdash; Run 1 (Diagnostic)</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  and validation on historical data. They do not represent live trading performance. Validation
+  accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
+  seen during training.
+</div>
+
+<h4>Configuration</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Target</td><td>US500.f</td></tr>
+    <tr><td>Barrier</td><td>$$\\$30$$</td></tr>
+    <tr><td>Spread</td><td>$$\\$0.50$$</td></tr>
+    <tr><td>Batch size</td><td>512</td></tr>
+    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td></tr>
+    <tr><td>Epochs</td><td>9 / 50</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td></tr>
+  </tbody>
+</table>
+
+<h4>Headline Results</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best val loss</td><td>1.143 (Epoch 1)</td></tr>
+    <tr><td>Best val direction accuracy</td><td>63.1% (Epoch 7)</td></tr>
+    <tr><td>Final val accuracy</td><td>62.0% (Epoch 9)</td></tr>
+    <tr><td>Final train accuracy</td><td>89.0%</td></tr>
+    <tr><td>Coverage</td><td>95.7%</td></tr>
+    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.418 (no hedging)</td></tr>
+    <tr><td>VSN entropy</td><td>3.687 (max 3.81)</td></tr>
+  </tbody>
+</table>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated results only.</strong> These metrics are from training and validation on historical
+  data and do not represent live or forward-tested trading performance.
+</div>
+
+<h4>Key Observations</h4>
+
+<p>
+  <strong>Lower accuracy ceiling than US30.</strong> Best validation accuracy reached 63.1% versus
+  US30's 67.8% &mdash; a 4.7 percentage-point gap. The accuracy plateau at 62&ndash;63% from epoch 3
+  onwards suggests a structural ceiling for this feature set on US500. The S&amp;P 500's higher
+  diversification (500 constituents vs 30) may dilute the signal carried by individual-stock features
+  in the feature set.
+</p>
+
+<p>
+  <strong>Overfitting even faster than US30.</strong> Validation loss was best at epoch 1 (before any
+  real training) and never improved. The generalisation gap grew 21% faster than US30 at the same
+  stage, reaching a train&ndash;validation accuracy spread of 27 percentage points by epoch 9
+  (compared to epoch 13 for US30). This accelerated memorisation is consistent with a noisier
+  label set from the too-tight barrier.
+</p>
+
+<p>
+  <strong>Strong bullish bias.</strong> The predicted $$p_{\\text{up}}$$ mean stayed at 0.55&ndash;0.64
+  throughout training. UP accuracy (70&ndash;77%) far exceeded DOWN accuracy (32&ndash;55%). This is
+  the mirror image of US30's bearish bias. Label distribution is nearly balanced (UP 51.2%,
+  DOWN 48.8%), so the bias is learned, not inherited from the data. The model finds it easier to
+  predict upward moves in the validation window &mdash; consistent with the post-2024 bull trend
+  in large-cap equities.
+</p>
+
+<p>
+  <strong>VSN feature preferences consistent with US30.</strong> Top features across both indices:
+  cross_idx_dispersion (#1 in both), ret_60m (#2), dist_ma120 (#3). Bottom in both:
+  log_spread_us30_us500. This consistency suggests genuine signal rather than noise fitting. The
+  cross-index dispersion feature &mdash; designed from Gap Study #2 &mdash; is the most informative
+  single feature for both indices, validating the Phase 2 empirical work.
+</p>
+
+<p>
+  <strong>MID stream over-concentrated.</strong> The MID stream (120-bar, 2-hour context) has an
+  18.8x max/min attention ratio &mdash; nearly ignoring most features in favour of
+  cross_idx_dispersion and ret_60m. While some specialisation is desirable, this level of
+  concentration risks fragility. This is a candidate for higher per-stream entropy regularisation
+  in Run 2.
+</p>
+
+<p>
+  <strong>$$\\$30$$ barrier too tight.</strong> The barrier produced 0% HOLD labels &mdash; every
+  single bar hit the $$\\$30$$ barrier within 60 minutes. US500's typical hourly range is
+  $$\\$15$$&ndash;$$\\$25$$, so $$\\$30$$ is only 1.2&ndash;2x the typical move. A wider barrier
+  ($$\\$50$$) would create HOLD labels for ambiguous bars, improving label quality by excluding
+  noise periods.
+</p>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/us500_run1_01_loss_curves.png" alt="US500 Run 1 loss curves" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>US500 Run 1: val loss minimises at epoch 1 and never recovers. The model begins memorising from the first gradient update.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us500_run1_02_direction_accuracy.png" alt="US500 Run 1 direction accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Direction accuracy: 63.1% validation peak at epoch 7, 4.7pp below US30's 67.8%. Train accuracy climbs to 89% while validation plateaus at 62&ndash;63%.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us500_run1_05_per_class_accuracy.png" alt="US500 Run 1 per-class accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Per-class accuracy: extreme UP/DOWN asymmetry. UP accuracy reaches 77% at epoch 1 while DOWN accuracy starts at 32%, revealing a strong bullish bias throughout training.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us500_run1_06_vsn_entropy.png" alt="US500 Run 1 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>VSN entropy: healthy at 96.7% of theoretical maximum (3.687 / 3.81). The network maintains broad attention without collapse.</figcaption>
+</figure>
+
+<h4>VSN Per-Stream Feature Preferences</h4>
+
+<p>
+  Each of the four temporal streams learned distinct feature preferences, consistent with the
+  multi-scale architecture design. The MID stream shows the highest concentration (18.8x max/min
+  ratio), focusing almost exclusively on cross-index dynamics.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Duration</th><th>Top Features</th><th>Focus</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short (60 bars)</td><td>1 hour</td><td>dist_ma120, trend_strength, tod_cos</td><td>Mean reversion + intraday timing</td></tr>
+    <tr><td>Mid (120 bars)</td><td>2 hours</td><td>cross_idx_dispersion, ret_60m, trend_strength</td><td>Cross-index dynamics (18.8x concentration)</td></tr>
+    <tr><td>Long (240 bars)</td><td>4 hours</td><td>roro_ratio, cross_idx_dispersion, ret_60m</td><td>Regime context</td></tr>
+    <tr><td>Slow (720 bars)</td><td>12 hours</td><td>dist_ma120, ret_60m, dist_ma_290</td><td>Daily trend context</td></tr>
+  </tbody>
+</table>
+
+<h4>Cross-Index Comparison: US30 vs US500</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>US30</th><th>US500</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best val accuracy</td><td>67.8%</td><td>63.1%</td></tr>
+    <tr><td>Best val loss epoch</td><td>3</td><td>1</td></tr>
+    <tr><td>Overfit gap (epoch 9)</td><td>1.53</td><td>1.87</td></tr>
+    <tr><td>Class balance bias</td><td>DOWN &gt; UP by 8pp</td><td>UP &gt; DOWN by 15pp</td></tr>
+    <tr><td>VSN concentration</td><td>3.1x</td><td>3.8x</td></tr>
+  </tbody>
+</table>
+
+<h4>Diagnosis</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Weaker generalisation than US30.</strong> US500 shows 63.1% vs 67.8% validation accuracy
+  with faster overfitting (val loss never improved past epoch 1). The $$\\$30$$ barrier produces
+  noisier labels (0% HOLD), and the model develops a strong bullish bias. The consistent feature
+  preferences across both indices validate the feature set, but US500 likely needs a wider barrier
+  and stronger regularisation to close the accuracy gap.
+</div>
+
+<h4>Recommendations for Run 2</h4>
+
+<table>
+  <thead>
+    <tr><th>Change</th><th>Run 1</th><th>Run 2</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Barrier</td><td>$$\\$30$$</td><td>$$\\$50$$</td><td>0% HOLD rate; barrier too tight for US500 volatility</td></tr>
+    <tr><td>Early stopping</td><td>None</td><td>5-epoch patience</td><td>Val loss never improved past epoch 1</td></tr>
+    <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Reduce memorisation; overfitting faster than US30</td></tr>
+    <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger L2 regularisation</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>MID stream 18.8x too concentrated</td></tr>
+    <tr><td>Max epochs</td><td>50</td><td>15</td><td>No improvement after epoch 7</td></tr>
+  </tbody>
+</table>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -2394,12 +2576,15 @@ export const content = `
 </p>
 
 <p>
-  The first training run on US30 (Section 7.5) is complete. It confirmed genuine directional signal
-  (67.8% validation accuracy at epoch 3) but revealed severe overfitting: the train&ndash;validation
-  accuracy gap widened to 27 percentage points by epoch 18. The diagnosis is clear &mdash; the model
-  memorises training data within 5 epochs of reaching peak validation performance. Run 2 is planned
-  with stronger regularisation (dropout 0.25, weight decay 0.01), early stopping with 5-epoch
-  patience, and a compressed warmup schedule (3 epochs instead of 5).
+  The first diagnostic training runs on US30 and US500 (Section 7.5) are complete. US30 confirmed
+  genuine directional signal (67.8% validation accuracy at epoch 3) but revealed severe overfitting:
+  the train&ndash;validation accuracy gap widened to 27 percentage points by epoch 18. US500 showed
+  a lower accuracy ceiling (63.1% at epoch 7) with even faster overfitting &mdash; validation loss
+  never improved past epoch 1. Both models developed opposite directional biases (US30 bearish,
+  US500 bullish) despite near-balanced label distributions. The consistent VSN feature preferences
+  across both indices (cross_idx_dispersion #1 in both) validate the feature set. Run 2 for both
+  indices is planned with stronger regularisation (dropout 0.25, weight decay 0.01), early stopping
+  with 5-epoch patience, and wider barriers for US500 ($$\\$50$$ from $$\\$30$$).
 </p>
 
 <h2>9. References</h2>
