@@ -2,8 +2,8 @@ export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
   Data inventory, feature specification, normaliser selection, and model configuration finalised
-  (45 features, 17 passthrough / 28 rolling z-score, VSN+TCN+Transformer with 4 temporal streams);
-  training and backtesting underway.
+  (45 features, 17 passthrough / 28 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
+  US30 Run 1 complete &mdash; 67.8% val accuracy at epoch 3, severe overfitting diagnosed. Run 2 planned.
   This page will be updated as results become available.
 </div>
 
@@ -16,7 +16,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. Training and backtesting underway.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. US30 Run 1 complete (7.5): 67.8% val accuracy, overfitting diagnosed. Run 2 planned with stronger regularisation.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2175,6 +2175,149 @@ export const content = `
   <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$$</small></div>
 </div>
 
+<h3>7.5 Training Results: US30 Run 1</h3>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  and validation on historical data. They do not represent live trading performance. Validation
+  accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
+  seen during training.
+</div>
+
+<p>
+  This is the first training run for the US30 model. The purpose is diagnostic: confirm the
+  architecture can learn directional signal, identify failure modes, and calibrate regularisation
+  for subsequent runs. The results reveal severe overfitting but also genuine directional signal
+  in the validation set.
+</p>
+
+<h4>Configuration</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Target</td><td>US30</td></tr>
+    <tr><td>Barrier</td><td>$$\\$100$$</td></tr>
+    <tr><td>Spread</td><td>$$\\$1.20$$</td></tr>
+    <tr><td>Batch size</td><td>512</td></tr>
+    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$ (warmup + cosine)</td></tr>
+    <tr><td>Epochs</td><td>18 / 50 (early termination)</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001 (later increased to 0.002)</td></tr>
+    <tr><td>Train period</td><td>2021-07 to 2025-06</td></tr>
+    <tr><td>Validation period</td><td>2025-07 to 2026-03</td></tr>
+  </tbody>
+</table>
+
+<h4>Headline Results</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best validation loss</td><td>0.933 (Epoch 3)</td></tr>
+    <tr><td>Best validation direction accuracy</td><td>67.8% (Epoch 3)</td></tr>
+    <tr><td>Final validation direction accuracy</td><td>64.9% (Epoch 18)</td></tr>
+    <tr><td>Final train direction accuracy</td><td>92.0% (Epoch 18)</td></tr>
+    <tr><td>Coverage</td><td>95.7%</td></tr>
+    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.438 (healthy, no hedging)</td></tr>
+    <tr><td>VSN entropy</td><td>3.635 (max 3.81)</td></tr>
+  </tbody>
+</table>
+
+<h4>Key Observations</h4>
+
+<p>
+  <strong>Epoch 3 is the sweet spot.</strong> Validation loss hits its minimum (0.933) and validation
+  accuracy peaks (67.8%) at epoch 3, during the warmup phase when the effective learning rate is
+  approximately $$1.4 \\times 10^{-4}$$. Everything after epoch 3 is overfitting. This pattern is
+  consistent with the XAUUSD base model experience: Transformers on noisy financial data find their
+  best generalisation early, before the optimiser has enough capacity to memorise training noise.
+</p>
+
+<p>
+  <strong>Severe overfitting from epoch 4 onwards.</strong> Validation loss increased 143% from
+  epoch 3 to epoch 18 (0.93 to 2.27). The train&ndash;validation accuracy gap grew from 6.7
+  percentage points (epoch 3: 74.5% train, 67.8% val) to 27.1 percentage points (epoch 18: 92.0%
+  train, 64.9% val). The model memorised the training set.
+</p>
+
+<p>
+  <strong>Directional signal is real.</strong> A validation accuracy of 67.8% is well above the
+  50% random baseline and above the ~55% threshold typically required for profitability after
+  transaction costs. DOWN accuracy (70.5%) exceeds UP accuracy (64.5%), indicating a slight bearish
+  bias in the model's learned representations. This asymmetry may reflect the validation period
+  (2025-07 to 2026-03) containing more volatile down-moves that are easier to predict.
+</p>
+
+<p>
+  <strong>VSN is healthy.</strong> Entropy decreased from 3.78 to 3.64 (theoretical maximum 3.81
+  for 45 features), meaning the Variable Selection Network learned to differentiate feature
+  importance without collapsing to a small subset. The entropy regularisation term
+  ($$\\lambda = 0.001$$) served its purpose.
+</p>
+
+<p>
+  <strong>No gradient issues.</strong> Gradient norms remained stable throughout all 18 epochs.
+  No exploding or vanishing gradients were observed, confirming the warmup + cosine annealing
+  schedule is appropriate for this architecture.
+</p>
+
+<p>
+  <strong>Coverage ramped quickly.</strong> Coverage (fraction of bars where the model produces a
+  non-hold prediction with sufficient confidence) increased from 60% at epoch 1 to 96% by epoch 6.
+  The model became confident on nearly all directional bars early in training.
+</p>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run1_01_loss_curves.png" alt="US30 Run 1 loss curves" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>US30 Run 1: train and validation loss curves. Validation loss minimises at epoch 3 then diverges sharply, reaching 2.27 by epoch 18 while train loss continues to decline.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run1_02_direction_accuracy.png" alt="US30 Run 1 direction accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Direction accuracy: 67.8% validation peak at epoch 3, then plateau around 64&ndash;65% while train accuracy climbs to 92%. The widening gap is the signature of overfitting.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run1_06_vsn_entropy.png" alt="US30 Run 1 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>VSN entropy: healthy decline from 3.78 to 3.64 without collapse. The network learned to weight features differentially while maintaining broad attention.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run1_05_per_class_accuracy.png" alt="US30 Run 1 per-class accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Per-class accuracy: DOWN (70.5%) consistently beats UP (64.5%), suggesting the model captures bearish patterns more reliably in the validation window.</figcaption>
+</figure>
+
+<h4>Diagnosis</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Severe overfitting:</strong> the model learns genuine directional signal (67.8% validation
+  accuracy at epoch 3) but memorises training data within 5 epochs. The best checkpoint would use
+  epoch 3 weights. Run 2 will address this with stronger regularisation, earlier stopping, and a
+  shorter warmup schedule.
+</div>
+
+<h4>Recommendations for Run 2</h4>
+
+<table>
+  <thead>
+    <tr><th>Change</th><th>Run 1</th><th>Run 2</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Early stopping</td><td>None</td><td>5-epoch patience</td><td>Stop when validation loss stalls</td></tr>
+    <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Stronger regularisation against memorisation</td></tr>
+    <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger L2 penalty on weights</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>Prevent late-stage attention collapse</td></tr>
+    <tr><td>Max epochs</td><td>50</td><td>20</td><td>No value past epoch 10&ndash;15</td></tr>
+    <tr><td>LR warmup</td><td>5 epochs</td><td>3 epochs</td><td>Best validation at epoch 3; warmup should end sooner</td></tr>
+  </tbody>
+</table>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -2195,7 +2338,7 @@ export const content = `
   across five groups. Every cross-index feature traces directly to a Phase 2 empirical result.
   Normaliser selection (Section 7.3) is complete: per-feature normaliser selection based on
   AUC gain/loss across all three indices, yielding a split of 17 passthrough features
-  (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $3\\sigma$ clip).
+  (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $$3\\sigma$$ clip).
   Scale-dependent features (VIX level, dispersion, volatility ratios) retain their raw values
   to preserve regime information; heavy-tailed and drifting features use rolling_z for gradient
   stability. Model configuration (Section 7.4) is finalised: a VSN+TCN+Transformer architecture with
@@ -2203,7 +2346,15 @@ export const content = `
   per-index barriers, and training hyperparameters validated on the XAUUSD base model. A Variable
   Selection Network (Lim et al., 2021) provides learned per-timestep soft feature gating before the
   TCN, allowing the model to suppress noisy inputs and adapt feature importance across regimes.
-  Training is underway.
+</p>
+
+<p>
+  The first training run on US30 (Section 7.5) is complete. It confirmed genuine directional signal
+  (67.8% validation accuracy at epoch 3) but revealed severe overfitting: the train&ndash;validation
+  accuracy gap widened to 27 percentage points by epoch 18. The diagnosis is clear &mdash; the model
+  memorises training data within 5 epochs of reaching peak validation performance. Run 2 is planned
+  with stronger regularisation (dropout 0.25, weight decay 0.01), early stopping with 5-epoch
+  patience, and a compressed warmup schedule (3 epochs instead of 5).
 </p>
 
 <h2>9. References</h2>
