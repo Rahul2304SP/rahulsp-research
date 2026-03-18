@@ -259,9 +259,22 @@ def upload_new_signals():
 
         if new_trades:
             print(f"[{now.strftime('%H:%M:%S')}] {model_name}: uploading {len(new_trades)} new signals")
-            for i in range(0, len(new_trades), 50):
-                batch = new_trades[i:i + 50]
-                supabase.table("signals").upsert(batch, on_conflict="model,bar_ts").execute()
+            for t in new_trades:
+                # Check if this trade already exists (open signal being updated)
+                if t["bar_ts"] in open_bar_ts:
+                    supabase.table("signals") \
+                        .update({
+                            "status": t["status"],
+                            "exit_reason": t["exit_reason"],
+                            "exit_price": t["exit_price"],
+                            "pnl": t["pnl"],
+                            "hold_bars": t["hold_bars"],
+                        }) \
+                        .eq("model", model_name) \
+                        .eq("bar_ts", t["bar_ts"]) \
+                        .execute()
+                else:
+                    supabase.table("signals").insert(t).execute()
         else:
             count = get_uploaded_count(model_name)
             print(f"[{now.strftime('%H:%M:%S')}] {model_name}: no new signals (total uploaded: {count})")
