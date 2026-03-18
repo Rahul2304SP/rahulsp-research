@@ -2043,6 +2043,60 @@ export const content = `
   Transformer encoder and does not meaningfully increase training time or memory.
 </p>
 
+<h4>VSN Entropy Regularisation</h4>
+
+<p>
+  Without regularisation, the VSN softmax gate can <strong>collapse</strong>, concentrating all
+  attention on one or two features and ignoring the rest. This wastes the 45-feature design,
+  overfits to a narrow signal, and suppresses jointly informative but individually weak features.
+</p>
+
+<p>
+  We add the Shannon entropy of the VSN weights to the loss as a regularisation term:
+</p>
+
+<p style="text-align: center; margin: 1rem 0;">
+  $$H(\\mathbf{w}_t) = -\\sum_{i=1}^{F} w_{t,i} \\log(w_{t,i})$$
+</p>
+
+<p>
+  where $$\\mathbf{w}_t$$ is the $$F$$-dimensional softmax weight vector at timestep $$t$$.
+  Maximum entropy ($$\\log F \\approx 3.8$$ for 45 features) corresponds to uniform attention;
+  minimum entropy (0) corresponds to complete collapse onto a single feature.
+</p>
+
+<p>
+  The entropy is averaged across all timesteps, batch samples, and all four streams, then
+  <strong>subtracted</strong> from the loss. Higher entropy (more diverse feature usage) reduces
+  the loss, nudging the model toward balanced attention.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>$$\\lambda_{\\text{vsn}}$$</td><td>0.001</td><td>Deliberately small: direction loss (~1.0) dominates; entropy term (~0.003) acts as a gentle nudge</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>Scenario</th><th>Entropy</th><th>Effect on Loss</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Uniform attention (all 45 features)</td><td>~3.8</td><td>Loss reduced by ~0.0038</td></tr>
+    <tr><td>Concentrated on 5 features</td><td>~1.6</td><td>Loss reduced by ~0.0016</td></tr>
+    <tr><td>Collapsed to 1 feature</td><td>~0.0</td><td>No entropy benefit</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The model learns to balance concentrating on the most predictive features (to minimise direction
+  loss) against maintaining enough diversity to earn the entropy bonus. If entropy drops below ~1.0
+  during training, the VSN is collapsing and $$\\lambda_{\\text{vsn}}$$ should be increased.
+</p>
+
 <h4>TCN + Transformer Hyperparameters</h4>
 
 <table>
