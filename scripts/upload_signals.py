@@ -212,6 +212,17 @@ def upload_new_signals():
 
         last_ts = get_last_uploaded_ts(model_name)
 
+        # Get bar_ts of any currently open signals — these must be re-uploaded
+        # even if already past last_ts, so we can update them to closed
+        open_result = (
+            supabase.table("signals")
+            .select("bar_ts")
+            .eq("model", model_name)
+            .eq("status", "open")
+            .execute()
+        )
+        open_bar_ts = {r["bar_ts"] for r in (open_result.data or [])}
+
         new_trades = []
         for t in trades:
             try:
@@ -222,9 +233,11 @@ def upload_new_signals():
             if raw_ts.tzinfo is None:
                 raw_ts = raw_ts.replace(tzinfo=timezone.utc)
 
-            # Skip if already uploaded (compare in raw broker time,
-            # since both DB and CSV store broker timestamps)
-            if last_ts and raw_ts <= last_ts:
+            # Always re-upload trades that are open in DB (to update status)
+            is_open_update = t["bar_ts"] in open_bar_ts
+
+            # Skip if already uploaded, unless it's an open trade update
+            if last_ts and raw_ts <= last_ts and not is_open_update:
                 continue
 
             # Enforce delay using UTC-corrected time
@@ -248,7 +261,7 @@ def upload_new_signals():
             print(f"[{now.strftime('%H:%M:%S')}] {model_name}: uploading {len(new_trades)} new signals")
             for i in range(0, len(new_trades), 50):
                 batch = new_trades[i:i + 50]
-                supabase.table("signals").insert(batch).execute()
+                supabase.table("signals").upsert(batch, on_conflict="model,bar_ts").execute()
         else:
             count = get_uploaded_count(model_name)
             print(f"[{now.strftime('%H:%M:%S')}] {model_name}: no new signals (total uploaded: {count})")
