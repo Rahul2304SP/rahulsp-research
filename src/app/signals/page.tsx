@@ -105,7 +105,7 @@ export default function SignalsPage() {
         ? "model=like.Scalper-*"
         : `model=eq.${activeModel}`;
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc&limit=500`,
+        `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc&limit=5000`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
