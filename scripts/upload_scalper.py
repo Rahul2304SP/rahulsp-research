@@ -42,41 +42,6 @@ ALLOWED_CONFIGS = {
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def get_last_uploaded_ticket() -> int:
-    """Get the highest ticket number already uploaded."""
-    result = (
-        supabase.table("signals")
-        .select("bar_ts")
-        .like("model", "Scalper-%")
-        .order("bar_ts", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if result.data:
-        return result.data[0]["bar_ts"]
-    return None
-
-
-def get_uploaded_tickets() -> set[str]:
-    """Get all ticket numbers already uploaded for scalper models."""
-    all_tickets = set()
-    offset = 0
-    while True:
-        result = (
-            supabase.table("signals")
-            .select("close")  # we store ticket in 'close' field
-            .like("model", "Scalper-*")
-            .range(offset, offset + 999)
-            .execute()
-        )
-        if not result.data:
-            break
-        for r in result.data:
-            all_tickets.add(str(int(r["close"])))
-        if len(result.data) < 1000:
-            break
-        offset += 1000
-    return all_tickets
 
 
 def parse_scalper_csv() -> list[dict]:
@@ -142,6 +107,32 @@ def parse_scalper_csv() -> list[dict]:
     return trades
 
 
+def get_uploaded_count() -> int:
+    """Get count of scalper signals in DB."""
+    result = (
+        supabase.table("signals")
+        .select("id", count="exact")
+        .like("model", "Scalper-*")
+        .execute()
+    )
+    return result.count or 0
+
+
+def get_last_uploaded_bar_ts() -> str | None:
+    """Get the most recent bar_ts for any scalper signal."""
+    result = (
+        supabase.table("signals")
+        .select("bar_ts")
+        .like("model", "Scalper-*")
+        .order("bar_ts", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if result.data:
+        return result.data[0]["bar_ts"]
+    return None
+
+
 def upload_new_scalper_trades():
     """Check CSV for new scalper trades and upload them."""
     now = datetime.now(timezone.utc)
@@ -151,13 +142,13 @@ def upload_new_scalper_trades():
         print(f"[{now.strftime('%H:%M:%S')}] Scalper: no trades in CSV")
         return
 
-    # Get already-uploaded tickets
-    uploaded = get_uploaded_tickets()
+    last_ts = get_last_uploaded_bar_ts()
+    db_count = get_uploaded_count()
 
     new_trades = []
     for t in trades:
-        ticket_str = str(int(t["close"]))
-        if ticket_str in uploaded:
+        # Only upload trades newer than the last uploaded timestamp
+        if last_ts and t["bar_ts"] <= last_ts:
             continue
         new_trades.append(t)
 
@@ -167,7 +158,7 @@ def upload_new_scalper_trades():
             batch = new_trades[i:i + 50]
             supabase.table("signals").insert(batch).execute()
     else:
-        print(f"[{now.strftime('%H:%M:%S')}] Scalper: no new trades (total uploaded: {len(uploaded)})")
+        print(f"[{now.strftime('%H:%M:%S')}] Scalper: no new trades (DB: {db_count}, CSV: {len(trades)})")
 
 
 def main():
