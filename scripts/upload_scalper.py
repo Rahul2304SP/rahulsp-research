@@ -142,23 +142,18 @@ def upload_new_scalper_trades():
         print(f"[{now.strftime('%H:%M:%S')}] Scalper: no trades in CSV")
         return
 
-    last_ts = get_last_uploaded_bar_ts()
     db_count = get_uploaded_count()
 
-    new_trades = []
-    for t in trades:
-        # Only upload trades newer than the last uploaded timestamp
-        if last_ts and t["bar_ts"] <= last_ts:
-            continue
-        new_trades.append(t)
-
-    if new_trades:
-        print(f"[{now.strftime('%H:%M:%S')}] Scalper: uploading {len(new_trades)} new trades")
-        for i in range(0, len(new_trades), 50):
-            batch = new_trades[i:i + 50]
-            supabase.table("signals").insert(batch).execute()
-    else:
+    if db_count >= len(trades):
         print(f"[{now.strftime('%H:%M:%S')}] Scalper: no new trades (DB: {db_count}, CSV: {len(trades)})")
+        return
+
+    # Upload only the tail (trades after what's already in DB)
+    new_trades = trades[db_count:]
+    print(f"[{now.strftime('%H:%M:%S')}] Scalper: uploading {len(new_trades)} new trades (DB: {db_count}, CSV: {len(trades)})")
+    for i in range(0, len(new_trades), 50):
+        batch = new_trades[i:i + 50]
+        supabase.table("signals").insert(batch).execute()
 
 
 def main():
