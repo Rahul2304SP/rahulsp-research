@@ -2,9 +2,10 @@ export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
   Data inventory, feature specification, normaliser selection, and model configuration finalised
-  (45 features, 17 passthrough / 28 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
+  (43 features after pruning, 17 passthrough / 26 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
   All three Run 1 diagnostics complete &mdash; NAS100 best at 68.9% val accuracy (negative generalisation gap),
-  US30 67.8%, US500 63.1%. Run 2 planned for all indices with stronger regularisation.
+  US30 67.8%, US500 63.1%. Run 2 underway with four targeted changes: max LR halved, VSN entropy $$\\lambda$$ 20x stronger,
+  2 noise features pruned, US500 barrier widened.
   This page will be updated as results become available.
 </div>
 
@@ -17,7 +18,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. Run 2 planned with stronger regularisation.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. Run 2 underway with targeted parameter changes.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2840,6 +2841,129 @@ export const content = `
   <figcaption>VSN entropy: highest diversity of all three indices at 97.6% of maximum.</figcaption>
 </figure>
 
+<h4 style="margin-top: 2rem; padding: 0.5rem 0.75rem; background: #fffbeb; border-left: 4px solid #d97706; font-size: 1.1em;">Run 1 &rarr; Run 2: Configuration Changes</h4>
+
+<p>
+  Based on the Run 1 diagnostics across all three indices, four targeted changes were made for Run 2.
+  Each change addresses a specific finding from Run 1 and is backed by empirical evidence.
+</p>
+
+<h4>Change 1: Learning Rate $$3 \\times 10^{-4} \\rightarrow 1.5 \\times 10^{-4}$$</h4>
+
+<p>
+  Run 1 used a 5-epoch linear warmup from $$3 \\times 10^{-5}$$ to $$3 \\times 10^{-4}$$. The per-epoch
+  LR and corresponding validation accuracy reveal that the optimal LR lies near $$1.4 \\times 10^{-4}$$:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>LR</th><th>US30 Val Acc</th><th>NAS100 Val Acc</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>$$3.0 \\times 10^{-5}$$</td><td>54.7%</td><td>52.1%</td></tr>
+    <tr><td>2</td><td>$$8.4 \\times 10^{-5}$$</td><td>66.2%</td><td>68.8%</td></tr>
+    <tr><td><strong>3</strong></td><td><strong>$$1.4 \\times 10^{-4}$$</strong></td><td><strong>67.8%</strong></td><td><strong>68.9%</strong></td></tr>
+    <tr><td>4</td><td>$$1.9 \\times 10^{-4}$$</td><td>67.7%</td><td>67.3%</td></tr>
+    <tr><td>5</td><td>$$2.5 \\times 10^{-4}$$</td><td>65.5%</td><td>66.6%</td></tr>
+    <tr><td>6</td><td>$$3.0 \\times 10^{-4}$$</td><td>66.1%</td><td>64.9%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Once LR exceeded $$\\sim 1.5 \\times 10^{-4}$$, validation accuracy declined in both indices. The higher
+  LR drove predictions toward extreme confidence ($$p_{\\text{up}}$$ std rose from 0.17 to 0.44), inflating
+  cross-entropy loss without improving directional signal. Halving the maximum LR to
+  $$1.5 \\times 10^{-4}$$ means the model reaches the empirically optimal LR at the end of warmup rather
+  than overshooting it.
+</p>
+
+<h4>Change 2: VSN Entropy $$\\lambda$$ from 0.002 to 0.04</h4>
+
+<p>
+  The VSN entropy regulariser penalises concentrated attention weights to prevent the model from ignoring
+  most features. Run 1 used $$\\lambda = 0.001$$. The per-stream concentration ratios (max weight / min
+  weight) reveal that this was insufficient:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>US30</th><th>US500</th><th>NAS100</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short</td><td>6.3x</td><td>10.1x</td><td>9.2x</td></tr>
+    <tr><td>Mid</td><td>7.0x</td><td><strong>18.8x</strong></td><td>3.0x</td></tr>
+    <tr><td>Long</td><td>3.1x</td><td>3.3x</td><td>3.2x</td></tr>
+    <tr><td>Slow</td><td>5.7x</td><td>5.7x</td><td>6.1x</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The US500 MID stream had an 18.8x concentration ratio, effectively ignoring most features in that
+  temporal window. At $$\\lambda = 0.001$$, the regularisation was too weak to prevent this collapse.
+  Setting $$\\lambda = 0.04$$ (20x stronger) should keep the max/min ratio below 5x. The entropy loss
+  acts on the softmax attention weights only and does not interfere with the direction loss.
+</p>
+
+<h4>Change 3: Feature Pruning &mdash; 45 to 43</h4>
+
+<p>
+  Two features were removed: <em>log_spread_us30_us500</em> and <em>log_spread_us30_nas100</em>. Two
+  independent methods confirmed these are noise:
+</p>
+
+<ul>
+  <li><strong>Granger causality:</strong> F-stat = 0.00 in all three indices (literally zero linear predictive power for 60-minute returns).</li>
+  <li><strong>VSN attention:</strong> bottom-ranked in all three indices (weight $$\\sim 0.010$$ vs uniform baseline $$0.022$$).</li>
+</ul>
+
+<p>
+  These features measure cumulative log price divergence between index pairs, which is dominated by
+  long-term drift and is uninformative for 60-minute directional prediction. The <em>roro_ratio</em>
+  captures the same cross-index relationship more effectively through relative returns.
+</p>
+
+<p>
+  Other low-Granger features (<em>er60</em>, <em>tod_cos</em>, <em>session_flag</em>) were retained
+  because they showed non-zero VSN attention, suggesting non-linear signal that the Granger test
+  (a linear method) cannot detect.
+</p>
+
+<h4>Change 4: US500 Barrier &dollar;30 &rarr; &dollar;90</h4>
+
+<p>
+  US500 had the worst class balance in Run 1 (15.5pp gap between UP and DOWN accuracy) despite
+  balanced training labels. The &dollar;30 barrier was too tight relative to the index's hourly range,
+  causing the model to overfit to one direction. Applying NAS100's successful barrier-to-range ratio
+  ($$\\sim 1.5 \\times$$ average hourly range) to US500's &dollar;60 average hourly range yields
+  &dollar;90. US30 (&dollar;100) and NAS100 (&dollar;200) barriers are unchanged &mdash; both were
+  already well-calibrated in Run 1.
+</p>
+
+<h4>What Stayed the Same</h4>
+
+<p>
+  Dropout (0.15), weight decay (0.005), embed dim (128), layers (1), and warmup epochs (5) are all
+  unchanged. The overfitting observed in Run 1 is in <em>calibration</em> (overconfident predictions),
+  not <em>capacity</em>. Train accuracy at the best validation epoch was only 71&ndash;74%, not 99%,
+  confirming that the model has not exhausted its capacity. The lower learning rate is the correct
+  lever &mdash; not stronger regularisation.
+</p>
+
+<h4>Run 2 Configuration Summary</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>US30</th><th>US500</th><th>NAS100</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Learning rate</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.04</td><td>0.04</td><td>0.04</td></tr>
+    <tr><td>Features</td><td>43</td><td>43</td><td>43</td></tr>
+    <tr><td>Barrier</td><td>&dollar;100</td><td><strong>&dollar;90</strong></td><td>&dollar;200</td></tr>
+    <tr><td>Spread</td><td>&dollar;1.20</td><td>&dollar;0.50</td><td>&dollar;2.00</td></tr>
+  </tbody>
+</table>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -2880,9 +3004,11 @@ export const content = `
   overfitting &mdash; validation loss never improved past epoch 1. US30 developed a bearish bias,
   US500 a strong bullish bias, while NAS100 remained unbiased. The consistent VSN feature preferences
   across all three indices (dist_ma120, ret_60m, and trend_strength at the top; log_spread_us30_us500
-  at the bottom in all three) validate the feature set. Run 2 for all three indices is planned with
-  stronger regularisation (dropout 0.25, weight decay 0.01), early stopping, and barrier adjustments
-  (US500 &dollar;50 from &dollar;30, NAS100 &dollar;250&ndash;300 from &dollar;200).
+  at the bottom in all three) validate the feature set. Run 2 is now underway for all three indices
+  with four targeted parameter changes: max LR halved to $$1.5 \\times 10^{-4}$$, VSN entropy
+  $$\\lambda$$ increased 20x to 0.04, two noise features pruned (45 &rarr; 43), and the US500
+  barrier widened from &dollar;30 to &dollar;90. See the Run 1 &rarr; Run 2 transition section
+  above for full evidence behind each change.
 </p>
 
 <h2>9. References</h2>
