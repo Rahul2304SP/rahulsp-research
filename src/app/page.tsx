@@ -31,11 +31,25 @@ export default function HomePage() {
 
   const fetchTrades = useCallback(async () => {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/signals?status=eq.closed&pnl=not.is.null&select=pnl,bar_ts,model&order=bar_ts.asc&limit=500`,
-        { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
-      if (res.ok) setTrades(await res.json());
+      const baseUrl = `${SUPABASE_URL}/rest/v1/signals?status=eq.closed&pnl=not.is.null&select=pnl,bar_ts,model&order=bar_ts.asc`;
+      const allData: Trade[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      while (true) {
+        const res = await fetch(baseUrl, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Range: `${offset}-${offset + pageSize - 1}`,
+          },
+        });
+        if (!res.ok && res.status !== 206) break;
+        const page: Trade[] = await res.json();
+        allData.push(...page);
+        if (page.length < pageSize) break;
+        offset += pageSize;
+      }
+      setTrades(allData);
     } catch {}
   }, []);
 

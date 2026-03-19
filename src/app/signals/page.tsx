@@ -104,18 +104,25 @@ export default function SignalsPage() {
       const modelFilter = activeModel === "Scalper"
         ? "model=like.Scalper-*"
         : `model=eq.${activeModel}`;
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc&limit=5000`,
-        {
+      const baseUrl = `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc`;
+      const allData: Signal[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      while (true) {
+        const res = await fetch(baseUrl, {
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Range: `${offset}-${offset + pageSize - 1}`,
           },
-        }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Signal[] = await res.json();
-      setSignals(data);
+        });
+        if (!res.ok && res.status !== 206) throw new Error(`HTTP ${res.status}`);
+        const page: Signal[] = await res.json();
+        allData.push(...page);
+        if (page.length < pageSize) break;
+        offset += pageSize;
+      }
+      setSignals(allData);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch signals");
