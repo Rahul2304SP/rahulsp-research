@@ -65,7 +65,7 @@ def get_uploaded_tickets() -> set[str]:
         result = (
             supabase.table("signals")
             .select("close")  # we store ticket in 'close' field
-            .like("model", "Scalper-%")
+            .like("model", "Scalper-*")
             .range(offset, offset + 999)
             .execute()
         )
@@ -136,6 +136,7 @@ def parse_scalper_csv() -> list[dict]:
                 "pnl": round(pnl, 2),
                 "hold_bars": hold_bars,
                 "status": "closed",
+                "published_at": exit_time,  # use trade time, not upload time
             })
 
     return trades
