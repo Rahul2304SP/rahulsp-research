@@ -32,10 +32,7 @@ CSV_PATH = Path(
 # Only include configs the user wants published
 ALLOWED_CONFIGS = {
     "0.05,3+":     "Scalper-990",
-    "0.03,3+":     "Scalper-991",
-    "0.03,2+":     "Scalper-992",
     "0.05,3+,RB":  "Scalper-993",
-    "0.03,2+,XAG": "Scalper-996",
     "0.05,2+,TS":  "Scalper-997",
 }
 
