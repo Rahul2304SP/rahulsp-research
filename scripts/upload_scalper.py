@@ -88,7 +88,7 @@ def parse_scalper_csv() -> list[dict]:
             trades.append({
                 "model": ALLOWED_CONFIGS[config],
                 "bar_ts": exit_time,
-                "close": float(ticket),  # store ticket in close field for dedup
+                "close": exit_price,
                 "direction": direction,
                 "entry_price": entry_price,
                 "sl_price": None,
@@ -104,34 +104,6 @@ def parse_scalper_csv() -> list[dict]:
     return trades
 
 
-def get_last_uploaded_tickets() -> set[str]:
-    """Get tickets (stored in close field) for the most recent bar_ts batch."""
-    # First get the last bar_ts
-    result = (
-        supabase.table("signals")
-        .select("bar_ts")
-        .like("model", "Scalper-*")
-        .order("bar_ts", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if not result.data:
-        return set(), None
-
-    last_ts = result.data[0]["bar_ts"]
-
-    # Get all tickets at that timestamp (there can be multiple)
-    result2 = (
-        supabase.table("signals")
-        .select("close")
-        .like("model", "Scalper-*")
-        .eq("bar_ts", last_ts)
-        .execute()
-    )
-    tickets = {str(int(r["close"])) for r in result2.data}
-    return tickets, last_ts
-
-
 def get_uploaded_count() -> int:
     """Get count of scalper signals in DB."""
     result = (
@@ -144,7 +116,11 @@ def get_uploaded_count() -> int:
 
 
 def upload_new_scalper_trades():
-    """Check CSV for new scalper trades and upload them."""
+    """Check CSV for new scalper trades and upload them.
+
+    Dedup strategy: the CSV is append-only, so we skip the first db_count
+    trades (already uploaded) and only insert the tail.
+    """
     now = datetime.now(timezone.utc)
 
     trades = parse_scalper_csv()
@@ -153,26 +129,12 @@ def upload_new_scalper_trades():
         return
 
     db_count = get_uploaded_count()
-    last_tickets, last_ts = get_last_uploaded_tickets()
 
-    new_trades = []
-    for t in trades:
-        if last_ts is None:
-            new_trades.append(t)
-        elif t["bar_ts"] > last_ts:
-            # Strictly newer — always upload
-            new_trades.append(t)
-        elif t["bar_ts"] == last_ts:
-            # Same timestamp — only upload if ticket not already in DB
-            ticket = str(int(t["close"]))
-            if ticket not in last_tickets:
-                new_trades.append(t)
-        # else: older than last_ts — skip
-
-    if not new_trades:
+    if db_count >= len(trades):
         print(f"[{now.strftime('%H:%M:%S')}] Scalper: no new trades (DB: {db_count}, CSV: {len(trades)})")
         return
 
+    new_trades = trades[db_count:]
     print(f"[{now.strftime('%H:%M:%S')}] Scalper: uploading {len(new_trades)} new trades (DB: {db_count}, CSV: {len(trades)})")
     for i in range(0, len(new_trades), 50):
         batch = new_trades[i:i + 50]
