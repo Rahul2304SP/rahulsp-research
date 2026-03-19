@@ -3,7 +3,8 @@ export const content = `
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
   Data inventory, feature specification, normaliser selection, and model configuration finalised
   (45 features, 17 passthrough / 28 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
-  US30 Run 1 complete &mdash; 67.8% val accuracy at epoch 3, severe overfitting diagnosed. Run 2 planned.
+  All three Run 1 diagnostics complete &mdash; NAS100 best at 68.9% val accuracy (negative generalisation gap),
+  US30 67.8%, US500 63.1%. Run 2 planned for all indices with stronger regularisation.
   This page will be updated as results become available.
 </div>
 
@@ -16,7 +17,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. US30 Run 1 complete (7.5): 67.8% val accuracy, overfitting diagnosed. Run 2 planned with stronger regularisation.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. Run 2 planned with stronger regularisation.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2672,6 +2673,173 @@ export const content = `
   </tbody>
 </table>
 
+<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  and validation on historical data. They do not represent live trading performance. Validation
+  accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
+  seen during training.
+</div>
+
+<h4>Configuration</h4>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Target</td><td>NAS100</td></tr>
+    <tr><td>Barrier</td><td>&dollar;200</td></tr>
+    <tr><td>Spread</td><td>&dollar;2.00</td></tr>
+    <tr><td>Batch size</td><td>512</td></tr>
+    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td></tr>
+    <tr><td>Epochs</td><td>8 / 50</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td></tr>
+  </tbody>
+</table>
+
+<h4>Headline Results</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best val loss</td><td>0.792 (Epoch 2)</td></tr>
+    <tr><td>Best val direction accuracy</td><td>68.9% (Epoch 3)</td></tr>
+    <tr><td>Final val accuracy</td><td>64.2% (Epoch 8)</td></tr>
+    <tr><td>Final train accuracy</td><td>82.5%</td></tr>
+    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.409 (no hedging)</td></tr>
+    <tr><td>VSN entropy</td><td>3.724 (97.6% of max)</td></tr>
+  </tbody>
+</table>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated results only.</strong> These metrics are from training and validation on historical
+  data and do not represent live or forward-tested trading performance.
+</div>
+
+<h4>Key Observations</h4>
+
+<p>
+  <strong>Best model of the three indices.</strong> 68.9% validation accuracy (vs US30's 67.8%,
+  US500's 63.1%). The only model to achieve a negative generalisation gap: at epoch 2, validation
+  loss (0.792) was <em>lower</em> than training loss (0.850). This is rare and indicates genuine
+  out-of-sample signal.
+</p>
+
+<p>
+  <strong>Near-perfect class balance at peak.</strong> At epoch 3, UP accuracy was 69.1% and DOWN
+  accuracy was 68.5%, a gap of only 0.6 percentage points. This contrasts sharply with US30's
+  bearish bias (8pp gap) and US500's extreme bullish bias (15&ndash;20pp gap). After epoch 3,
+  the model oscillated between bullish and bearish bias each epoch, a sign of instability.
+</p>
+
+<p>
+  <strong>No persistent directional bias.</strong> $$p_{\\text{up}}$$ mean oscillated around 0.50
+  without trending. US30 was persistently bearish (~0.45), US500 persistently bullish (~0.60).
+  NAS100 stayed centred.
+</p>
+
+<p>
+  <strong>Rapid learning.</strong> Validation accuracy jumped from 52.1% to 68.8% in a single
+  epoch (epoch 1 to 2), the largest single-epoch gain across all indices. This suggests NAS100's
+  features carry stronger initial signal.
+</p>
+
+<p>
+  <strong>VSN discovered unique features.</strong> Top features include momentum_regime and
+  brent_ret_60m, which were NOT top-ranked in US30 or US500. NAS100 is more sensitive to oil
+  prices (energy cost for tech) and momentum regime (tech has stronger momentum).
+</p>
+
+<p>
+  <strong>Consistent feature ranking across indices.</strong> dist_ma120 (#1 in NAS100, #3 in
+  US30/US500), ret_60m (#2 in all three), log_spread_us30_us500 (last in all three). This
+  cross-index consistency validates the feature set.
+</p>
+
+<h4>VSN Per-Stream Feature Preferences</h4>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Duration</th><th>Top Features</th><th>Max/Min Ratio</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short (60 bars)</td><td>1 hour</td><td>dist_ma120, trend_strength, momentum_regime</td><td>9.2x</td></tr>
+    <tr><td>Mid (120 bars)</td><td>2 hours</td><td>brent_ret_60m, dist_ma_290, trend_strength</td><td>3.0x (most balanced)</td></tr>
+    <tr><td>Long (240 bars)</td><td>4 hours</td><td>tod_cos, roro_ratio, brent_ret_60m</td><td>3.2x</td></tr>
+    <tr><td>Slow (720 bars)</td><td>12 hours</td><td>ret_60m, dist_ma120, abs_dist_ma120</td><td>6.1x</td></tr>
+  </tbody>
+</table>
+
+<h4>Three-Index Comparison</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>NAS100</th><th>US30</th><th>US500</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best val accuracy</td><td><strong>68.9%</strong></td><td>67.8%</td><td>63.1%</td></tr>
+    <tr><td>Best val loss</td><td><strong>0.792</strong></td><td>0.933</td><td>1.143</td></tr>
+    <tr><td>Negative gap achieved?</td><td><strong>Yes (Ep 2)</strong></td><td>No</td><td>No</td></tr>
+    <tr><td>Class balance at peak</td><td><strong>0.6pp</strong></td><td>6.0pp</td><td>20.6pp</td></tr>
+    <tr><td>Direction bias</td><td><strong>None</strong></td><td>Bearish</td><td>Bullish</td></tr>
+    <tr><td>VSN diversity (entropy)</td><td><strong>97.6%</strong></td><td>95.3%</td><td>96.7%</td></tr>
+  </tbody>
+</table>
+
+<h4>Diagnosis</h4>
+
+<div class="finding-box" style="border-left-color: #059669; background: #ecfdf5;">
+  <strong>NAS100 produced the strongest Run 1 model:</strong> 68.9% directional accuracy with
+  near-perfect class balance (0.6pp gap), no directional bias, and the only negative generalisation
+  gap in the series. The &dollar;200 barrier is the best calibrated of the three indices. All three
+  models share the same top features (dist_ma120, ret_60m, trend_strength) and bottom features
+  (log_spread_us30_us500), validating the feature set and the VSN's ability to discriminate signal
+  from noise across different instruments.
+</div>
+
+<h4>Recommendations for Run 2</h4>
+
+<table>
+  <thead>
+    <tr><th>Change</th><th>Run 1</th><th>Run 2</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Early stopping</td><td>None</td><td>3-epoch patience</td><td>Val loss never improved past epoch 2</td></tr>
+    <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Reduce memorisation</td></tr>
+    <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger regularisation</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>Already set</td></tr>
+    <tr><td>Max LR</td><td>$$3 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td><td>Best results at LR ~$$10^{-4}$$</td></tr>
+    <tr><td>Max epochs</td><td>50</td><td>10</td><td>No improvement after epoch 3</td></tr>
+    <tr><td>Barrier</td><td>&dollar;200</td><td>&dollar;250&ndash;300</td><td>Test wider barrier for HOLD labels</td></tr>
+  </tbody>
+</table>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run1_01_loss_curves.png" alt="NAS100 Run 1 loss curves" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>NAS100 Run 1: val loss drops below train loss at epoch 2 (negative generalisation gap), the only index to achieve this.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run1_02_direction_accuracy.png" alt="NAS100 Run 1 direction accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Direction accuracy: 68.9% val peak, the highest of all three indices.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run1_05_per_class_accuracy.png" alt="NAS100 Run 1 per-class accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Per-class: near-perfect balance at epoch 3 (69.1% UP vs 68.5% DOWN), then oscillation.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run1_06_vsn_entropy.png" alt="NAS100 Run 1 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>VSN entropy: highest diversity of all three indices at 97.6% of maximum.</figcaption>
+</figure>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -2703,15 +2871,18 @@ export const content = `
 </p>
 
 <p>
-  The first diagnostic training runs on US30 and US500 (Section 7.5) are complete. US30 confirmed
-  genuine directional signal (67.8% validation accuracy at epoch 3) but revealed severe overfitting:
-  the train&ndash;validation accuracy gap widened to 27 percentage points by epoch 18. US500 showed
-  a lower accuracy ceiling (63.1% at epoch 7) with even faster overfitting &mdash; validation loss
-  never improved past epoch 1. Both models developed opposite directional biases (US30 bearish,
-  US500 bullish) despite near-balanced label distributions. The consistent VSN feature preferences
-  across both indices (cross_idx_dispersion #1 in both) validate the feature set. Run 2 for both
-  indices is planned with stronger regularisation (dropout 0.25, weight decay 0.01), early stopping
-  with 5-epoch patience, and wider barriers for US500 (&dollar;50 from &dollar;30).
+  Diagnostic Run 1 training is complete for all three indices (Section 7.5). NAS100 produced the
+  strongest model: 68.9% validation accuracy at epoch 3 with near-perfect class balance (0.6pp gap),
+  no directional bias, and the only negative generalisation gap in the series (val loss 0.792 fell
+  below train loss 0.850 at epoch 2). US30 confirmed genuine directional signal (67.8% at epoch 3)
+  but revealed severe overfitting: the train&ndash;validation accuracy gap widened to 27 percentage
+  points by epoch 18. US500 showed a lower accuracy ceiling (63.1% at epoch 7) with even faster
+  overfitting &mdash; validation loss never improved past epoch 1. US30 developed a bearish bias,
+  US500 a strong bullish bias, while NAS100 remained unbiased. The consistent VSN feature preferences
+  across all three indices (dist_ma120, ret_60m, and trend_strength at the top; log_spread_us30_us500
+  at the bottom in all three) validate the feature set. Run 2 for all three indices is planned with
+  stronger regularisation (dropout 0.25, weight decay 0.01), early stopping, and barrier adjustments
+  (US500 &dollar;50 from &dollar;30, NAS100 &dollar;250&ndash;300 from &dollar;200).
 </p>
 
 <h2>9. References</h2>
