@@ -4,7 +4,7 @@ export const content = `
   Data inventory, feature specification, normaliser selection, and model configuration finalised
   (43 features after pruning, 17 passthrough / 26 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
   All three Run 1 diagnostics complete &mdash; NAS100 best at 68.9% val accuracy (negative generalisation gap),
-  US30 67.8%, US500 63.1%. Run 2 underway with four targeted changes: max LR halved, VSN entropy $$\\lambda$$ 20x stronger,
+  US30 67.8%, US500 63.1%. Run 2 underway with four targeted changes: max LR halved, VSN entropy $$\\lambda$$ 2x stronger,
   2 noise features pruned, US500 barrier widened.
   This page will be updated as results become available.
 </div>
@@ -2877,7 +2877,7 @@ export const content = `
   than overshooting it.
 </p>
 
-<h4>Change 2: VSN Entropy $$\\lambda$$ from 0.002 to 0.04</h4>
+<h4>Change 2: VSN Entropy $$\\lambda$$ from 0.002 to 0.004</h4>
 
 <p>
   The VSN entropy regulariser penalises concentrated attention weights to prevent the model from ignoring
@@ -2900,7 +2900,7 @@ export const content = `
 <p>
   The US500 MID stream had an 18.8x concentration ratio, effectively ignoring most features in that
   temporal window. At $$\\lambda = 0.001$$, the regularisation was too weak to prevent this collapse.
-  Setting $$\\lambda = 0.04$$ (20x stronger) should keep the max/min ratio below 5x. The entropy loss
+  Setting $$\\lambda = 0.004$$ (2x stronger) should keep the max/min ratio below 5x. The entropy loss
   acts on the softmax attention weights only and does not interfere with the direction loss.
 </p>
 
@@ -2957,7 +2957,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Learning rate</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.04</td><td>0.04</td><td>0.04</td></tr>
+    <tr><td>VSN entropy $$\\lambda$$</td><td>0.004</td><td>0.004</td><td>0.004</td></tr>
     <tr><td>Features</td><td>43</td><td>43</td><td>43</td></tr>
     <tr><td>Barrier</td><td>&dollar;100</td><td><strong>&dollar;90</strong></td><td>&dollar;200</td></tr>
     <tr><td>Spread</td><td>&dollar;1.20</td><td>&dollar;0.50</td><td>&dollar;2.00</td></tr>
@@ -3006,7 +3006,7 @@ export const content = `
   across all three indices (dist_ma120, ret_60m, and trend_strength at the top; log_spread_us30_us500
   at the bottom in all three) validate the feature set. Run 2 is now underway for all three indices
   with four targeted parameter changes: max LR halved to $$1.5 \\times 10^{-4}$$, VSN entropy
-  $$\\lambda$$ increased 20x to 0.04, two noise features pruned (45 &rarr; 43), and the US500
+  $$\\lambda$$ increased 2x to 0.004, two noise features pruned (45 &rarr; 43), and the US500
   barrier widened from &dollar;30 to &dollar;90. See the Run 1 &rarr; Run 2 transition section
   above for full evidence behind each change.
 </p>
