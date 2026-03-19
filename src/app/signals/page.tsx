@@ -102,7 +102,7 @@ export default function SignalsPage() {
         ? ""
         : `&published_at=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
       const modelFilter = activeModel === "Scalper"
-        ? "model=like.Scalper-%"
+        ? "model=like.Scalper-*"
         : `model=eq.${activeModel}`;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc&limit=500`,
