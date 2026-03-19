@@ -22,7 +22,7 @@ interface Signal {
   status: string;
 }
 
-type ModelTab = "GoldSSM-34F" | "GoldSSM-28F";
+type ModelTab = "GoldSSM-34F" | "GoldSSM-28F" | "Scalper";
 
 function useMarketStatus() {
   const [status, setStatus] = useState({ isOpen: false, session: "Closed", utcTime: "" });
@@ -101,8 +101,11 @@ export default function SignalsPage() {
       const delayFilter = isPro
         ? ""
         : `&published_at=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
+      const modelFilter = activeModel === "Scalper"
+        ? "model=like.Scalper-%"
+        : `model=eq.${activeModel}`;
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/signals?model=eq.${activeModel}${delayFilter}&order=bar_ts.desc&limit=200`,
+        `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc&limit=500`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -188,7 +191,7 @@ export default function SignalsPage() {
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-[#1a1a2e]">Live Signals</h1>
         <p className="mt-2 text-[#6b7280] text-sm">
-          XAUUSD model signals{isPro ? "" : " with 15-minute delay"}. Updated every 30 seconds.
+          XAUUSD model and scalper signals{isPro ? "" : " with 15-minute delay"}. Updated every 30 seconds.
         </p>
       </div>
 
@@ -242,14 +245,14 @@ export default function SignalsPage() {
       </div>
 
       {/* Model tabs */}
-      <div className="flex gap-2 mb-8">
-        {(["GoldSSM-34F", "GoldSSM-28F"] as ModelTab[]).map((model) => (
+      <div className="flex gap-2 mb-8 flex-wrap">
+        {(["GoldSSM-34F", "GoldSSM-28F", "Scalper"] as ModelTab[]).map((model) => (
           <button
             key={model}
             onClick={() => setActiveModel(model)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeModel === model
-                ? "bg-[#1e40af] text-white"
+                ? model === "Scalper" ? "bg-[#059669] text-white" : "bg-[#1e40af] text-white"
                 : "bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]"
             }`}
           >
@@ -340,11 +343,11 @@ export default function SignalsPage() {
               <thead>
                 <tr className="bg-[#f8f9fa]">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Time</th>
+                  {activeModel === "Scalper" && <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Config</th>}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Direction</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Entry</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">SL</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">TP</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Status</th>
+                  {activeModel !== "Scalper" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">SL</th>}
+                  {activeModel !== "Scalper" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">TP</th>}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Exit</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">PnL</th>
                 </tr>
@@ -353,6 +356,7 @@ export default function SignalsPage() {
                 {signals.map((s) => (
                   <tr key={s.id} className="border-t border-[#f3f4f6] hover:bg-[#f8f9fa]">
                     <td className="px-4 py-3 text-[#374151] whitespace-nowrap">{formatTime(s.bar_ts)}</td>
+                    {activeModel === "Scalper" && <td className="px-4 py-3 text-xs text-[#6b7280]">{s.model.replace("Scalper-", "")}</td>}
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
@@ -367,19 +371,8 @@ export default function SignalsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-[#374151] font-mono">{s.entry_price?.toFixed(2) ?? "—"}</td>
-                    <td className="px-4 py-3 text-right text-[#dc2626] font-mono">{s.sl_price?.toFixed(2) ?? "—"}</td>
-                    <td className="px-4 py-3 text-right text-[#059669] font-mono">{s.tp_price?.toFixed(2) ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          s.status === "open"
-                            ? "bg-[#eff6ff] text-[#1e40af]"
-                            : "bg-[#f3f4f6] text-[#6b7280]"
-                        }`}
-                      >
-                        {s.status}
-                      </span>
-                    </td>
+                    {activeModel !== "Scalper" && <td className="px-4 py-3 text-right text-[#dc2626] font-mono">{s.sl_price?.toFixed(2) ?? "—"}</td>}
+                    {activeModel !== "Scalper" && <td className="px-4 py-3 text-right text-[#059669] font-mono">{s.tp_price?.toFixed(2) ?? "—"}</td>}
                     <td className="px-4 py-3 text-[#6b7280] text-xs">{s.exit_reason ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-mono font-semibold" style={{
                       color: s.pnl === null ? "#6b7280" : (s.pnl ?? 0) >= 0 ? "#059669" : "#dc2626"
