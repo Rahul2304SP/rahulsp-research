@@ -262,13 +262,13 @@ export default function SignalsPage() {
       </div>
 
       {/* Stats cards */}
-      <div className={`grid grid-cols-2 ${activeModel === "Scalper" ? "md:grid-cols-4" : "md:grid-cols-5"} gap-4 mb-8`}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {[
           { label: "Total Trades", value: closedSignals.length.toString() },
           { label: "Win Rate", value: closedSignals.length > 0 ? `${winRate.toFixed(1)}%` : "—" },
           { label: "Profit Factor", value: closedSignals.length > 0 ? (profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)) : "—" },
           { label: "Net PnL", value: closedSignals.length > 0 ? `$${totalPnl.toFixed(2)}` : "—", color: totalPnl >= 0 ? "#059669" : "#dc2626" },
-          ...(activeModel !== "Scalper" ? [{ label: "Avg MAE", value: signalsWithMae.length > 0 ? `$${avgMae.toFixed(2)}` : "—", color: "#d97706" }] : []),
+          { label: "Avg MAE", value: signalsWithMae.length > 0 ? `$${avgMae.toFixed(2)}` : "—", color: "#d97706" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-lg border border-[#e5e7eb] bg-white p-4">
             <p className="text-xs text-[#6b7280] uppercase tracking-wide">{stat.label}</p>
