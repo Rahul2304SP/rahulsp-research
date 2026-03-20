@@ -18,7 +18,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 pending.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -394,9 +394,10 @@ export const content = `
 <h2>6. Phase 2: Empirical Gap Studies</h2>
 
 <p>
-  Six empirical gap studies were conducted to test the research questions identified in Section 4.
+  Seven empirical gap studies were conducted to test the research questions identified in Section 4.
   Studies are presented in order of increasing complexity, from simple single-index strategies to
-  multi-index structural models.
+  multi-index structural models, with a final Granger causality validation study bridging Phase 2
+  and Phase 3.
 </p>
 
 <h3>6.1 Gap Study #8: IBS/RSI Mean-Reversion Replication</h3>
@@ -486,13 +487,6 @@ export const content = `
 
 <h4>Key Findings</h4>
 
-<div class="finding-box">
-  <strong>Negative result: daily mean-reversion on MT5 CFDs does not outperform buy-and-hold.</strong>
-  IBS replication FAILED (Pagonidis reported 75% win rate; we observe approximately 50%).
-  RSI(2) replication is PARTIAL (genuine but weak signal at 55 to 67% win rate, insufficient to beat
-  buy-and-hold after costs). Neither strategy passes walk-forward validation.
-</div>
-
 <ol>
   <li><strong>Pagonidis's 75% IBS win rate does not replicate.</strong> We observe approximately 50% across
   all three indices. The discrepancy likely reflects differences in instrument (equities versus CFDs),
@@ -507,6 +501,9 @@ export const content = `
   <li><strong>Negative results are informative.</strong> These findings confirm that the research agenda
   should focus on the novel cross-index gaps identified in Section 4 (spread dynamics, cointegration,
   regime detection) rather than on single-index mean-reversion at daily frequency.</li>
+  <li><strong>Verdict: FAIL.</strong> Daily mean-reversion on MT5 CFDs does not outperform buy-and-hold.
+  IBS replication failed (50% win rate versus Pagonidis's reported 75%). RSI(2) replication is partial
+  (genuine but weak signal, insufficient after costs). Neither strategy passes walk-forward validation.</li>
 </ol>
 
 <h4>Charts</h4>
@@ -676,14 +673,6 @@ export const content = `
 
 <h4>Key Findings</h4>
 
-<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
-  <strong>Positive result: TSMOM beats all baselines.</strong>
-  Time-series momentum with a 1-month lookback and weekly rebalancing delivers a Sharpe ratio of
-  1.27 (1.7 times the best buy-and-hold) with a maximum drawdown of -9.4% (less than half of any
-  baseline). This is the first strategy in the series to outperform all buy-and-hold benchmarks
-  on both return and risk-adjusted metrics.
-</div>
-
 <ol>
   <li><strong>TSMOM is the first strategy to beat all baselines.</strong> At 16.0% annualised with
   Sharpe 1.27 and -9.4% max drawdown, it dominates every buy-and-hold benchmark and the
@@ -704,6 +693,8 @@ export const content = `
   <li><strong>This validates pursuing harder cross-index gaps.</strong> The positive TSMOM result
   confirms that cross-index signals contain exploitable structure, motivating the remaining gap
   studies (spread dynamics, cointegration, regime detection) identified in Section 4.</li>
+  <li><strong>Verdict: PASS.</strong> TSMOM with 1-month lookback and weekly rebalancing delivers Sharpe 1.27
+  (1.7x the best buy-and-hold) with -9.4% max drawdown. Validated out of sample in both walk-forward folds.</li>
 </ol>
 
 <h4>Charts</h4>
@@ -823,14 +814,6 @@ export const content = `
 
 <h4>Key Findings</h4>
 
-<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Mixed result: the NAS100/DJIA ratio is a valid regime indicator but not a superior
-  allocation signal.</strong> The ratio reliably identifies high-volatility regimes (20 to 28%
-  higher realised vol during risk-off) and has asymmetric directional predictability (works for
-  risk-on, fails for risk-off). As an allocation signal, every configuration tested underperforms
-  the TSMOM strategy from Gap Study #4 on Sharpe ratio and maximum drawdown.
-</div>
-
 <ol>
   <li><strong>The ratio is asymmetrically predictive.</strong> Risk-on regimes correctly predict
   NAS100 outperformance at 53 to 63% hit rates. Risk-off regimes fail to predict DJIA
@@ -848,6 +831,9 @@ export const content = `
   volatility-based position sizing (reduce size during risk-off), TSMOM tiebreaker (when momentum
   signals conflict across indices), and drawdown management (tighten stops during risk-off
   regimes).</li>
+  <li><strong>Verdict: MIXED.</strong> Valid regime indicator (20-28% higher vol in risk-off), but
+  not a superior allocation signal. Every RORO configuration underperforms TSMOM on Sharpe ratio
+  and maximum drawdown. Retained as a supplementary signal.</li>
 </ol>
 
 <h4>Charts</h4>
@@ -1288,17 +1274,6 @@ export const content = `
 
 <h4>Key Findings</h4>
 
-<div class="finding-box">
-  <strong>Negative result: trivariate cointegration does not reveal hidden structure beyond pairwise
-  tests, and the ECT signal is not tradeable.</strong>
-  The Johansen trace test finds marginal rank = 1 cointegration (trace stat 31.30 vs 29.80 critical),
-  but the max-eigenvalue test does not reject rank = 0. Pairwise Engle-Granger tests already identify
-  the same pairs (US30/US500 p = 0.002, US30/NAS100 p = 0.031) that drive this vector. No hidden
-  trivariate relationship exists. The cointegration is absent 71.4% of the time in rolling windows,
-  the best ECT fade Sharpe is 0.28 (far below TSMOM's 1.27), regime filtering degrades it to 0.06,
-  and walk-forward validation produces catastrophic losses (-18.9%).
-</div>
-
 <ol>
   <li><strong>Trivariate cointegration exists but is marginal.</strong> The Johansen trace test barely
   rejects rank = 0 (31.30 vs 29.80 critical value) and the max-eigenvalue test does not reject at
@@ -1318,6 +1293,8 @@ export const content = `
   <li><strong>Out-of-sample failure is catastrophic.</strong> Walk-forward losses of -18.9% confirm
   that the cointegrating vector is not stable enough to trade. The structural shift driven by NAS100's
   tech boom and AI surge invalidates vectors estimated in earlier periods.</li>
+  <li><strong>Verdict: FAIL.</strong> Trivariate cointegration does not reveal hidden structure beyond
+  pairwise tests, and the ECT signal is not tradeable. Walk-forward validation produces catastrophic losses.</li>
 </ol>
 
 <h4>Charts</h4>
@@ -1330,6 +1307,155 @@ export const content = `
 <figure>
   <img src="/charts/us-indexes/pairwise_vs_trivariate_20260317_002428.png" alt="Pairwise vs trivariate cointegration test comparison" style="max-width: 100%; margin: 1rem 0;" />
   <figcaption>Figure 22. Pairwise vs trivariate cointegration test comparison. The pairwise Engle-Granger p-values (US30/US500 at 0.002, US30/NAS100 at 0.031) clearly identify the cointegrated pairs. The trivariate Johansen test adds no information beyond what pairwise tests already reveal.</figcaption>
+</figure>
+
+<h3>6.7 Gap Study #10: Granger Causality Feature Validation</h3>
+
+<h4>Objective</h4>
+
+<p>
+  The 45 features specified for the Phase 3 model (Section 7.2) were selected on theoretical grounds and empirical gap-study
+  results. Before passing them to the model, we apply a formal statistical test: does each feature
+  Granger-cause the target variable (forward 60-minute returns) beyond what past returns alone predict?
+  A feature that fails this test may still be useful to a nonlinear model, but one that passes provides
+  independent frequentist evidence of predictive content.
+</p>
+
+<h4>Methodology</h4>
+
+<p>
+  For each feature $x_j$ and each lag $\\ell \\in \\{1, 5, 15, 30, 60\\}$ minutes,
+  we estimate two OLS regressions on the training period (2021-07 to 2025-06):
+</p>
+
+<p style="text-align: center;">
+  Restricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\varepsilon_t$
+</p>
+<p style="text-align: center;">
+  Unrestricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\sum_{k=1}^{\\ell} \\gamma_k\\, x_{j,t-k} + \\varepsilon_t$
+</p>
+
+<p>
+  The Granger (1969) F-test compares the residual sum of squares of the two models. Under the null
+  $H_0: \\gamma_1 = \\cdots = \\gamma_\\ell = 0$, the test statistic follows an $F(\\ell,\\, T - 2\\ell - 1)$
+  distribution. With 45 features $\\times$ 5 lags = 225 tests per index, we apply Bonferroni correction
+  at $\\alpha = 0.05 / 225 \\approx 2.2 \\times 10^{-4}$ to control the family-wise error rate. No validation
+  data is used at any point.
+</p>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results Disclaimer.</strong> All results below are from statistical tests on
+  historical M1 bar data from MT5 CFDs over the training period (2021-07 to 2025-06). Granger causality
+  is a linear test and does not guarantee nonlinear predictive power or trading profitability.
+</div>
+
+<h4>Results</h4>
+
+<p><strong>Summary of results:</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Index</th><th>Tests</th><th>Significant (Bonferroni)</th><th>%</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>US30</td><td>225</td><td>120</td><td>53%</td></tr>
+    <tr><td>US500</td><td>225</td><td>115</td><td>51%</td></tr>
+    <tr><td>NAS100</td><td>225</td><td>94</td><td>42%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Over half the feature&ndash;lag combinations are statistically significant for US30 and US500 after
+  conservative multiple-testing correction. NAS100 is slightly lower, consistent with its higher
+  idiosyncratic noise from concentrated technology exposure.
+</p>
+
+<p><strong>Top features by F-statistic (consistent across all three indices):</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Rank</th><th>Feature</th><th>F-stat (US30)</th><th>F-stat (US500)</th><th>F-stat (NAS100)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>ret_60m</td><td>&gt; 2600</td><td>&gt; 2600</td><td>&gt; 2600</td></tr>
+    <tr><td>2</td><td>dist_ma_290</td><td>&gt; 1500</td><td>&gt; 1500</td><td>&gt; 1500</td></tr>
+    <tr><td>3</td><td>dist_ma120</td><td>&gt; 1450</td><td>&gt; 1450</td><td>&gt; 1450</td></tr>
+    <tr><td>4</td><td>trend_strength</td><td>~165</td><td>~165</td><td>~165</td></tr>
+    <tr><td>5</td><td>ret_120m</td><td>~143</td><td>~138</td><td>~130</td></tr>
+  </tbody>
+</table>
+
+<p>
+  All five are own-instrument features from Group 1 (core price dynamics). The dominance of ret_60m
+  is expected: the target is forward 60-minute returns, and the autoregressive component of returns
+  at this horizon is well-documented. The two moving-average distance features capture trend persistence
+  at different time scales.
+</p>
+
+<p><strong>Features significant in all three indices (24 of 45):</strong></p>
+
+<p>
+  abs_dist_ma120, brent_ret_60m, channel_width, constituent_dispersion, cross_idx_dispersion,
+  dist_ma120, dist_ma_290, kurt_240m, momentum_regime, msft_ret_60m, ret_120m, ret_60m,
+  roro_ratio, roro_vs_sma21, skew_240m, stdev60, trend_strength, tsmom_idx3_21d, tsmom_self_21d,
+  vol_30m, vol_of_vol_60, vol_regime_ratio, vol_session_ratio, vol_surprise.
+</p>
+
+<p>
+  This set spans all five feature groups: core price dynamics (Group 1), volatility and higher moments
+  (Group 2), cross-index signals from the gap studies (Group 3), cross-asset features (Group 4), and
+  microstructure proxies (Group 5). The cross-index features (cross_idx_dispersion, roro_ratio,
+  roro_vs_sma21, tsmom signals) all pass, confirming that the Phase 2 gap study findings survive formal
+  causality testing.
+</p>
+
+<p><strong>Features not significant on any index after Bonferroni correction:</strong></p>
+
+<p>
+  er60, tod_sin, tod_cos, ibs, gk_vol_pctile, session_flag, dxy_corr_30, and several individual
+  constituent returns. The time-of-day features (tod_sin, tod_cos, session_flag) are deterministic
+  functions of the clock and contain no stochastic information about returns. IBS and gk_vol_pctile
+  are bounded indicators that operate conditionally (IBS predicts only within specific volatility
+  regimes, as shown in Gap Study #8). The log-spread features (log_spread_us30_us500,
+  log_spread_us30_nas100) were borderline, consistent with the slow mean-reversion documented in
+  Gap Study #1.
+</p>
+
+<h4>Key Findings</h4>
+
+<ol>
+  <li><strong>Majority of features pass Granger causality.</strong> Over 50% of feature-lag combinations
+  are significant after Bonferroni correction for US30 and US500, and 42% for NAS100. The feature set
+  carries genuine linear predictive content for forward 60-minute returns.</li>
+  <li><strong>Own-instrument features dominate.</strong> The top 5 features by F-statistic are all from
+  Group 1 (core price dynamics), with ret_60m and the moving-average distance features showing the
+  strongest causal signal across all three indices.</li>
+  <li><strong>Cross-index features validated.</strong> All Phase 2 gap-study-derived features
+  (cross_idx_dispersion, roro_ratio, roro_vs_sma21, tsmom signals) pass the Granger test, confirming
+  that the empirical gap study findings survive formal causality testing.</li>
+  <li><strong>Non-significant features retained as VSN validation.</strong> Features that fail Granger causality
+  were deliberately retained as a validation mechanism for the Variable Selection Network. If the VSN works
+  correctly, it should independently learn to downweight these features. The Run 1 training results
+  (Section 7.5) confirm this: log_spread_us30_us500 (not Granger-causal) received the lowest VSN
+  attention, while the top Granger-causal features received the highest. This correspondence provides
+  independent validation that the VSN is working as intended.</li>
+</ol>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_US30.png" alt="US30 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 23. US30: Granger F-statistic vs VSN attention weight. Features with stronger causal signal receive higher learned attention.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_US500.png" alt="US500 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 24. US500: Granger F-statistic vs VSN attention weight. The same pattern holds &mdash; VSN attention tracks Granger causality.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/granger_vs_vsn_NAS100.png" alt="NAS100 Granger F-statistic vs VSN attention weight scatter plot" />
+  <figcaption>Figure 25. NAS100: Granger F-statistic vs VSN attention weight correspondence.</figcaption>
 </figure>
 
 <h2>7. Phase 3: Neural Net Model Development</h2>
@@ -1639,133 +1765,6 @@ export const content = `
   </tbody>
 </table>
 
-<h4>Feature Validation: Granger Causality</h4>
-
-<p>
-  <em>Gap Study #10.</em> The 45 features specified above were selected on theoretical grounds and empirical gap-study
-  results. Before passing them to the model, we apply a formal statistical test: does each feature
-  Granger-cause the target variable (forward 60-minute returns) beyond what past returns alone predict?
-  A feature that fails this test may still be useful to a nonlinear model, but one that passes provides
-  independent frequentist evidence of predictive content.
-</p>
-
-<p>
-  <strong>Methodology.</strong> For each feature $x_j$ and each lag $\\ell \\in \\{1, 5, 15, 30, 60\\}$ minutes,
-  we estimate two OLS regressions on the training period (2021-07 to 2025-06):
-</p>
-
-<p style="text-align: center;">
-  Restricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\varepsilon_t$
-</p>
-<p style="text-align: center;">
-  Unrestricted: $r_{t+60} = \\alpha + \\sum_{k=1}^{\\ell} \\beta_k\\, r_{t-k} + \\sum_{k=1}^{\\ell} \\gamma_k\\, x_{j,t-k} + \\varepsilon_t$
-</p>
-
-<p>
-  The Granger (1969) F-test compares the residual sum of squares of the two models. Under the null
-  $H_0: \\gamma_1 = \\cdots = \\gamma_\\ell = 0$, the test statistic follows an $F(\\ell,\\, T - 2\\ell - 1)$
-  distribution. With 45 features $\\times$ 5 lags = 225 tests per index, we apply Bonferroni correction
-  at $\\alpha = 0.05 / 225 \\approx 2.2 \\times 10^{-4}$ to control the family-wise error rate. No validation
-  data is used at any point.
-</p>
-
-<p><strong>Summary of results:</strong></p>
-
-<table>
-  <thead>
-    <tr><th>Index</th><th>Tests</th><th>Significant (Bonferroni)</th><th>%</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>US30</td><td>225</td><td>120</td><td>53%</td></tr>
-    <tr><td>US500</td><td>225</td><td>115</td><td>51%</td></tr>
-    <tr><td>NAS100</td><td>225</td><td>94</td><td>42%</td></tr>
-  </tbody>
-</table>
-
-<p>
-  Over half the feature&ndash;lag combinations are statistically significant for US30 and US500 after
-  conservative multiple-testing correction. NAS100 is slightly lower, consistent with its higher
-  idiosyncratic noise from concentrated technology exposure.
-</p>
-
-<p><strong>Top features by F-statistic (consistent across all three indices):</strong></p>
-
-<table>
-  <thead>
-    <tr><th>Rank</th><th>Feature</th><th>F-stat (US30)</th><th>F-stat (US500)</th><th>F-stat (NAS100)</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>1</td><td>ret_60m</td><td>&gt; 2600</td><td>&gt; 2600</td><td>&gt; 2600</td></tr>
-    <tr><td>2</td><td>dist_ma_290</td><td>&gt; 1500</td><td>&gt; 1500</td><td>&gt; 1500</td></tr>
-    <tr><td>3</td><td>dist_ma120</td><td>&gt; 1450</td><td>&gt; 1450</td><td>&gt; 1450</td></tr>
-    <tr><td>4</td><td>trend_strength</td><td>~165</td><td>~165</td><td>~165</td></tr>
-    <tr><td>5</td><td>ret_120m</td><td>~143</td><td>~138</td><td>~130</td></tr>
-  </tbody>
-</table>
-
-<p>
-  All five are own-instrument features from Group 1 (core price dynamics). The dominance of ret_60m
-  is expected: the target is forward 60-minute returns, and the autoregressive component of returns
-  at this horizon is well-documented. The two moving-average distance features capture trend persistence
-  at different time scales.
-</p>
-
-<p><strong>Features significant in all three indices (24 of 45):</strong></p>
-
-<p>
-  abs_dist_ma120, brent_ret_60m, channel_width, constituent_dispersion, cross_idx_dispersion,
-  dist_ma120, dist_ma_290, kurt_240m, momentum_regime, msft_ret_60m, ret_120m, ret_60m,
-  roro_ratio, roro_vs_sma21, skew_240m, stdev60, trend_strength, tsmom_idx3_21d, tsmom_self_21d,
-  vol_30m, vol_of_vol_60, vol_regime_ratio, vol_session_ratio, vol_surprise.
-</p>
-
-<p>
-  This set spans all five feature groups: core price dynamics (Group 1), volatility and higher moments
-  (Group 2), cross-index signals from the gap studies (Group 3), cross-asset features (Group 4), and
-  microstructure proxies (Group 5). The cross-index features (cross_idx_dispersion, roro_ratio,
-  roro_vs_sma21, tsmom signals) all pass, confirming that the Phase 2 gap study findings survive formal
-  causality testing.
-</p>
-
-<p><strong>Features not significant on any index after Bonferroni correction:</strong></p>
-
-<p>
-  er60, tod_sin, tod_cos, ibs, gk_vol_pctile, session_flag, dxy_corr_30, and several individual
-  constituent returns. The time-of-day features (tod_sin, tod_cos, session_flag) are deterministic
-  functions of the clock and contain no stochastic information about returns. IBS and gk_vol_pctile
-  are bounded indicators that operate conditionally (IBS predicts only within specific volatility
-  regimes, as shown in Gap Study #8). The log-spread features (log_spread_us30_us500,
-  log_spread_us30_nas100) were borderline, consistent with the slow mean-reversion documented in
-  Gap Study #1.
-</p>
-
-<div class="finding-box">
-  <strong>Why non-significant features were retained.</strong>
-  Features that fail Granger causality were deliberately retained in the model as a validation mechanism
-  for the Variable Selection Network (VSN). If the VSN works correctly, it should independently learn to
-  downweight these features &mdash; assigning them low softmax attention without being told which features
-  are statistically significant. The Run 1 training results (Section 7.5) confirm this:
-  log_spread_us30_us500 (not Granger-causal) received the lowest VSN attention in both US30 and US500,
-  while the top Granger-causal features (ret_60m, dist_ma120, cross_idx_dispersion) received the highest.
-  This correspondence between frequentist causality testing and learned neural attention provides
-  independent validation that the VSN is working as intended.
-</div>
-
-<figure>
-  <img src="/charts/us-indexes/granger_vs_vsn_US30.png" alt="US30 Granger F-statistic vs VSN attention weight scatter plot" />
-  <figcaption>Figure 23. US30: Granger F-statistic vs VSN attention weight. Features with stronger causal signal receive higher learned attention.</figcaption>
-</figure>
-
-<figure>
-  <img src="/charts/us-indexes/granger_vs_vsn_US500.png" alt="US500 Granger F-statistic vs VSN attention weight scatter plot" />
-  <figcaption>Figure 24. US500: Granger F-statistic vs VSN attention weight. The same pattern holds &mdash; VSN attention tracks Granger causality.</figcaption>
-</figure>
-
-<figure>
-  <img src="/charts/us-indexes/granger_vs_vsn_NAS100.png" alt="NAS100 Granger F-statistic vs VSN attention weight scatter plot" />
-  <figcaption>Figure 25. NAS100: Granger F-statistic vs VSN attention weight correspondence.</figcaption>
-</figure>
-
 <h3>7.3 Normaliser Selection</h3>
 
 <h4>Why Normalisation Matters</h4>
@@ -1956,20 +1955,23 @@ export const content = `
   darker shading indicates stronger signal.
 </p>
 
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/heatmap_US30.png" alt="US30 normaliser AUC heatmap across features and strategies" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 normaliser AUC heatmap across features and strategies</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/heatmap_US500.png" alt="US500 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 normaliser AUC heatmap</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/heatmap_NAS100.png" alt="NAS100 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 normaliser AUC heatmap</figcaption>
-  </figure>
-</div>
+<figure style="margin: 1.5rem auto; text-align: center; max-width: 600px;">
+  <img src="/charts/us-indexes/heatmap_US30.png" alt="US30 normaliser AUC heatmap across features and strategies" style="width: 100%; border-radius: 6px;" />
+  <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 normaliser AUC heatmap across features and strategies</figcaption>
+</figure>
+<details style="margin: 1rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.75rem 1rem;">
+  <summary style="cursor: pointer; font-size: 0.9rem; color: #1e40af; font-weight: 500;">Expand: US500 and NAS100 normaliser heatmaps</summary>
+  <div style="margin-top: 1rem;">
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/heatmap_US500.png" alt="US500 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 normaliser AUC heatmap</figcaption>
+    </figure>
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/heatmap_NAS100.png" alt="NAS100 normaliser AUC heatmap" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 normaliser AUC heatmap</figcaption>
+    </figure>
+  </div>
+</details>
 
 <h4>AUC Improvement from Rolling Z-Score</h4>
 
@@ -1979,20 +1981,24 @@ export const content = `
   where the raw scale carries signal.
 </p>
 
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/improvement_US30.png" alt="US30 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 AUC improvement from rolling_z vs raw</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/improvement_US500.png" alt="US500 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 AUC improvement from rolling_z vs raw</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/improvement_NAS100.png" alt="NAS100 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 AUC improvement from rolling_z vs raw</figcaption>
-  </figure>
-</div>
+<figure style="margin: 1.5rem auto; text-align: center; max-width: 600px;">
+  <img src="/charts/us-indexes/improvement_US30.png" alt="US30 AUC improvement from rolling_z vs raw" style="width: 100%; border-radius: 6px;" />
+  <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 AUC improvement from rolling_z vs raw</figcaption>
+</figure>
+
+<details style="margin: 1rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.75rem 1rem;">
+  <summary style="cursor: pointer; font-size: 0.9rem; color: #1e40af; font-weight: 500;">Expand: US500 and NAS100 AUC improvement charts</summary>
+  <div style="margin-top: 1rem;">
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/improvement_US500.png" alt="US500 AUC improvement" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 AUC improvement from rolling_z vs raw</figcaption>
+    </figure>
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/improvement_NAS100.png" alt="NAS100 AUC improvement" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 AUC improvement from rolling_z vs raw</figcaption>
+    </figure>
+  </div>
+</details>
 
 <h4>Drift Score vs. Normalisation AUC Gain</h4>
 
@@ -2004,20 +2010,24 @@ export const content = `
   (VIX level, dispersion) where drift is real but informative.
 </p>
 
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0;">
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/drift_vs_gain_US30.png" alt="US30 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 drift score vs normalisation AUC gain</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/drift_vs_gain_US500.png" alt="US500 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 drift score vs normalisation AUC gain</figcaption>
-  </figure>
-  <figure style="margin: 0; text-align: center; flex: 1; min-width: 280px;">
-    <img src="/charts/us-indexes/drift_vs_gain_NAS100.png" alt="NAS100 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
-    <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 drift score vs normalisation AUC gain</figcaption>
-  </figure>
-</div>
+<figure style="margin: 1.5rem auto; text-align: center; max-width: 600px;">
+  <img src="/charts/us-indexes/drift_vs_gain_US30.png" alt="US30 drift score vs normalisation AUC gain" style="width: 100%; border-radius: 6px;" />
+  <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US30 drift score vs normalisation AUC gain</figcaption>
+</figure>
+
+<details style="margin: 1rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.75rem 1rem;">
+  <summary style="cursor: pointer; font-size: 0.9rem; color: #1e40af; font-weight: 500;">Expand: US500 and NAS100 drift-vs-gain scatter plots</summary>
+  <div style="margin-top: 1rem;">
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/drift_vs_gain_US500.png" alt="US500 drift vs gain" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">US500 drift score vs normalisation AUC gain</figcaption>
+    </figure>
+    <figure style="margin: 1rem auto; text-align: center; max-width: 600px;">
+      <img src="/charts/us-indexes/drift_vs_gain_NAS100.png" alt="NAS100 drift vs gain" style="width: 100%; border-radius: 6px;" />
+      <figcaption style="font-size: 0.85em; color: #6b7280; margin-top: 0.5rem;">NAS100 drift score vs normalisation AUC gain</figcaption>
+    </figure>
+  </div>
+</details>
 
 <h3>7.4 Model Configuration</h3>
 
@@ -2306,6 +2316,20 @@ export const content = `
 </div>
 
 <h3>7.5 Training Results</h3>
+
+<h4>Cross-Index Summary</h4>
+<p>The table below consolidates all training runs across the three indices, highlighting the Run 2 improvements.</p>
+<table>
+<thead><tr><th>Index</th><th>Run</th><th>Best Epoch</th><th>Val Acc</th><th>Val Loss</th><th>Class Gap</th><th>VSN Ratio</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>US30</td><td>Run 1</td><td>3</td><td>67.8%</td><td>0.933</td><td>6.0pp</td><td>3.1x</td><td>Superseded</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
+<tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 1</strong></td><td><strong>5</strong></td><td><strong>68.9%</strong></td><td><strong>0.792</strong></td><td><strong>0.6pp</strong></td><td><strong>2.2x</strong></td><td style="color:#059669;"><strong>Deploy candidate (Run 2 pending)</strong></td></tr>
+</tbody>
+</table>
+<p>NAS100 Run 1 already achieves balanced classes and low VSN concentration. Run 2 for NAS100 will test whether the parameter changes that improved US30 and US500 yield further gains, or whether NAS100's Run 1 configuration is already near-optimal.</p>
 
 <h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US30 &mdash; Run 1 (Diagnostic)</h4>
 
@@ -3220,58 +3244,10 @@ export const content = `
   <figcaption>Generalisation gap: identical overfitting rate in both runs &mdash; lower LR delays but does not prevent memorisation.</figcaption>
 </figure>
 
-<h2>8. Current Status</h2>
+<h2>8. Current Status and Next Steps</h2>
 
 <p>
-  Phase 1 (Literature Review) and Phase 2 (Empirical Gap Studies) are complete. Six gap studies
-  were conducted across the identified research gaps. The headline result is that time-series momentum
-  rotation (TSMOM, Gap Study #4) delivers the best risk-adjusted performance: Sharpe 1.27 with a
-  maximum drawdown of -9.4%, outperforming every buy-and-hold baseline. Volatility regime conditioning
-  (Gap Study #5) reveals that mean-reversion is viable within high-volatility NAS100 regimes
-  (Sharpe 0.99), rehabilitating a strategy that failed in aggregate in Gap Study #8. Trivariate
-  cointegration (Gap Study #3) produced a clear negative result: the Johansen vector adds nothing
-  beyond pairwise tests, and the ECT signal produced catastrophic out-of-sample losses.
-</p>
-
-<p>
-  Phase 3 (Model Development) is underway. The data inventory (Section 7.1) covers three target
-  indexes, seven cross-asset instruments, and fifteen constituent stocks across a common 4.7-year
-  training window. The feature specification (Section 7.2) is finalised at 45 features per M1 bar
-  across five groups. Every cross-index feature traces directly to a Phase 2 empirical result.
-  Normaliser selection (Section 7.3) is complete: per-feature normaliser selection based on
-  AUC gain/loss across all three indices, yielding a split of 17 passthrough features
-  (9 bounded/binary + 8 scale-dependent) and 28 rolling_z features (causal 30-day, $$3\\sigma$$ clip).
-  Scale-dependent features (VIX level, dispersion, volatility ratios) retain their raw values
-  to preserve regime information; heavy-tailed and drifting features use rolling_z for gradient
-  stability. Model configuration (Section 7.4) is finalised: a VSN+TCN+Transformer architecture with
-  four parallel temporal streams (1h, 2h, 4h, 30d), symmetric double-barrier labelling with
-  per-index barriers, and training hyperparameters validated on the XAUUSD base model. A Variable
-  Selection Network (Lim et al., 2021) provides learned per-timestep soft feature gating before the
-  TCN, allowing the model to suppress noisy inputs and adapt feature importance across regimes.
-</p>
-
-<p>
-  Diagnostic Run 1 training is complete for all three indices (Section 7.5). NAS100 produced the
-  strongest model: 68.9% validation accuracy at epoch 3 with near-perfect class balance (0.6pp gap),
-  no directional bias, and the only negative generalisation gap in the series (val loss 0.792 fell
-  below train loss 0.850 at epoch 2). US30 confirmed genuine directional signal (67.8% at epoch 3)
-  but revealed severe overfitting: the train&ndash;validation accuracy gap widened to 27 percentage
-  points by epoch 18. US500 showed a lower accuracy ceiling (63.1% at epoch 7) with even faster
-  overfitting &mdash; validation loss never improved past epoch 1. US30 developed a bearish bias,
-  US500 a strong bullish bias, while NAS100 remained unbiased. The consistent VSN feature preferences
-  across all three indices (dist_ma120, ret_60m, and trend_strength at the top; log_spread_us30_us500
-  at the bottom in all three) validate the feature set. US30 Run 2 is complete (Section 7.5):
-  the four targeted parameter changes eliminated the bearish bias (class gap 6.0pp &rarr; 1.6pp),
-  improved peak accuracy to 68.4% (+0.6pp), and reduced VSN concentration (max/min 3.1x &rarr; 2.0x).
-  US500 Run 2 is also complete (Section 7.5): the &dollar;90 barrier (up from &dollar;30) was the
-  decisive fix, reducing the class accuracy gap from 15.5pp to 4.9pp (68% improvement) and centring
-  $$p_{\\text{up}}$$ from 0.573 to 0.523. Val loss improved 18% (1.649 &rarr; 1.349), indicating
-  better-calibrated outputs, though val accuracy dipped slightly (63.1% &rarr; 62.0%) as expected
-  with a wider barrier. VSN MID stream concentration dropped from 18.8x to 4.3x. NAS100 Run 2
-  remains pending, with the same configuration template: max LR halved to
-  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ increased 2x, two noise features pruned
-  (45 &rarr; 43). See the Run 1 &rarr; Run 2 transition section above for full evidence behind
-  each change.
+  Phase 2 is complete with seven empirical gap studies (six original plus Granger causality validation). Phase 3 has produced deploy-candidate models for all three indices, with NAS100 Run 2 as the final pending experiment. The immediate next steps are completing NAS100 Run 2, running walk-forward out-of-sample backtests on validation data, and preparing the MT5 execution bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
