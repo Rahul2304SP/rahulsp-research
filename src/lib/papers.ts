@@ -94,7 +94,7 @@ export const papers: Paper[] = [
   },
   {
     slug: "goldssm",
-    title: "GoldSSM: Selective State Space Models for Gold Price Forecasting",
+    title: "Transformer Models vs SSMs for Financial Time Series",
     date: "February 2026",
     category: "Architecture & Models",
     abstract:
