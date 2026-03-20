@@ -2331,7 +2331,11 @@ export const content = `
 </table>
 <p>NAS100 Run 1 already achieves balanced classes and low VSN concentration. Run 2 for NAS100 will test whether the parameter changes that improved US30 and US500 yield further gains, or whether NAS100's Run 1 configuration is already near-optimal.</p>
 
-<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US30 &mdash; Run 1 (Diagnostic)</h4>
+<details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 1 &amp; Run 2 Detail</summary>
+<div style="padding: 1rem;">
+
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
@@ -2517,7 +2521,14 @@ export const content = `
   </tbody>
 </table>
 
-<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US500 &mdash; Run 1 (Diagnostic)</h4>
+</div>
+</details>
+
+<details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US500 — Run 1 &amp; Run 2 Detail</summary>
+<div style="padding: 1rem;">
+
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US500 &mdash; Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
@@ -2837,7 +2848,14 @@ export const content = `
   <figcaption>US500 Run 2: VSN entropy showing controlled feature concentration. MID stream ratio dropped from 18.8x to 4.3x.</figcaption>
 </figure>
 
-<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
+</div>
+</details>
+
+<details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100 — Run 1 Detail</summary>
+<div style="padding: 1rem;">
+
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
@@ -3004,6 +3022,9 @@ export const content = `
   <figcaption>VSN entropy: highest diversity of all three indices at 97.6% of maximum.</figcaption>
 </figure>
 
+</div>
+</details>
+
 <h4 style="margin-top: 2rem; padding: 0.5rem 0.75rem; background: #fffbeb; border-left: 4px solid #d97706; font-size: 1.1em;">Run 1 &rarr; Run 2: Configuration Changes</h4>
 
 <p>
@@ -3127,7 +3148,11 @@ export const content = `
   </tbody>
 </table>
 
-<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US30 &mdash; Run 2</h4>
+<details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0fdf4; border-left: 4px solid #059669; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 2 (Latest)</summary>
+<div style="padding: 1rem;">
+
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 2</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
@@ -3243,6 +3268,9 @@ export const content = `
   <img src="/charts/us-indexes/us30_run2_03_overfitting_gap.png" alt="US30 Run 2 generalisation gap" style="max-width: 100%; border-radius: 8px;" />
   <figcaption>Generalisation gap: identical overfitting rate in both runs &mdash; lower LR delays but does not prevent memorisation.</figcaption>
 </figure>
+
+</div>
+</details>
 
 <h2>8. Current Status and Next Steps</h2>
 
