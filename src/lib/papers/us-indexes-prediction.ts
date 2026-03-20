@@ -2189,8 +2189,8 @@ export const content = `
 </p>
 
 <p>
-  where $$\\mathbf{w}_t$$ is the $$F$$-dimensional softmax weight vector at timestep $$t$$.
-  Maximum entropy ($$\\log F \\approx 3.8$$ for 45 features) corresponds to uniform attention;
+  where $\\mathbf{w}_t$ is the $F$-dimensional softmax weight vector at timestep $t$.
+  Maximum entropy ($\\log F \\approx 3.8$ for 45 features) corresponds to uniform attention;
   minimum entropy (0) corresponds to complete collapse onto a single feature.
 </p>
 
@@ -2223,7 +2223,7 @@ export const content = `
 <p>
   The model learns to balance concentrating on the most predictive features (to minimise direction
   loss) against maintaining enough diversity to earn the entropy bonus. If entropy drops below ~1.0
-  during training, the VSN is collapsing and $$\\lambda_{\\text{vsn}}$$ should be increased.
+  during training, the VSN is collapsing and $\\lambda_{\\text{vsn}}$ should be increased.
 </p>
 
 <h4>TCN + Transformer Hyperparameters</h4>
@@ -2387,7 +2387,7 @@ export const content = `
   <strong>VSN is healthy.</strong> Entropy decreased from 3.78 to 3.64 (theoretical maximum 3.81
   for 45 features), meaning the Variable Selection Network learned to differentiate feature
   importance without collapsing to a small subset. The entropy regularisation term
-  ($$\\lambda = 0.001$$) served its purpose.
+  ($\\lambda = 0.001$) served its purpose.
 </p>
 
 <p>
@@ -2870,18 +2870,18 @@ export const content = `
 </table>
 
 <p>
-  Once LR exceeded $$\\sim 1.5 \\times 10^{-4}$$, validation accuracy declined in both indices. The higher
+  Once LR exceeded $\\sim 1.5 \\times 10^{-4}$, validation accuracy declined in both indices. The higher
   LR drove predictions toward extreme confidence ($$p_{\\text{up}}$$ std rose from 0.17 to 0.44), inflating
   cross-entropy loss without improving directional signal. Halving the maximum LR to
   $$1.5 \\times 10^{-4}$$ means the model reaches the empirically optimal LR at the end of warmup rather
   than overshooting it.
 </p>
 
-<h4>Change 2: VSN Entropy $$\\lambda$$ from 0.002 to 0.004</h4>
+<h4>Change 2: VSN Entropy $\\lambda$ from 0.002 to 0.004</h4>
 
 <p>
   The VSN entropy regulariser penalises concentrated attention weights to prevent the model from ignoring
-  most features. Run 1 used $$\\lambda = 0.001$$. The per-stream concentration ratios (max weight / min
+  most features. Run 1 used $\\lambda = 0.001$. The per-stream concentration ratios (max weight / min
   weight) reveal that this was insufficient:
 </p>
 
@@ -2899,8 +2899,8 @@ export const content = `
 
 <p>
   The US500 MID stream had an 18.8x concentration ratio, effectively ignoring most features in that
-  temporal window. At $$\\lambda = 0.001$$, the regularisation was too weak to prevent this collapse.
-  Setting $$\\lambda = 0.004$$ (2x stronger) should keep the max/min ratio below 5x. The entropy loss
+  temporal window. At $\\lambda = 0.001$, the regularisation was too weak to prevent this collapse.
+  Setting $\\lambda = 0.004$ (2x stronger) should keep the max/min ratio below 5x. The entropy loss
   acts on the softmax attention weights only and does not interfere with the direction loss.
 </p>
 
@@ -2913,7 +2913,7 @@ export const content = `
 
 <ul>
   <li><strong>Granger causality:</strong> F-stat = 0.00 in all three indices (literally zero linear predictive power for 60-minute returns).</li>
-  <li><strong>VSN attention:</strong> bottom-ranked in all three indices (weight $$\\sim 0.010$$ vs uniform baseline $$0.022$$).</li>
+  <li><strong>VSN attention:</strong> bottom-ranked in all three indices (weight $\\sim 0.010$ vs uniform baseline $0.022$).</li>
 </ul>
 
 <p>
@@ -2975,7 +2975,7 @@ export const content = `
 
 <p>
   US30 Run 2 applies the four configuration changes described above: max LR halved to
-  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ doubled to 0.004, two noise features pruned
+  $1.5 \\times 10^{-4}$, VSN entropy $\\lambda$ doubled to 0.004, two noise features pruned
   (45 &rarr; 43), and all other hyperparameters unchanged. The goal is to eliminate Run 1's bearish
   bias and improve class balance without sacrificing directional accuracy.
 </p>
@@ -3125,7 +3125,7 @@ export const content = `
   the four targeted parameter changes eliminated the bearish bias (class gap 6.0pp &rarr; 1.6pp),
   improved peak accuracy to 68.4% (+0.6pp), and reduced VSN concentration (max/min 3.1x &rarr; 2.0x).
   Run 2 continues for US500 and NAS100 with the same configuration changes: max LR halved to
-  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ increased 2x to 0.004, two noise features pruned
+  $1.5 \\times 10^{-4}$, VSN entropy $\\lambda$ increased 2x to 0.004, two noise features pruned
   (45 &rarr; 43), and the US500 barrier widened from &dollar;30 to &dollar;90. See the
   Run 1 &rarr; Run 2 transition section above for full evidence behind each change.
 </p>
