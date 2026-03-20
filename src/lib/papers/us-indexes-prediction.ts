@@ -4,8 +4,8 @@ export const content = `
   Data inventory, feature specification, normaliser selection, and model configuration finalised
   (43 features after pruning, 17 passthrough / 26 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
   All three Run 1 diagnostics complete &mdash; NAS100 best at 68.9% val accuracy (negative generalisation gap),
-  US30 67.8%, US500 63.1%. Run 2 underway with four targeted changes: max LR halved, VSN entropy $$\\lambda$$ 2x stronger,
-  2 noise features pruned, US500 barrier widened.
+  US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% val accuracy (+0.6pp), class gap reduced from 6.0pp to 1.6pp,
+  bearish bias eliminated. Run 2 continues for US500 and NAS100.
   This page will be updated as results become available.
 </div>
 
@@ -18,7 +18,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>6 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. Run 2 underway with targeted parameter changes.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. Run 2 continues for US500/NAS100.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2964,6 +2964,123 @@ export const content = `
   </tbody>
 </table>
 
+<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US30 &mdash; Run 2</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  and validation on historical data. They do not represent live trading performance. Validation
+  accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
+  seen during training.
+</div>
+
+<p>
+  US30 Run 2 applies the four configuration changes described above: max LR halved to
+  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ doubled to 0.004, two noise features pruned
+  (45 &rarr; 43), and all other hyperparameters unchanged. The goal is to eliminate Run 1's bearish
+  bias and improve class balance without sacrificing directional accuracy.
+</p>
+
+<h4>Run 1 vs Run 2 Comparison</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 1</th><th>Run 2</th><th>Change</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best val accuracy</td><td>67.8% (Ep 3)</td><td><strong>68.4% (Ep 5)</strong></td><td>+0.6pp</td></tr>
+    <tr><td>Best val loss</td><td><strong>0.933</strong></td><td>0.981</td><td>+0.048</td></tr>
+    <tr><td>Class acc gap at peak</td><td>6.0pp</td><td><strong>1.6pp</strong></td><td>&minus;73%</td></tr>
+    <tr><td>UP/DN acc at peak</td><td>64.5 / 70.5</td><td><strong>69.3 / 67.7</strong></td><td>Near-equal</td></tr>
+    <tr><td>Direction bias</td><td>Bearish</td><td><strong>None</strong></td><td>Eliminated</td></tr>
+    <tr><td>VSN max/min ratio</td><td>3.1x</td><td><strong>2.0x</strong></td><td>More distributed</td></tr>
+    <tr><td>VSN MID concentration</td><td>7.0x</td><td><strong>3.1x</strong></td><td>Fixed</td></tr>
+    <tr><td>Best epoch</td><td>3</td><td><strong>5</strong></td><td>Shifted later (lower LR)</td></tr>
+  </tbody>
+</table>
+
+<h4>Key Findings</h4>
+
+<p>
+  <strong>1. Class balance is the headline improvement.</strong> The per-class accuracy gap shrank from
+  6.0pp to 1.6pp. UP accuracy rose from 64.5% to 69.3% while DOWN remained at 67.7%. The bearish
+  bias from Run 1 is eliminated &mdash; $$p_{\\text{up}}$$ mean now centres around 0.49&ndash;0.50
+  instead of drifting to 0.45.
+</p>
+
+<p>
+  <strong>2. Accuracy improved marginally.</strong> 68.4% vs 67.8% (+0.6pp). The model finds the same
+  directional signal but distributes it more evenly across classes.
+</p>
+
+<p>
+  <strong>3. Overfitting rate is unchanged.</strong> The lower LR delayed the peak by 2 epochs but
+  post-peak degradation is identical (~0.18&ndash;0.20 loss/epoch). This confirms overfitting is driven
+  by data diversity (6,600 effective independent samples vs 2M parameters), not learning rate.
+</p>
+
+<p>
+  <strong>4. Optimal LR confirmed at ~$$1.5 \\times 10^{-4}$$.</strong> Both runs peaked when the
+  effective LR reached $$1.4$$&ndash;$$1.5 \\times 10^{-4}$$. Run 1 hit this during warmup at
+  epoch 3; Run 2 reached it at end of warmup at epoch 5. The model achieves peak generalisation at
+  this specific LR regardless of schedule.
+</p>
+
+<p>
+  <strong>5. VSN entropy regularisation works without distorting rankings.</strong> MID stream
+  concentration dropped from 7.0x to 3.1x. Top features are unchanged (dist_ma120, ret_60m,
+  cross_idx_dispersion). The regularisation redistributed weight without changing relative importance.
+</p>
+
+<p>
+  <strong>6. Feature pruning had minimal impact.</strong> Removing 2 noise features (log_spread pair)
+  reduced inputs from 45 to 43, but these were already receiving near-zero VSN attention.
+</p>
+
+<h4>VSN Per-Stream Feature Preferences (Run 2)</h4>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Ratio</th><th>Top 3</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Short</td><td>2.9x</td><td>dist_ma120, trend_strength, abs_dist_ma120</td></tr>
+    <tr><td>Mid</td><td>3.1x</td><td>tod_cos, dist_ma120, ret_120m</td></tr>
+    <tr><td>Long</td><td>2.6x</td><td>roro_ratio, cross_idx_dispersion, vix_chg_60m</td></tr>
+    <tr><td>Slow</td><td>2.2x</td><td>dist_ma120, ret_60m, skew_240m</td></tr>
+  </tbody>
+</table>
+
+<h4>Diagnosis</h4>
+
+<div class="finding-box" style="border-left-color: #059669; background: #ecfdf5;">
+  <strong>Strictly better for live deployment:</strong> Run 2 achieves higher accuracy (68.4% vs 67.8%),
+  near-perfect class balance (1.6pp vs 6.0pp gap), no directional bias, and healthier VSN diversity
+  (max/min 2.0x vs 3.1x). The slightly higher validation loss (0.981 vs 0.933) reflects less extreme
+  confidence, not worse direction prediction. The optimal checkpoint is epoch 5.
+</div>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run2_02_direction_accuracy.png" alt="US30 Run 2 vs Run 1 direction accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>US30 Run 2 vs Run 1: direction accuracy. Run 2 peaks 2 epochs later but 0.6pp higher, with much better class balance.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run2_05_per_class_accuracy.png" alt="US30 Run 2 per-class accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Per-class accuracy: Run 2 achieves near-equal UP/DOWN (69.3/67.7) vs Run 1's bearish skew (64.5/70.5).</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run2_06_vsn_entropy.png" alt="US30 Run 2 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>VSN entropy: Run 2 maintains 98.3% of max vs Run 1's 95.3%. Feature concentration reduced across all streams.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run2_03_overfitting_gap.png" alt="US30 Run 2 generalisation gap" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Generalisation gap: identical overfitting rate in both runs &mdash; lower LR delays but does not prevent memorisation.</figcaption>
+</figure>
+
 <h2>8. Current Status</h2>
 
 <p>
@@ -3004,11 +3121,13 @@ export const content = `
   overfitting &mdash; validation loss never improved past epoch 1. US30 developed a bearish bias,
   US500 a strong bullish bias, while NAS100 remained unbiased. The consistent VSN feature preferences
   across all three indices (dist_ma120, ret_60m, and trend_strength at the top; log_spread_us30_us500
-  at the bottom in all three) validate the feature set. Run 2 is now underway for all three indices
-  with four targeted parameter changes: max LR halved to $$1.5 \\times 10^{-4}$$, VSN entropy
-  $$\\lambda$$ increased 2x to 0.004, two noise features pruned (45 &rarr; 43), and the US500
-  barrier widened from &dollar;30 to &dollar;90. See the Run 1 &rarr; Run 2 transition section
-  above for full evidence behind each change.
+  at the bottom in all three) validate the feature set. US30 Run 2 is complete (Section 7.5):
+  the four targeted parameter changes eliminated the bearish bias (class gap 6.0pp &rarr; 1.6pp),
+  improved peak accuracy to 68.4% (+0.6pp), and reduced VSN concentration (max/min 3.1x &rarr; 2.0x).
+  Run 2 continues for US500 and NAS100 with the same configuration changes: max LR halved to
+  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ increased 2x to 0.004, two noise features pruned
+  (45 &rarr; 43), and the US500 barrier widened from &dollar;30 to &dollar;90. See the
+  Run 1 &rarr; Run 2 transition section above for full evidence behind each change.
 </p>
 
 <h2>9. References</h2>
