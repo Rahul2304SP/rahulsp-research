@@ -171,7 +171,7 @@ export default function HomePage() {
             </div>
             <div className="p-5 sm:p-6">
               <h3 className="text-lg sm:text-xl font-semibold text-[#1a1a2e] group-hover:text-[#1e40af] transition-colors mb-2">
-                GoldSSM: Selective State Space Models for Gold Price Forecasting
+                Transformer Models vs SSMs for Financial Time Series
               </h3>
               <p className="text-sm text-[#374151] leading-relaxed mb-4 line-clamp-3">
                 A multi-scale selective state space model combining Variable Selection Networks,
