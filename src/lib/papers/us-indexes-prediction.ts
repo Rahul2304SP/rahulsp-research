@@ -2118,8 +2118,8 @@ export const content = `
     <tr><th>Path</th><th>Computation</th><th>What It Captures</th></tr>
   </thead>
   <tbody>
-    <tr><td>Value path</td><td>$$x \\odot w \\rightarrow \\text{Linear}(F, E)$$</td><td>How much each feature contributes (magnitude-aware)</td></tr>
-    <tr><td>Prototype path</td><td>$$w^\\top \\cdot \\text{Prototypes}(F, E)$$</td><td>Which features are active (identity-aware)</td></tr>
+    <tr><td>Value path</td><td>$x \\odot w \\rightarrow \\text{Linear}(F, E)$</td><td>How much each feature contributes (magnitude-aware)</td></tr>
+    <tr><td>Prototype path</td><td>$w^\\top \\cdot \\text{Prototypes}(F, E)$</td><td>Which features are active (identity-aware)</td></tr>
   </tbody>
 </table>
 
@@ -2216,7 +2216,7 @@ export const content = `
     <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
   </thead>
   <tbody>
-    <tr><td>$$\\lambda_{\\text{vsn}}$$</td><td>0.002</td><td>Deliberately small: direction loss (~1.0) dominates; entropy term (~0.006) acts as a gentle nudge</td></tr>
+    <tr><td>$\\lambda_{\\text{vsn}}$</td><td>0.002</td><td>Deliberately small: direction loss (~1.0) dominates; entropy term (~0.006) acts as a gentle nudge</td></tr>
   </tbody>
 </table>
 
@@ -2262,18 +2262,18 @@ export const content = `
   <tbody>
     <tr><td>Epochs</td><td>50</td><td>With warmup + cosine schedule</td></tr>
     <tr><td>Batch size</td><td>512</td><td>Fits GPU with 4 streams</td></tr>
-    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td><td>Standard Transformer LR</td></tr>
+    <tr><td>Learning rate</td><td>$3 \\times 10^{-4}$</td><td>Standard Transformer LR</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>Regularisation</td></tr>
     <tr><td>Expected PnL loss</td><td>Disabled</td><td>Use supervised BCE/CE for direction</td></tr>
-    <tr><td>Regime clusters</td><td>$$K = 1$$</td><td>No clustering; learn direction first</td></tr>
+    <tr><td>Regime clusters</td><td>$K = 1$</td><td>No clustering; learn direction first</td></tr>
   </tbody>
 </table>
 
 <h4>Design Decisions</h4>
 
 <p>
-  <strong>$$K = 1$$ regime clustering.</strong> A single prediction head is used. Regime clustering with
-  $$K > 1$$ fragments the already limited data across multiple heads, each seeing a fraction of the
+  <strong>$K = 1$ regime clustering.</strong> A single prediction head is used. Regime clustering with
+  $K > 1$ fragments the already limited data across multiple heads, each seeing a fraction of the
   training samples. The model learns direction first; regime specialisation can be added once the base
   model demonstrates signal.
 </p>
@@ -2292,9 +2292,9 @@ export const content = `
 </p>
 
 <p>
-  <strong>Learning rate $$3 \\times 10^{-4}$$.</strong> Standard for Transformer architectures. Higher
-  rates (e.g., $$10^{-2}$$) cause catastrophic early updates that destroy the attention mechanism before
-  it can learn meaningful patterns. Lower rates (e.g., $$10^{-5}$$) converge too slowly within 50 epochs.
+  <strong>Learning rate $3 \\times 10^{-4}$.</strong> Standard for Transformer architectures. Higher
+  rates (e.g., $10^{-2}$) cause catastrophic early updates that destroy the attention mechanism before
+  it can learn meaningful patterns. Lower rates (e.g., $10^{-5}$) converge too slowly within 50 epochs.
 </p>
 
 <h4>Data Pipeline</h4>
@@ -2312,7 +2312,7 @@ export const content = `
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
   <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #92400e;">VSN<br/><small style="color: #6b7280;">soft feature gate</small></div>
   <div style="padding: 0 0.4rem; color: #9ca3af; font-size: 1.2em;">&rarr;</div>
-  <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$$</small></div>
+  <div style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; color: #059669;">TCN + Transformer<br/><small style="color: #6b7280;">$p_{\\text{up}}, p_{\\text{down}}, p_{\\text{hold}}$</small></div>
 </div>
 
 <h3>7.5 Training Results</h3>
@@ -2363,9 +2363,9 @@ export const content = `
     <tr><td>Barrier</td><td>&dollar;100</td></tr>
     <tr><td>Spread</td><td>&dollar;1.20</td></tr>
     <tr><td>Batch size</td><td>512</td></tr>
-    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$ (warmup + cosine)</td></tr>
+    <tr><td>Learning rate</td><td>$3 \\times 10^{-4}$ (warmup + cosine)</td></tr>
     <tr><td>Epochs</td><td>18 / 50 (early termination)</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001 (later increased to 0.002)</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001 (later increased to 0.002)</td></tr>
     <tr><td>Train period</td><td>2021-07 to 2025-06</td></tr>
     <tr><td>Validation period</td><td>2025-07 to 2026-03</td></tr>
   </tbody>
@@ -2383,7 +2383,7 @@ export const content = `
     <tr><td>Final validation direction accuracy</td><td>64.9% (Epoch 18)</td></tr>
     <tr><td>Final train direction accuracy</td><td>92.0% (Epoch 18)</td></tr>
     <tr><td>Coverage</td><td>95.7%</td></tr>
-    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.438 (healthy, no hedging)</td></tr>
+    <tr><td>$p_{\\text{up}}$ std</td><td>0.438 (healthy, no hedging)</td></tr>
     <tr><td>VSN entropy</td><td>3.635 (max 3.81)</td></tr>
   </tbody>
 </table>
@@ -2393,7 +2393,7 @@ export const content = `
 <p>
   <strong>Epoch 3 is the sweet spot.</strong> Validation loss hits its minimum (0.933) and validation
   accuracy peaks (67.8%) at epoch 3, during the warmup phase when the effective learning rate is
-  approximately $$1.4 \\times 10^{-4}$$. Everything after epoch 3 is overfitting. This pattern is
+  approximately $1.4 \\times 10^{-4}$. Everything after epoch 3 is overfitting. This pattern is
   consistent with the XAUUSD base model experience: Transformers on noisy financial data find their
   best generalisation early, before the optimiser has enough capacity to memorise training noise.
 </p>
@@ -2516,7 +2516,7 @@ export const content = `
     <tr><td>Early stopping</td><td>None</td><td>5-epoch patience</td><td>Stop when validation loss stalls</td></tr>
     <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Stronger regularisation against memorisation</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger L2 penalty on weights</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>Prevent late-stage attention collapse</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001</td><td>0.002</td><td>Prevent late-stage attention collapse</td></tr>
     <tr><td>Max epochs</td><td>50</td><td>20</td><td>No value past epoch 10&ndash;15</td></tr>
     <tr><td>LR warmup</td><td>5 epochs</td><td>3 epochs</td><td>Best validation at epoch 3; warmup should end sooner</td></tr>
   </tbody>
@@ -2549,9 +2549,9 @@ export const content = `
     <tr><td>Barrier</td><td>&dollar;30</td></tr>
     <tr><td>Spread</td><td>&dollar;0.50</td></tr>
     <tr><td>Batch size</td><td>512</td></tr>
-    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td></tr>
+    <tr><td>Learning rate</td><td>$3 \\times 10^{-4}$</td></tr>
     <tr><td>Epochs</td><td>9 / 50</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001</td></tr>
   </tbody>
 </table>
 
@@ -2567,7 +2567,7 @@ export const content = `
     <tr><td>Final val accuracy</td><td>62.0% (Epoch 9)</td></tr>
     <tr><td>Final train accuracy</td><td>89.0%</td></tr>
     <tr><td>Coverage</td><td>95.7%</td></tr>
-    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.418 (no hedging)</td></tr>
+    <tr><td>$p_{\\text{up}}$ std</td><td>0.418 (no hedging)</td></tr>
     <tr><td>VSN entropy</td><td>3.687 (max 3.81)</td></tr>
   </tbody>
 </table>
@@ -2596,7 +2596,7 @@ export const content = `
 </p>
 
 <p>
-  <strong>Strong bullish bias.</strong> The predicted $$p_{\\text{up}}$$ mean stayed at 0.55&ndash;0.64
+  <strong>Strong bullish bias.</strong> The predicted $p_{\\text{up}}$ mean stayed at 0.55&ndash;0.64
   throughout training. UP accuracy (70&ndash;77%) far exceeded DOWN accuracy (32&ndash;55%). This is
   the mirror image of US30's bearish bias. Label distribution is nearly balanced (UP 51.2%,
   DOWN 48.8%), so the bias is learned, not inherited from the data. The model finds it easier to
@@ -2706,7 +2706,7 @@ export const content = `
     <tr><td>Early stopping</td><td>None</td><td>5-epoch patience</td><td>Val loss never improved past epoch 1</td></tr>
     <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Reduce memorisation; overfitting faster than US30</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger L2 regularisation</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>MID stream 18.8x too concentrated</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001</td><td>0.002</td><td>MID stream 18.8x too concentrated</td></tr>
     <tr><td>Max epochs</td><td>50</td><td>15</td><td>No improvement after epoch 7</td></tr>
   </tbody>
 </table>
@@ -2722,7 +2722,7 @@ export const content = `
 
 <p>
   US500 Run 2 applies the same configuration template as US30 Run 2: max LR halved to
-  $$1.5 \\times 10^{-4}$$, VSN entropy $$\\lambda$$ doubled to 0.004, two noise features pruned
+  $1.5 \\times 10^{-4}$, VSN entropy $\\lambda$ doubled to 0.004, two noise features pruned
   (45 &rarr; 43). The decisive additional change is the barrier: widened from &dollar;30 to &dollar;90,
   a 3x increase, to address Run 1's 0% HOLD rate and extreme bullish bias.
 </p>
@@ -2734,8 +2734,8 @@ export const content = `
     <tr><th>Parameter</th><th>Run 1</th><th>Run 2</th></tr>
   </thead>
   <tbody>
-    <tr><td>Max LR</td><td>$$3 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.002</td><td>0.004</td></tr>
+    <tr><td>Max LR</td><td>$3 \\times 10^{-4}$</td><td>$1.5 \\times 10^{-4}$</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.002</td><td>0.004</td></tr>
     <tr><td>Barrier</td><td>&dollar;30</td><td>&dollar;90</td></tr>
     <tr><td>Features</td><td>45</td><td>43</td></tr>
   </tbody>
@@ -2752,7 +2752,7 @@ export const content = `
     <tr><td>Val Loss</td><td>1.649</td><td><strong>1.349</strong></td><td>&minus;18%</td></tr>
     <tr><td>Class Acc Gap</td><td>15.5pp</td><td><strong>4.9pp</strong></td><td>&minus;68%</td></tr>
     <tr><td>UP/DOWN Acc</td><td>70.6 / 55.1</td><td><strong>64.4 / 59.5</strong></td><td>Balanced</td></tr>
-    <tr><td>$$p_{\\text{up}}$$ Mean</td><td>0.573</td><td><strong>0.523</strong></td><td>Centred</td></tr>
+    <tr><td>$p_{\\text{up}}$ Mean</td><td>0.573</td><td><strong>0.523</strong></td><td>Centred</td></tr>
     <tr><td>VSN Mean Ratio</td><td>3.8x</td><td><strong>2.0x</strong></td><td>&minus;47%</td></tr>
     <tr><td>VSN MID Ratio</td><td>18.8x</td><td><strong>4.3x</strong></td><td>&minus;77%</td></tr>
   </tbody>
@@ -2779,12 +2779,12 @@ export const content = `
 <p>
   <strong>3. VSN MID stream concentration fixed.</strong> The MID stream's max/min attention ratio dropped
   from 18.8x to 4.3x, a 77% reduction. Run 1's MID stream was nearly ignoring most features in favour
-  of cross_idx_dispersion and ret_60m. The doubled entropy regularisation ($$\\lambda$$ 0.002 &rarr; 0.004)
+  of cross_idx_dispersion and ret_60m. The doubled entropy regularisation ($\\lambda$ 0.002 &rarr; 0.004)
   forced broader attention without distorting the overall feature ranking.
 </p>
 
 <p>
-  <strong>4. $$p_{\\text{up}}$$ centred.</strong> The mean predicted probability of UP moved from 0.573
+  <strong>4. $p_{\\text{up}}$ centred.</strong> The mean predicted probability of UP moved from 0.573
   (bullish bias) to 0.523 (near-centred). The model no longer defaults to predicting UP when uncertain.
 </p>
 
@@ -2821,7 +2821,7 @@ export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>The &dollar;90 barrier was the decisive fix.</strong> Class balance improved dramatically
   (15.5pp &rarr; 4.9pp gap, 68% reduction), VSN concentration is controlled (MID stream 18.8x &rarr; 4.3x),
-  and $$p_{\\text{up}}$$ is centred at 0.523. Val accuracy is marginally lower (&minus;1.1pp) because the
+  and $p_{\\text{up}}$ is centred at 0.523. Val accuracy is marginally lower (&minus;1.1pp) because the
   wider barrier makes predictions harder, but val loss improved 18%, indicating better-calibrated outputs.
   US500 Run 2 is ready for deployment consideration alongside US30. The top features (dist_ma120,
   cross_idx_dispersion, ret_60m) remain consistent with US30, further validating the shared feature set.
@@ -2876,9 +2876,9 @@ export const content = `
     <tr><td>Barrier</td><td>&dollar;200</td></tr>
     <tr><td>Spread</td><td>&dollar;2.00</td></tr>
     <tr><td>Batch size</td><td>512</td></tr>
-    <tr><td>Learning rate</td><td>$$3 \\times 10^{-4}$$</td></tr>
+    <tr><td>Learning rate</td><td>$3 \\times 10^{-4}$</td></tr>
     <tr><td>Epochs</td><td>8 / 50</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001</td></tr>
   </tbody>
 </table>
 
@@ -2893,7 +2893,7 @@ export const content = `
     <tr><td>Best val direction accuracy</td><td>68.9% (Epoch 3)</td></tr>
     <tr><td>Final val accuracy</td><td>64.2% (Epoch 8)</td></tr>
     <tr><td>Final train accuracy</td><td>82.5%</td></tr>
-    <tr><td>$$p_{\\text{up}}$$ std</td><td>0.409 (no hedging)</td></tr>
+    <tr><td>$p_{\\text{up}}$ std</td><td>0.409 (no hedging)</td></tr>
     <tr><td>VSN entropy</td><td>3.724 (97.6% of max)</td></tr>
   </tbody>
 </table>
@@ -2920,7 +2920,7 @@ export const content = `
 </p>
 
 <p>
-  <strong>No persistent directional bias.</strong> $$p_{\\text{up}}$$ mean oscillated around 0.50
+  <strong>No persistent directional bias.</strong> $p_{\\text{up}}$ mean oscillated around 0.50
   without trending. US30 was persistently bearish (~0.45), US500 persistently bullish (~0.60).
   NAS100 stayed centred.
 </p>
@@ -2994,8 +2994,8 @@ export const content = `
     <tr><td>Early stopping</td><td>None</td><td>3-epoch patience</td><td>Val loss never improved past epoch 2</td></tr>
     <tr><td>Dropout</td><td>0.15</td><td>0.25</td><td>Reduce memorisation</td></tr>
     <tr><td>Weight decay</td><td>0.005</td><td>0.01</td><td>Stronger regularisation</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.001</td><td>0.002</td><td>Already set</td></tr>
-    <tr><td>Max LR</td><td>$$3 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td><td>Best results at LR ~$$10^{-4}$$</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.001</td><td>0.002</td><td>Already set</td></tr>
+    <tr><td>Max LR</td><td>$3 \\times 10^{-4}$</td><td>$1.5 \\times 10^{-4}$</td><td>Best results at LR ~$10^{-4}$</td></tr>
     <tr><td>Max epochs</td><td>50</td><td>10</td><td>No improvement after epoch 3</td></tr>
     <tr><td>Barrier</td><td>&dollar;200</td><td>&dollar;250&ndash;300</td><td>Test wider barrier for HOLD labels</td></tr>
   </tbody>
@@ -3112,11 +3112,11 @@ export const content = `
   Each change addresses a specific finding from Run 1 and is backed by empirical evidence.
 </p>
 
-<h4>Change 1: Learning Rate $$3 \\times 10^{-4} \\rightarrow 1.5 \\times 10^{-4}$$</h4>
+<h4>Change 1: Learning Rate $3 \\times 10^{-4} \\rightarrow 1.5 \\times 10^{-4}$</h4>
 
 <p>
-  Run 1 used a 5-epoch linear warmup from $$3 \\times 10^{-5}$$ to $$3 \\times 10^{-4}$$. The per-epoch
-  LR and corresponding validation accuracy reveal that the optimal LR lies near $$1.4 \\times 10^{-4}$$:
+  Run 1 used a 5-epoch linear warmup from $3 \\times 10^{-5}$ to $3 \\times 10^{-4}$. The per-epoch
+  LR and corresponding validation accuracy reveal that the optimal LR lies near $1.4 \\times 10^{-4}$:
 </p>
 
 <table>
@@ -3124,20 +3124,20 @@ export const content = `
     <tr><th>Epoch</th><th>LR</th><th>US30 Val Acc</th><th>NAS100 Val Acc</th></tr>
   </thead>
   <tbody>
-    <tr><td>1</td><td>$$3.0 \\times 10^{-5}$$</td><td>54.7%</td><td>52.1%</td></tr>
-    <tr><td>2</td><td>$$8.4 \\times 10^{-5}$$</td><td>66.2%</td><td>68.8%</td></tr>
-    <tr><td><strong>3</strong></td><td><strong>$$1.4 \\times 10^{-4}$$</strong></td><td><strong>67.8%</strong></td><td><strong>68.9%</strong></td></tr>
-    <tr><td>4</td><td>$$1.9 \\times 10^{-4}$$</td><td>67.7%</td><td>67.3%</td></tr>
-    <tr><td>5</td><td>$$2.5 \\times 10^{-4}$$</td><td>65.5%</td><td>66.6%</td></tr>
-    <tr><td>6</td><td>$$3.0 \\times 10^{-4}$$</td><td>66.1%</td><td>64.9%</td></tr>
+    <tr><td>1</td><td>$3.0 \\times 10^{-5}$</td><td>54.7%</td><td>52.1%</td></tr>
+    <tr><td>2</td><td>$8.4 \\times 10^{-5}$</td><td>66.2%</td><td>68.8%</td></tr>
+    <tr><td><strong>3</strong></td><td><strong>$1.4 \\times 10^{-4}$</strong></td><td><strong>67.8%</strong></td><td><strong>68.9%</strong></td></tr>
+    <tr><td>4</td><td>$1.9 \\times 10^{-4}$</td><td>67.7%</td><td>67.3%</td></tr>
+    <tr><td>5</td><td>$2.5 \\times 10^{-4}$</td><td>65.5%</td><td>66.6%</td></tr>
+    <tr><td>6</td><td>$3.0 \\times 10^{-4}$</td><td>66.1%</td><td>64.9%</td></tr>
   </tbody>
 </table>
 
 <p>
   Once LR exceeded $\\sim 1.5 \\times 10^{-4}$, validation accuracy declined in both indices. The higher
-  LR drove predictions toward extreme confidence ($$p_{\\text{up}}$$ std rose from 0.17 to 0.44), inflating
+  LR drove predictions toward extreme confidence ($p_{\\text{up}}$ std rose from 0.17 to 0.44), inflating
   cross-entropy loss without improving directional signal. Halving the maximum LR to
-  $$1.5 \\times 10^{-4}$$ means the model reaches the empirically optimal LR at the end of warmup rather
+  $1.5 \\times 10^{-4}$ means the model reaches the empirically optimal LR at the end of warmup rather
   than overshooting it.
 </p>
 
@@ -3198,7 +3198,7 @@ export const content = `
   US500 had the worst class balance in Run 1 (15.5pp gap between UP and DOWN accuracy) despite
   balanced training labels. The &dollar;30 barrier was too tight relative to the index's hourly range,
   causing the model to overfit to one direction. Applying NAS100's successful barrier-to-range ratio
-  ($$\\sim 1.5 \\times$$ average hourly range) to US500's &dollar;60 average hourly range yields
+  (approximately 1.5 times the average hourly range) to US500's &dollar;60 average hourly range yields
   &dollar;90. US30 (&dollar;100) and NAS100 (&dollar;200) barriers are unchanged &mdash; both were
   already well-calibrated in Run 1.
 </p>
@@ -3220,8 +3220,8 @@ export const content = `
     <tr><th>Parameter</th><th>US30</th><th>US500</th><th>NAS100</th></tr>
   </thead>
   <tbody>
-    <tr><td>Learning rate</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td><td>$$1.5 \\times 10^{-4}$$</td></tr>
-    <tr><td>VSN entropy $$\\lambda$$</td><td>0.004</td><td>0.004</td><td>0.004</td></tr>
+    <tr><td>Learning rate</td><td>$1.5 \\times 10^{-4}$</td><td>$1.5 \\times 10^{-4}$</td><td>$1.5 \\times 10^{-4}$</td></tr>
+    <tr><td>VSN entropy $\\lambda$</td><td>0.004</td><td>0.004</td><td>0.004</td></tr>
     <tr><td>Features</td><td>43</td><td>43</td><td>43</td></tr>
     <tr><td>Barrier</td><td>&dollar;100</td><td><strong>&dollar;90</strong></td><td>&dollar;200</td></tr>
     <tr><td>Spread</td><td>&dollar;1.20</td><td>&dollar;0.50</td><td>&dollar;2.00</td></tr>
@@ -3271,7 +3271,7 @@ export const content = `
 <p>
   <strong>1. Class balance is the headline improvement.</strong> The per-class accuracy gap shrank from
   6.0pp to 1.6pp. UP accuracy rose from 64.5% to 69.3% while DOWN remained at 67.7%. The bearish
-  bias from Run 1 is eliminated &mdash; $$p_{\\text{up}}$$ mean now centres around 0.49&ndash;0.50
+  bias from Run 1 is eliminated &mdash; $p_{\\text{up}}$ mean now centres around 0.49&ndash;0.50
   instead of drifting to 0.45.
 </p>
 
@@ -3287,8 +3287,8 @@ export const content = `
 </p>
 
 <p>
-  <strong>4. Optimal LR confirmed at ~$$1.5 \\times 10^{-4}$$.</strong> Both runs peaked when the
-  effective LR reached $$1.4$$&ndash;$$1.5 \\times 10^{-4}$$. Run 1 hit this during warmup at
+  <strong>4. Optimal LR confirmed at ~$1.5 \\times 10^{-4}$.</strong> Both runs peaked when the
+  effective LR reached $1.4$&ndash;$1.5 \\times 10^{-4}$. Run 1 hit this during warmup at
   epoch 3; Run 2 reached it at end of warmup at epoch 5. The model achieves peak generalisation at
   this specific LR regardless of schedule.
 </p>
