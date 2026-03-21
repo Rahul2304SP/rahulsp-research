@@ -6,6 +6,7 @@ export const content = `
   All three Run 1 and Run 2 diagnostics complete. All indices have deploy-candidate models.
   NAS100 best at 68.9% val accuracy (negative generalisation gap),
   US30 68.4% with best class balance (1.6pp gap), US500 largest Run 1 to Run 2 improvement (class gap 15.5pp to 4.9pp).
+  Run 3 architecture redesign in progress: single-stream 660-bar Transformer, multi-horizon targets.
   Walk-forward backtesting next.
 </div>
 
@@ -18,7 +19,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Walk-forward backtesting next.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign in progress (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Walk-forward backtesting next.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -3351,10 +3352,381 @@ export const content = `
 </div>
 </details>
 
+<h3>7.6 Run 3: Architecture Redesign</h3>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  <strong>In Progress</strong> &mdash; Run 3 implements four structural changes based on Run 1 and Run 2 findings.
+  Results are not yet available. The changes described below are planned, not confirmed.
+</div>
+
+<p>
+  Run 1 and Run 2 established a signal ceiling: approximately 69% for NAS100, 68% for US30, and 62% for US500.
+  Hyperparameter tuning in Run 2 improved class balance and probability calibration but did not push accuracy
+  meaningfully higher. The bottleneck is architectural, not configurational. Run 3 implements four structural
+  changes designed to address the specific limitations identified in the Run 1 and Run 2 diagnostics.
+</p>
+
+<h4>Change 1: Single-Stream Transformer (660 M1 Bars)</h4>
+
+<p>
+  The current 4-stream design splits 660 M1 bars into SHORT (60 bars), MID (120 bars), LONG (240 bars), and
+  SLOW (720 M1 bars downsampled to 12 H1 bars). Each stream passes through its own Variable Selection Network,
+  Temporal Convolutional Network, and Transformer encoder before the four outputs are concatenated for the
+  classification heads. Run 3 replaces this with a single stream that processes all 660 M1 bars through one
+  unified pipeline.
+</p>
+
+<p>The rationale has six components:</p>
+
+<ul>
+  <li><strong>Full trading day context.</strong> 660 M1 bars equals 11 hours, covering one complete US equity
+    trading session (pre-market through close). No information is discarded or downsampled.</li>
+  <li><strong>Uniform resolution.</strong> The current SLOW stream downsamples M1 to H1 bars, creating a
+    resolution boundary that the TCN kernel cannot bridge cleanly. A single M1 stream preserves sequence
+    continuity throughout.</li>
+  <li><strong>Transformers do not need stream splitting.</strong> The 4-stream design was an LSTM-era workaround
+    for limited context windows. Transformers with self-attention can directly attend from bar 5 to bar 630
+    without any architectural intermediary.</li>
+  <li><strong>Current streams are redundant.</strong> SHORT (bars 601 to 660) is a strict subset of MID (bars
+    541 to 660), which is a strict subset of LONG (bars 421 to 660). The model processes overlapping data
+    through separate parameter sets, wasting capacity.</li>
+  <li><strong>Cross-scale interactions are impossible in the current design.</strong> The four streams only
+    merge at the final concatenation layer. A pattern visible at the 30-minute scale cannot interact with a
+    pattern at the 4-hour scale until after all temporal processing is complete.</li>
+  <li><strong>SLOW stream adds minimal unique signal.</strong> Across the Run 1 and Run 2 VSN analyses, 3 of
+    SLOW's top 5 features overlap with other streams' top 10 for US30 and US500. For NAS100, all 5 overlap.
+    The SLOW stream's unique contribution is negligible.</li>
+</ul>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 340" style="max-width: 700px; width: 100%; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; margin: 1.5rem 0;">
+  <style>
+    .arch-title { font: bold 13px system-ui, sans-serif; fill: #1e40af; }
+    .arch-box { fill: #ffffff; stroke: #1e40af; stroke-width: 1.5; rx: 6; }
+    .arch-text { font: 11px system-ui, sans-serif; fill: #374151; text-anchor: middle; }
+    .arch-text-sm { font: 10px system-ui, sans-serif; fill: #6b7280; text-anchor: middle; }
+    .arch-arrow { stroke: #1e40af; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .arch-brace { stroke: #9ca3af; stroke-width: 1; fill: none; }
+    .arch-label { font: italic 10px system-ui, sans-serif; fill: #6b7280; text-anchor: start; }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#1e40af"/>
+    </marker>
+  </defs>
+
+  <!-- Left: OLD -->
+  <text x="155" y="24" class="arch-title">OLD (4 streams)</text>
+  <rect x="85" y="35" width="140" height="28" class="arch-box"/>
+  <text x="155" y="53" class="arch-text">660 M1 bars</text>
+  <line x1="115" y1="63" x2="115" y2="80" class="arch-arrow"/>
+  <line x1="140" y1="63" x2="140" y2="80" class="arch-arrow"/>
+  <line x1="165" y1="63" x2="165" y2="80" class="arch-arrow"/>
+  <line x1="195" y1="63" x2="195" y2="80" class="arch-arrow"/>
+  <text x="155" y="76" class="arch-text-sm">split</text>
+
+  <rect x="30" y="82" width="80" height="24" class="arch-box"/>
+  <text x="70" y="98" class="arch-text-sm">SHORT (60)</text>
+  <rect x="115" y="82" width="80" height="24" class="arch-box"/>
+  <text x="155" y="98" class="arch-text-sm">MID (120)</text>
+  <rect x="30" y="112" width="80" height="24" class="arch-box"/>
+  <text x="70" y="128" class="arch-text-sm">LONG (240)</text>
+  <rect x="115" y="112" width="80" height="24" class="arch-box"/>
+  <text x="155" y="128" class="arch-text-sm">SLOW (12 H1)</text>
+
+  <line x1="70" y1="106" x2="70" y2="145" class="arch-arrow"/>
+  <line x1="155" y1="106" x2="155" y2="145" class="arch-arrow"/>
+  <line x1="70" y1="136" x2="70" y2="145" class="arch-arrow"/>
+  <line x1="155" y1="136" x2="155" y2="145" class="arch-arrow"/>
+
+  <rect x="25" y="147" width="90" height="24" class="arch-box"/>
+  <text x="70" y="163" class="arch-text-sm">VSN+TCN+TF</text>
+  <rect x="120" y="147" width="90" height="24" class="arch-box"/>
+  <text x="165" y="163" class="arch-text-sm">VSN+TCN+TF</text>
+  <rect x="25" y="177" width="90" height="24" class="arch-box"/>
+  <text x="70" y="193" class="arch-text-sm">VSN+TCN+TF</text>
+  <rect x="120" y="177" width="90" height="24" class="arch-box"/>
+  <text x="165" y="193" class="arch-text-sm">VSN+TCN+TF</text>
+
+  <path d="M70,201 L70,215 L120,225" class="arch-brace"/>
+  <path d="M165,201 L165,215 L120,225" class="arch-brace"/>
+  <path d="M70,171 L70,215" class="arch-brace" style="opacity:0"/>
+  <path d="M165,171 L165,215" class="arch-brace" style="opacity:0"/>
+
+  <rect x="70" y="220" width="100" height="28" class="arch-box"/>
+  <text x="120" y="238" class="arch-text">concat</text>
+  <line x1="120" y1="248" x2="120" y2="265" class="arch-arrow"/>
+  <rect x="70" y="267" width="100" height="28" class="arch-box"/>
+  <text x="120" y="285" class="arch-text">heads</text>
+
+  <!-- Divider -->
+  <line x1="340" y1="15" x2="340" y2="330" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Right: NEW -->
+  <text x="520" y="24" class="arch-title">NEW (single stream)</text>
+  <rect x="450" y="35" width="140" height="28" class="arch-box"/>
+  <text x="520" y="53" class="arch-text">660 M1 bars</text>
+  <line x1="520" y1="63" x2="520" y2="80" class="arch-arrow"/>
+
+  <rect x="455" y="82" width="130" height="28" class="arch-box"/>
+  <text x="520" y="100" class="arch-text">VSN (single)</text>
+  <line x1="520" y1="110" x2="520" y2="127" class="arch-arrow"/>
+
+  <rect x="455" y="129" width="130" height="28" class="arch-box"/>
+  <text x="520" y="147" class="arch-text">TCN (kernel 15)</text>
+  <line x1="520" y1="157" x2="520" y2="174" class="arch-arrow"/>
+
+  <rect x="440" y="176" width="160" height="28" class="arch-box"/>
+  <text x="520" y="194" class="arch-text">Transformer (2L, 8H)</text>
+  <line x1="520" y1="204" x2="520" y2="221" class="arch-arrow"/>
+
+  <rect x="455" y="223" width="130" height="28" class="arch-box"/>
+  <text x="520" y="241" class="arch-text">TAP</text>
+  <line x1="520" y1="251" x2="520" y2="268" class="arch-arrow"/>
+
+  <rect x="455" y="270" width="130" height="28" class="arch-box"/>
+  <text x="520" y="288" class="arch-text">heads</text>
+
+  <!-- Labels -->
+  <text x="600" y="100" class="arch-label">"which features matter now?"</text>
+  <text x="600" y="147" class="arch-label">"local 15-min patterns"</text>
+  <text x="610" y="194" class="arch-label">"full-day attention"</text>
+  <text x="600" y="241" class="arch-label">"which bars matter most?"</text>
+</svg>
+
+<p>The parameter and compute tradeoffs are shown below.</p>
+
+<table>
+  <thead>
+    <tr><th>Design</th><th>Attention cost</th><th>Parameters</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>4 streams (current)</td><td>75,744</td><td>~2.0M</td></tr>
+    <tr><td>Single stream (660)</td><td>435,600</td><td>~0.7M</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The single-stream design increases attention cost by approximately 5.7x (435,600 vs 75,744) because the
+  Transformer must attend across all 660 positions rather than four shorter subsequences. However, it reduces
+  total parameters by 65% (from ~2.0M to ~0.7M) because the four redundant VSN, TCN, and Transformer modules
+  are replaced by one of each. The net effect is higher compute per forward pass but substantially less
+  memorisation capacity, which directly addresses the overfitting observed in Runs 1 and 2.
+</p>
+
+<h4>Change 2: Multi-Horizon Targets (30m / 60m / 120m)</h4>
+
+<p>
+  Runs 1 and 2 train on a single target: the 60-minute double-barrier label. Run 3 trains on three horizons
+  simultaneously. The 60-minute horizon remains primary (loss weight 1.0). The 30-minute and 120-minute horizons
+  are auxiliary (loss weight 0.3 each). All three heads share the same backbone (VSN, TCN, Transformer, TAP);
+  only the final classification layers are horizon-specific.
+</p>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" style="max-width: 400px; width: 100%; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; margin: 1.5rem 0;">
+  <style>
+    .mh-box { fill: #ffffff; stroke: #1e40af; stroke-width: 1.5; rx: 6; }
+    .mh-box-aux { fill: #f0f9ff; stroke: #1e40af; stroke-width: 1; rx: 6; }
+    .mh-box-pri { fill: #eff6ff; stroke: #1e40af; stroke-width: 2; rx: 6; }
+    .mh-text { font: 12px system-ui, sans-serif; fill: #374151; text-anchor: middle; }
+    .mh-text-sm { font: 10px system-ui, sans-serif; fill: #6b7280; text-anchor: middle; }
+    .mh-arrow { stroke: #1e40af; stroke-width: 1.5; fill: none; marker-end: url(#mh-arrow); }
+  </style>
+  <defs>
+    <marker id="mh-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#1e40af"/>
+    </marker>
+  </defs>
+
+  <rect x="110" y="15" width="180" height="32" class="mh-box"/>
+  <text x="200" y="36" class="mh-text">shared_embedding</text>
+
+  <line x1="130" y1="47" x2="80" y2="72" class="mh-arrow"/>
+  <line x1="200" y1="47" x2="200" y2="72" class="mh-arrow"/>
+  <line x1="270" y1="47" x2="320" y2="72" class="mh-arrow"/>
+
+  <rect x="20" y="75" width="120" height="32" class="mh-box-aux"/>
+  <text x="80" y="94" class="mh-text">head_30m</text>
+  <text x="80" y="124" class="mh-text-sm">auxiliary (0.3)</text>
+
+  <rect x="140" y="75" width="120" height="32" class="mh-box-pri"/>
+  <text x="200" y="94" class="mh-text">head_60m</text>
+  <text x="200" y="124" class="mh-text-sm">primary (1.0)</text>
+
+  <rect x="260" y="75" width="120" height="32" class="mh-box-aux"/>
+  <text x="320" y="94" class="mh-text">head_120m</text>
+  <text x="320" y="124" class="mh-text-sm">auxiliary (0.3)</text>
+</svg>
+
+<p>
+  The purpose is structural regularisation. The shared backbone must learn feature representations that predict
+  direction at 30, 60, and 120 minutes simultaneously. Features that predict only the 60-minute horizon (but not
+  the others) are more likely to reflect noise or overfitting than genuine signal. Multi-task learning forces the
+  model to learn more general temporal patterns. This principle was established by Collobert and Weston (2008),
+  who showed that auxiliary tasks improve primary-task generalisation in NLP, and it applies directly here: the
+  auxiliary horizons act as a form of implicit regularisation that is more informative than dropout or weight
+  decay because it encodes domain knowledge about temporal consistency.
+</p>
+
+<h4>Change 3: Cross-Asset Features at Lag 15 (43 to 45 features)</h4>
+
+<p>
+  Run 1 and Run 2 use DXY and USDJPY returns at lag 60 (the 60-minute lagged return). Granger causality testing
+  reveals that DXY also has significant predictive power at lag 15, but zero predictive power at lags 1 through
+  5. The lag-15 and lag-60 returns capture different phenomena: the lag-15 return measures the recent 15-minute
+  dollar move, while the lag-60 return measures the hour-long dollar trend. Run 3 adds dxy_ret_15m and
+  usdjpy_ret_15m as two additional features, bringing the total from 43 to 45.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Lag (min)</th><th>DXY F-stat</th><th>Significant?</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>3.4</td><td>No</td></tr>
+    <tr><td>5</td><td>1.1</td><td>No</td></tr>
+    <tr><td>15</td><td>6.4</td><td>Yes</td></tr>
+    <tr><td>30</td><td>6.7</td><td>Yes</td></tr>
+    <tr><td>60</td><td>22.1</td><td>Yes</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The Granger test results confirm that the dollar index has no short-term predictive power for US equity indices
+  at the 1-minute or 5-minute horizon, but becomes significant at 15 minutes and strengthens monotonically out
+  to 60 minutes. The lag-15 feature is not redundant with lag-60: it captures faster-moving dollar dynamics
+  (e.g., intraday Fed commentary, Treasury auction results) that dissipate before the 60-minute window.
+</p>
+
+<h4>Change 4: Two Transformer Layers</h4>
+
+<p>
+  Runs 1 and 2 use a single Transformer encoder layer. The train-validation accuracy gap at best epoch shows
+  unused capacity: NAS100 has only a 2.4pp gap, US30 8.2pp, and US500 12.2pp. A second Transformer layer learns
+  second-order temporal interactions: patterns of patterns. Where the first layer identifies individual temporal
+  features (e.g., a momentum reversal at bar 400, a volatility spike at bar 580), the second layer can learn
+  relationships between those features (e.g., momentum reversals that follow volatility spikes have different
+  directional implications than isolated momentum reversals).
+</p>
+
+<p>
+  The cost is approximately 197K additional parameters. Combined with the single-stream redesign, the total
+  model size is approximately 0.9M parameters, still less than half the current 2.0M. The additional compute
+  is roughly 2x in the Transformer portion of the forward pass, which is modest given that the TCN and VSN
+  components (unchanged) account for the majority of wall-clock time.
+</p>
+
+<h4>Run 3 Summary</h4>
+
+<table>
+  <thead>
+    <tr><th>Change</th><th>Parameters</th><th>Compute</th><th>Expected Benefit</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Single-stream 660 bars</td>
+      <td>-1.3M</td>
+      <td>+5.7x attention, -65% params</td>
+      <td>Cross-scale attention, less memorisation</td>
+    </tr>
+    <tr>
+      <td>Multi-horizon targets</td>
+      <td>+260</td>
+      <td>+60% labels</td>
+      <td>Structural regularisation</td>
+    </tr>
+    <tr>
+      <td>Lag-15 cross-asset features</td>
+      <td>+4.7% input</td>
+      <td>Negligible</td>
+      <td>Granger-validated signal</td>
+    </tr>
+    <tr>
+      <td>Two Transformer layers</td>
+      <td>+197K</td>
+      <td>+100% Transformer</td>
+      <td>Higher-order temporal interactions</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Net result: approximately 0.9M parameters (down from 2.0M), full trading-day context in a single stream,
+  and multi-horizon regularisation. The expected benefit is not higher peak accuracy on a single run, but
+  better generalisation and more stable out-of-sample performance due to reduced memorisation capacity and
+  structurally enforced temporal consistency.
+</p>
+
+<h4>Run 3 Pipeline</h4>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420" style="max-width: 700px; width: 100%; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; margin: 1.5rem 0;">
+  <style>
+    .pp-box { fill: #ffffff; stroke: #1e40af; stroke-width: 1.5; rx: 8; }
+    .pp-box-head { fill: #f0f9ff; stroke: #1e40af; stroke-width: 1.5; rx: 8; }
+    .pp-box-pri { fill: #eff6ff; stroke: #1e40af; stroke-width: 2; rx: 8; }
+    .pp-text { font: 13px system-ui, sans-serif; fill: #374151; text-anchor: middle; }
+    .pp-text-sub { font: 11px system-ui, sans-serif; fill: #6b7280; text-anchor: middle; }
+    .pp-text-label { font: italic 11px system-ui, sans-serif; fill: #6b7280; text-anchor: start; }
+    .pp-arrow { stroke: #1e40af; stroke-width: 1.5; fill: none; marker-end: url(#pp-arrow); }
+  </style>
+  <defs>
+    <marker id="pp-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#1e40af"/>
+    </marker>
+  </defs>
+
+  <!-- Input -->
+  <rect x="200" y="15" width="220" height="36" class="pp-box"/>
+  <text x="310" y="38" class="pp-text">660 M1 bars x 45 features</text>
+  <line x1="310" y1="51" x2="310" y2="72" class="pp-arrow"/>
+
+  <!-- VSN -->
+  <rect x="210" y="74" width="200" height="36" class="pp-box"/>
+  <text x="310" y="97" class="pp-text">VSN (single)</text>
+  <text x="430" y="97" class="pp-text-label">"which features matter now?"</text>
+  <line x1="310" y1="110" x2="310" y2="131" class="pp-arrow"/>
+
+  <!-- TCN -->
+  <rect x="210" y="133" width="200" height="36" class="pp-box"/>
+  <text x="310" y="156" class="pp-text">TCN (kernel 15)</text>
+  <text x="430" y="156" class="pp-text-label">"local 15-min patterns"</text>
+  <line x1="310" y1="169" x2="310" y2="190" class="pp-arrow"/>
+
+  <!-- Transformer -->
+  <rect x="190" y="192" width="240" height="36" class="pp-box"/>
+  <text x="310" y="215" class="pp-text">Transformer (2 layers, 8 heads)</text>
+  <text x="450" y="215" class="pp-text-label">"full-day cross-scale attention"</text>
+  <line x1="310" y1="228" x2="310" y2="249" class="pp-arrow"/>
+
+  <!-- TAP -->
+  <rect x="210" y="251" width="200" height="36" class="pp-box"/>
+  <text x="310" y="274" class="pp-text">TAP</text>
+  <text x="430" y="274" class="pp-text-label">"which bars matter most?"</text>
+
+  <!-- Branching arrows -->
+  <line x1="240" y1="287" x2="160" y2="318" class="pp-arrow"/>
+  <line x1="310" y1="287" x2="310" y2="318" class="pp-arrow"/>
+  <line x1="380" y1="287" x2="460" y2="318" class="pp-arrow"/>
+
+  <!-- Heads -->
+  <rect x="90" y="320" width="140" height="36" class="pp-box-head"/>
+  <text x="160" y="343" class="pp-text">head_30m (aux)</text>
+
+  <rect x="240" y="320" width="140" height="36" class="pp-box-pri"/>
+  <text x="310" y="343" class="pp-text">head_60m (primary)</text>
+
+  <rect x="390" y="320" width="150" height="36" class="pp-box-head"/>
+  <text x="465" y="343" class="pp-text">head_120m (aux)</text>
+
+  <!-- Weights -->
+  <text x="160" y="375" class="pp-text-sub">weight: 0.3</text>
+  <text x="310" y="375" class="pp-text-sub">weight: 1.0</text>
+  <text x="465" y="375" class="pp-text-sub">weight: 0.3</text>
+</svg>
+
 <h2>8. Current Status and Next Steps</h2>
 
 <p>
-  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30 the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap reduced 68%). The immediate next steps are walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live deployment.
+  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30 the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap reduced 68%). Run 3 is in progress with four architectural changes (single-stream Transformer, multi-horizon targets, lag-15 features, two Transformer layers) designed to address the generalisation ceiling identified in Runs 1 and 2. The immediate next steps are completing the Run 3 training runs, followed by walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
