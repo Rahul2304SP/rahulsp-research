@@ -6,8 +6,8 @@ export const content = `
   All three Run 1 and Run 2 diagnostics complete. All indices have deploy-candidate models.
   NAS100 best at 68.9% val accuracy (negative generalisation gap),
   US30 68.4% with best class balance (1.6pp gap), US500 largest Run 1 to Run 2 improvement (class gap 15.5pp to 4.9pp).
-  Run 3 architecture changes regressed to 55.7% val accuracy. Root cause identified: auxiliary loss dominance
-  (30m+120m targets consumed 71% of gradient by epoch 23). Run 3b (dynamic auxiliary scaling) in progress.
+  Run 3a/3b both failed (55.7%, 55.4%). Root cause: single-stream has 2.6x fewer params (562K vs 1,451K).
+  Reverting to 4-stream with dynamic aux scaling for Run 4.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -19,7 +19,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3 regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b (dynamic auxiliary scaling) in progress.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Reverting to 4-stream with dynamic aux scaling for Run 4.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2324,7 +2324,8 @@ export const content = `
 <tbody>
 <tr><td>US30</td><td>Run 1</td><td>3</td><td>67.8%</td><td>0.933</td><td>6.0pp</td><td>3.1x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3a</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3b</td><td>&mdash;</td><td style="color:#dc2626; font-weight:600;">55.4%</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; capacity bottleneck</td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
@@ -3901,10 +3902,105 @@ export const content = `
 </p>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>In Progress</strong> &mdash; Run 3b with dynamic auxiliary scaling (non-direction loss capped at 20%
-  of primary direction loss) is currently in progress. Results will determine whether auxiliary loss dominance
-  was the sole cause of the regression or whether additional ablation of the architectural changes is needed.
+  <strong>Complete</strong> &mdash; Run 3b confirmed that dynamic auxiliary scaling fixes the loss balance problem
+  (43% non-direction vs 71% in Run 3a) but does not recover accuracy. The failure is architectural, not
+  loss-related. See Section 7.8.
 </div>
+
+<h3>7.8 Run 3b Results: Dynamic Auxiliary Scaling</h3>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  <strong>Run 3b confirms the single-stream architecture fails due to insufficient capacity (562K vs 1,451K params),
+  not loss balance.</strong> The 4-stream design is more parameter-efficient within the 18GB VRAM budget. Dynamic
+  auxiliary scaling is validated and retained.
+</div>
+
+<p>
+  Run 3b applies the dynamic auxiliary scaling fix proposed in Section 7.7. The non-direction loss is capped at
+  20% of the primary 60-minute direction loss at each training step. The fix worked exactly as designed: auxiliary
+  losses stayed at 43% of the total gradient, down from 71% in Run 3a. But validation accuracy was 55.4%, nearly
+  identical to Run 3a's 55.7%. The problem is not the loss function.
+</p>
+
+<h4>Performance Comparison</h4>
+
+<table>
+  <thead>
+    <tr><th>Run</th><th>Architecture</th><th>Best Val Acc</th><th>Params</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Run 2</td><td>4-stream, 1L, 4H</td><td>68.4%</td><td>1,451K</td></tr>
+    <tr><td>Run 3a</td><td>1-stream 660, 2L, 8H, fixed aux</td><td>55.7%</td><td>562K</td></tr>
+    <tr><td>Run 3b</td><td>1-stream 660, 2L, 8H, dynamic aux</td><td>55.4%</td><td>562K</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Dynamic scaling kept the gradient balanced but did not recover accuracy. The 0.3pp difference between Run 3a
+  and Run 3b is within noise. Both single-stream runs are 12-13pp below Run 2. The root cause is the
+  single-stream design itself: it has 2.6x fewer parameters and a 4x representation bottleneck.
+</p>
+
+<h4>Parameter Breakdown</h4>
+
+<table>
+  <thead>
+    <tr><th>Component</th><th>Run 2 (4-stream)</th><th>Run 3b (1-stream)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VSN</td><td>4 x 16.7K = 66.9K</td><td>1 x 17.1K</td></tr>
+    <tr><td>TCN</td><td>4 x 122.9K = 491.8K</td><td>1 x 122.9K</td></tr>
+    <tr><td>Transformer</td><td>4 x 198.3K = 793.1K</td><td>1 x 396.5K</td></tr>
+    <tr><td>Total</td><td>1,451K</td><td>562K</td></tr>
+  </tbody>
+</table>
+
+<h4>Representation Bottleneck</h4>
+
+<p>
+  Run 2 concatenates four 128-dim embeddings into a 512-dim vector before the classification heads. Run 3b
+  compresses everything into one 128-dim vector. That is a 4x information bottleneck. The temporal structure
+  that Run 2 preserves across four separate streams (SHORT, MID, LONG, SLOW) is lost when forced through a
+  single 128-dim representation.
+</p>
+
+<p>
+  The params-per-position ratio makes the capacity gap concrete. Run 3b has only 601 params per position
+  (660 positions, 396K transformer params). Run 2's SHORT stream has 3,305 params per position (60 positions,
+  198K params). With 660 positions and only 396K transformer parameters, the attention mechanism dilutes rather
+  than enriches. Each position gets too little dedicated capacity to learn meaningful temporal patterns.
+</p>
+
+<h4>VRAM Prevents Scaling Up</h4>
+
+<p>
+  Matching Run 2's 1.45M params in single-stream would need EMBED=256 with 3 layers, estimated at 32GB VRAM.
+  That barely fits an A100 and exceeds our 18GB budget. The 4-stream design is actually more VRAM-efficient
+  because each stream has lower $T^2$ cost in attention. Four streams of 60, 60, 120, 240 positions cost far
+  less than one stream of 660 positions.
+</p>
+
+<p>
+  Longer sequences do not automatically help Transformers. That claim assumes sufficient model capacity. NLP
+  Transformers that benefit from long context have hundreds of millions of parameters. Ours has 562K. At that
+  scale, the quadratic attention cost of long sequences is a liability, not an advantage.
+</p>
+
+<h4>What Is Retained for Run 4</h4>
+
+<p>
+  Dynamic auxiliary scaling is validated and retained. It kept auxiliary losses at 43% (vs 71% in Run 3a),
+  confirming the gradient balance mechanism works as designed. VSN entropy of 0.004 is also retained, validated
+  across both Run 2 and Run 3b.
+</p>
+
+<h4>What Is Reverted for Run 4</h4>
+
+<p>
+  The single-stream architecture reverts to 4-stream. Two Transformer layers revert to one. Eight attention
+  heads revert to four. The two lag-15 cross-asset features (dxy_ret_15m, usdjpy_ret_15m) are removed as the
+  VSN ranked them in the bottom 10 with no measurable signal.
+</p>
 
 <h2>8. Current Status and Next Steps</h2>
 
@@ -3912,14 +4008,15 @@ export const content = `
   Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all
   three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30
   the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap
-  reduced 68%). Run 3 implemented four architectural changes (single-stream Transformer, multi-horizon targets,
+  reduced 68%). Run 3a implemented four architectural changes (single-stream Transformer, multi-horizon targets,
   lag-15 features, two Transformer layers) designed to break through the generalisation ceiling, but regressed
-  to 55.7% validation accuracy. Diagnostic investigation identified auxiliary loss dominance as the root cause:
-  the fixed-weight 30-minute and 120-minute target heads consumed 71% of the gradient by epoch 23, diluting
-  the primary 60-minute direction signal. Run 3b is in progress with dynamic auxiliary scaling that caps
-  non-direction loss at 20% of the primary loss. The immediate next steps are completing Run 3b, followed by
-  walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live
-  deployment.
+  to 55.7% validation accuracy. Diagnostic investigation identified auxiliary loss dominance as the root cause.
+  Run 3b applied dynamic auxiliary scaling, which fixed the loss balance (43% non-direction vs 71%) but did not
+  recover accuracy (55.4%). The root cause is the single-stream capacity bottleneck: 562K params and a 4x
+  representation bottleneck vs Run 2's 1,451K params and 512-dim concatenated representation. Run 4 will revert
+  to the 4-stream architecture with dynamic auxiliary scaling retained. The immediate next steps are completing
+  Run 4, followed by walk-forward out-of-sample backtests on validation data and preparing the MT5 execution
+  bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
