@@ -13,16 +13,16 @@ export const content = `
 <p>
   We propose a cross-asset approach to dynamic lot scaling: using the <strong>directional disagreement between
   XAUUSD (gold) and XAGUSD (silver)</strong> as a real-time confidence signal for position sizing in a gold
-  scalping system. The premise is intuitive&mdash;when gold and silver move in unison, the underlying precious
-  metals regime is coherent and signals are more reliable. When they diverge, regime uncertainty increases and
-  position sizes should be reduced.
+  scalping system. The premise is intuitive. Gold and silver are both precious metals, so they tend to move
+  together. When they do move in unison, the underlying precious metals regime is coherent and trading signals
+  are more reliable. When they diverge, regime uncertainty increases and position sizes should be reduced.
 </p>
 
 <h3>1.2 The Gold-Silver Relationship</h3>
 
 <p>
   Gold and silver share approximately <strong>77% contemporaneous correlation</strong> on daily returns
-  over the past decade. At the M1 (one-minute) frequency, this correlation drops to roughly 45&ndash;55%,
+  over the past decade. At the M1 (one-minute) frequency, this correlation drops to roughly 45 to 55%,
   reflecting the increased influence of instrument-specific microstructure. The gold-silver ratio
   (XAUUSD / XAGUSD) has historically ranged from 40:1 to 125:1, with a long-run mean near 80:1. Both
   metals respond to common macro drivers: real interest rates, USD strength, inflation expectations, and
@@ -33,7 +33,7 @@ export const content = `
   However, silver also has significant industrial demand (~50% of total demand vs. &lt;10% for gold),
   creating periods where silver diverges from gold due to manufacturing PMI data, copper/base metals moves,
   or supply disruptions. These divergence periods are precisely when a gold-only trading signal is most
-  likely to fail&mdash;the precious metals complex is not moving as a unit, and gold-specific factors
+  likely to fail. The precious metals complex is not moving as a unit, and gold-specific factors
   (central bank purchases, geopolitical flows) may dominate.
 </p>
 
@@ -51,12 +51,17 @@ export const content = `
 <h3>2.1 Definition</h3>
 
 <p>
-  The directional disagreement metric, $d_{20}$ (abbreviated dd20), counts the number of
-  bars in the trailing 20 M1 bars where gold and silver moved in opposite directions. The computation algorithm
-  is as follows:
+  <strong>Directional disagreement</strong> is a simple concept: it counts how often gold and silver
+  moved in opposite directions over a recent window of time. If gold went up on a given one-minute bar
+  but silver went down (or vice versa), that bar counts as a "disagreement." The more disagreements there
+  are in a short window, the less aligned the two metals are, and the less reliable any gold-only trading
+  signal is likely to be.
 </p>
 
-<p>The dd20 metric is defined formally as:</p>
+<p>
+  The specific metric, $d_{20}$ (abbreviated <strong>dd20</strong>), counts the number of
+  bars in the trailing 20 M1 bars where gold and silver moved in opposite directions. It is defined formally as:
+</p>
 
 $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\neq \\text{dir}^{\\text{XAG}}_i]$$
 
@@ -81,7 +86,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   <li><strong>Fallback for sparse XAG data:</strong> If fewer than 15 of the 20 XAU bars can be matched
   to an XAG bar by timestamp, the metric returns $d_{20} = -1$ with tier "??" and a neutral
   multiplier of 1.0x. This prevents unreliable readings during XAG data gaps (common during Asian session
-  when silver spreads widen to $0.05&ndash;$0.10 and some brokers thin their feeds).</li>
+  when silver spreads widen to $0.05 to $0.10 and some brokers thin their feeds).</li>
   <li><strong>Scaling for partial matches:</strong> If 17 of 20 bars match and 6 disagree, the raw count
   of 6 is scaled to $\\lfloor 6 \\times 20 / 17 \\rfloor \\approx 7$ to make the metric comparable across
   different match rates.</li>
@@ -130,15 +135,15 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   Gold and silver share fundamental drivers: real interest rates, USD strength, inflation expectations, and
   safe-haven demand. When both metals agree on short-term direction, these shared drivers are likely dominant.
   When they disagree, idiosyncratic factors (industrial demand for silver, central bank purchases for gold,
-  or simple microstructure noise) are overriding the shared signal, reducing the reliability of any
+  or simple microstructure noise) are overriding the shared signal. This reduces the reliability of any
   directional prediction.
 </p>
 
 <p>
-  The 20-bar window (20 minutes) was chosen as a round number representing recent history. It is short enough
-  to reflect current regime conditions but long enough to smooth out single-bar noise. The window was
-  <strong>not optimized</strong>&mdash;it was selected a priori based on the intuition that 20 minutes captures
-  the timescale of regime transitions in precious metals during active trading hours.
+  The 20-bar window (20 minutes) was chosen as a round number representing recent history. It was
+  <strong>not optimized</strong>. It was selected a priori based on the intuition that 20 minutes captures
+  the timescale of regime transitions in precious metals during active trading hours. The window is short enough
+  to reflect current regime conditions but long enough to smooth out single-bar noise.
 </p>
 
 <h2>3. XAG Last Bar Reversal Signal</h2>
@@ -163,10 +168,16 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 <h3>3.2 Interpretation</h3>
 
 <p>
+  To understand "runs": a <strong>run</strong> is a sequence of consecutive one-minute bars that all move in the
+  same direction. For example, three bars in a row where close &gt; open counts as a bullish run of length 3.
+  The scalper bets that after a run, price will reverse.
+</p>
+
+<p>
   When the gold scalper detects a bullish run (3 consecutive up bars) and prepares to sell the reversal,
   checking whether silver's last bar was bearish provides real-time cross-asset confirmation. If XAG has
   already begun moving downward while gold was still running up, it suggests the precious metals complex
-  is beginning to shift&mdash;silver is leading the reversal.
+  is beginning to shift. Silver is leading the reversal.
 </p>
 
 <p>
@@ -253,7 +264,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <th>Profit Factor</th>
   </tr>
   <tr>
-    <td>0 &ndash; 4 (strong agreement)</td>
+    <td>0 to 4 (strong agreement)</td>
     <td>2,847</td>
     <td>59.2%</td>
     <td>[57.4%, 61.0%]</td>
@@ -261,7 +272,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <td>1.87</td>
   </tr>
   <tr>
-    <td>5 &ndash; 8</td>
+    <td>5 to 8</td>
     <td>7,412</td>
     <td>55.1%</td>
     <td>[53.9%, 56.2%]</td>
@@ -269,7 +280,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <td>1.52</td>
   </tr>
   <tr>
-    <td>9 &ndash; 12</td>
+    <td>9 to 12</td>
     <td>6,893</td>
     <td>51.8%</td>
     <td>[50.6%, 53.0%]</td>
@@ -277,7 +288,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <td>1.11</td>
   </tr>
   <tr>
-    <td>13 &ndash; 16</td>
+    <td>13 to 16</td>
     <td>3,102</td>
     <td>48.3%</td>
     <td>[46.6%, 50.1%]</td>
@@ -285,7 +296,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <td>0.87</td>
   </tr>
   <tr>
-    <td>17 &ndash; 20 (strong divergence)</td>
+    <td>17 to 20 (strong divergence)</td>
     <td>746</td>
     <td>44.1%</td>
     <td>[40.5%, 47.7%]</td>
@@ -365,13 +376,13 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   The monotonic degradation across buckets is notable. Signals fired during strong gold-silver agreement
   (dd20 &le; 4) achieve a 59.2% win rate and profit factor of 1.87, while those fired during strong
   divergence (dd20 &ge; 17) are net losers with a 44.1% win rate and profit factor of 0.68. The spread
-  between the best and worst buckets is 15.1 percentage points in win rate&mdash;a massive effect for a
+  between the best and worst buckets is 15.1 percentage points in win rate. That is a massive effect for a
   zero-parameter metric.
 </p>
 
 <p>
   The transition from profitability to unprofitability occurs at dd20 &asymp; 13, where the win rate drops
-  below the breakeven threshold (which, given asymmetric TP/SL ratios, sits near 48&ndash;49% for most configs).
+  below the breakeven threshold (which, given asymmetric TP/SL ratios, sits near 48 to 49% for most configs).
   This breakeven crossing provides a natural boundary for tier design.
 </p>
 
@@ -429,10 +440,10 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 
 <p>
   The dd20 metric dominates all alternatives by a factor of 2.5x or more in absolute correlation magnitude.
-  Notably, the run length (the number of consecutive same-direction bars that triggered the signal) has
-  essentially zero predictive power for trade outcomes (rho = +0.02, p = 0.14). This is a counterintuitive
-  finding: longer runs do not produce better reversals. The regime coherence captured by dd20 is far more
-  informative than the signal's own characteristics.
+  One counterintuitive finding: the run length (the number of consecutive same-direction bars that triggered
+  the signal) has essentially zero predictive power for trade outcomes (rho = +0.02, p = 0.14). Longer runs
+  do not produce better reversals. The regime coherence captured by dd20 is far more informative than the
+  signal's own characteristics.
 </p>
 
 <h2>5. XAG Lot Tier System</h2>
@@ -441,7 +452,16 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 
 <p>
   Based on the empirical findings, we implemented a four-tier lot scaling system. The tiers combine
-  dd20 with the XAG last-bar reversal signal, creating a 2D classification of signal confidence:
+  dd20 with the XAG last-bar reversal signal, creating a 2D classification of signal confidence.
+</p>
+
+<p>
+  The logic behind the tiers is straightforward. Gold and silver usually move together because they share
+  the same fundamental drivers (real rates, USD, safe-haven flows). When the two metals agree on direction,
+  it means those shared drivers are in control, and a gold reversal signal is more likely to be real. When
+  they diverge, something idiosyncratic is happening (maybe industrial demand is pulling silver one way, or
+  central bank buying is pushing gold the other). In that case, the gold signal is less trustworthy, so the
+  system trades a smaller position.
 </p>
 
 <table>
@@ -471,11 +491,11 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
   </tr>
   <tr>
     <td><strong>T3</strong></td>
-    <td>dd20 = 9 &ndash; 12</td>
+    <td>dd20 = 9 to 12</td>
     <td>0.75x</td>
     <td>51.8%</td>
     <td>1.11</td>
-    <td>Moderate divergence&mdash;reduce exposure</td>
+    <td>Moderate divergence, reduce exposure</td>
   </tr>
   <tr>
     <td><strong>T4</strong></td>
@@ -483,7 +503,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
     <td>0.50x</td>
     <td>47.1%</td>
     <td>0.82</td>
-    <td>Significant divergence&mdash;minimum exposure</td>
+    <td>Significant divergence, minimum exposure</td>
   </tr>
 </table>
 
@@ -558,14 +578,16 @@ $$\\text{lot}_{\\text{actual}} = \\text{clamp}\\left(\\text{lot}_{\\text{base}} 
 <p>
   While dd20 and the XAG reversal signal provide cross-asset confidence, the composite quality score
   adds instrument-specific market condition features. The score combines four metrics computed from a
-  150-bar lookback window on XAUUSD, each capturing a different dimension of "good trading conditions":
+  150-bar lookback window on XAUUSD, each capturing a different dimension of "good trading conditions."
 </p>
 
 <h3>6.2 Component Features</h3>
 
 <p>
-  <strong>1. Parkinson Volatility (30-bar window):</strong> The Parkinson (1980) estimator uses high-low
-  range data, which is more efficient than close-close volatility:
+  <strong>1. Parkinson Volatility (30-bar window):</strong> This measures how much price swings within
+  each bar, using the high and low of each candle rather than just the closing price. It is a more accurate
+  estimate of true volatility because it captures intra-bar movement that close-to-close measures miss. The
+  Parkinson (1980) formula is:
 </p>
 
 $$\\sigma_P = \\sqrt{\\frac{1}{4n \\ln 2} \\sum_{i=1}^{n} \\left(\\ln \\frac{H_i}{L_i}\\right)^2}$$
@@ -573,60 +595,63 @@ $$\\sigma_P = \\sqrt{\\frac{1}{4n \\ln 2} \\sum_{i=1}^{n} \\left(\\ln \\frac{H_i
 <p>where $n = 30$ is the lookback window, $H_i$ and $L_i$ are the high and low of bar $i$.</p>
 
 <p>
-  Higher PV indicates wider ranges and more opportunity for the retracement to develop. However, extremely
-  high PV (crash-like conditions) degrades signal quality. The z-score normalisation captures this
-  non-linearity: moderate positive z-scores are favourable, extreme positives are not.
+  Higher Parkinson volatility indicates wider ranges and more opportunity for the retracement to develop.
+  However, extremely high values (crash-like conditions) degrade signal quality. The z-score normalisation
+  captures this non-linearity: moderate positive z-scores are favourable, extreme positives are not.
 </p>
 
 <p>
-  <strong>2. Efficiency Ratio (60-bar window):</strong> The Kaufman (1995) efficiency ratio measures how
-  "trendy" recent price action has been:
+  <strong>2. Efficiency Ratio (60-bar window):</strong> This measures how "straight" a price move has been.
+  If price traveled 10 points over 60 bars but took a zigzag path covering 100 points of total movement, the
+  ratio would be 10/100 = 0.10 (very choppy). If it traveled 10 points in a nearly straight line covering
+  only 12 points of total movement, the ratio would be 10/12 = 0.83 (very trendy). The Kaufman (1995)
+  formula is:
 </p>
 
 $$\\text{ER} = \\frac{|\\text{close}_{t} - \\text{close}_{t-60}|}{\\sum_{i=t-59}^{t} |\\text{close}_i - \\text{close}_{i-1}|} \\in [0, 1]$$
 
 <p>
-  ER near 1.0 indicates a strong, efficient trend (price moved in a straight line). ER near 0.0 indicates
-  choppy, mean-reverting conditions. For a retracement scalper, moderate ER values are optimal: enough
-  trend to create the run, but not so much that the trend overwhelms the reversal.
+  For a retracement scalper, moderate ER values are optimal: enough trend to create the run, but not so
+  much that the trend overwhelms the reversal.
 </p>
 
 <p>
-  <strong>3. Channel Width (60-bar window):</strong> The normalised price range over the lookback:
+  <strong>3. Channel Width (60-bar window):</strong> This measures the total price range over the lookback
+  period, expressed as a fraction of the current price. A wider channel means price has more room to move
+  before hitting support or resistance, improving the probability that the take-profit target will be reached.
+  The formula is:
 </p>
 
 $$\\text{CW} = \\frac{\\max(\\text{high}_{t-60:t}) - \\min(\\text{low}_{t-60:t})}{\\text{close}_t}$$
 
 <p>
-  Wider channels indicate more room for price to move before hitting support/resistance, improving the
-  probability that the TP target will be reached.
-</p>
-
-<p>
-  <strong>4. Distance from MA120:</strong> The normalised distance from the 120-bar simple moving average:
+  <strong>4. Distance from MA120:</strong> This measures how far the current price is from its 120-bar
+  moving average, expressed as a fraction. When price is far from the average, mean-reversion is more likely.
+  However, extremely stretched prices may indicate a structural breakout, reducing retracement reliability.
+  The formula is:
 </p>
 
 $$\\text{DM} = \\frac{|\\text{close}_t - \\text{MA}_{120}|}{\\text{close}_t}$$
 
-<p>
-  Extreme DM values (price far from the moving average) indicate stretched conditions where mean-reversion
-  is more likely. However, extremely stretched prices may indicate a structural breakout, reducing
-  retracement reliability.
-</p>
-
 <h3>6.3 Composite Calculation</h3>
 
 <p>
-  Each feature is z-score normalised against its own 120-bar rolling history, then summed:
+  Each feature is z-score normalised against its own 120-bar rolling history, then summed.
+  The z-score tells us whether each feature is currently above or below its recent average, measured in
+  standard deviations:
 </p>
-
-<p>Each feature $f$ is z-score normalised against its 120-bar rolling history:</p>
 
 $$z_f = \\frac{f - \\mu_{f,120}}{\\max(\\sigma_{f,120},\\, 10^{-8})}$$
 
-<p>The composite quality score is then:</p>
+<p>The composite quality score is then the sum of the four z-scores:</p>
 
 $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{\\text{DM}}$$
+
+<p>
+  In plain terms: if volatility, trend efficiency, channel width, and distance from the mean are all above
+  their recent averages, the composite score will be positive and large, indicating favourable conditions.
+  If most are below average, the score will be negative, indicating poor conditions.
+</p>
 
 <p>
   The composite score is then mapped to a lot multiplier via percentile ranking:
@@ -638,23 +663,23 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
     <th>Lot Multiplier Range</th>
   </tr>
   <tr>
-    <td>0th &ndash; 10th (worst conditions)</td>
+    <td>0th to 10th (worst conditions)</td>
     <td>0.50x</td>
   </tr>
   <tr>
-    <td>10th &ndash; 30th</td>
+    <td>10th to 30th</td>
     <td>0.75x</td>
   </tr>
   <tr>
-    <td>30th &ndash; 70th (neutral)</td>
+    <td>30th to 70th (neutral)</td>
     <td>1.00x</td>
   </tr>
   <tr>
-    <td>70th &ndash; 90th</td>
+    <td>70th to 90th</td>
     <td>1.25x</td>
   </tr>
   <tr>
-    <td>90th &ndash; 100th (best conditions)</td>
+    <td>90th to 100th (best conditions)</td>
     <td>2.00x</td>
   </tr>
 </table>
@@ -685,7 +710,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
   <tr>
     <td>XAG $d_{20}$</td>
     <td>Integer</td>
-    <td>Disagreement value at signal time (0&ndash;20, or &minus;1 for insufficient data)</td>
+    <td>Disagreement value at signal time (0 to 20, or &minus;1 for insufficient data)</td>
   </tr>
   <tr>
     <td>XAG last reversed</td>
@@ -710,7 +735,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
   <tr>
     <td>Composite lot multiplier</td>
     <td>Float</td>
-    <td>Percentile-mapped multiplier (0.5&ndash;2.0)</td>
+    <td>Percentile-mapped multiplier (0.5 to 2.0)</td>
   </tr>
 </table>
 
@@ -799,7 +824,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
 <h3>8.1 Why Gold-Silver Disagreement Matters</h3>
 
 <p>
-  At the M1 frequency, the gold-silver correlation of 45&ndash;55% means that roughly half of bar-level
+  At the M1 frequency, the gold-silver correlation of 45 to 55% means that roughly half of bar-level
   movements are shared and half are idiosyncratic. The dd20 metric effectively measures where the current
   market sits on this correlation spectrum. When dd20 is low, the shared macro/monetary drivers are
   dominant. A gold reversal signal in this environment is more likely to reflect a genuine shift in the
@@ -810,7 +835,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
   When dd20 is high, idiosyncratic factors dominate: perhaps silver is responding to an industrial metals
   move (copper rally, zinc supply disruption) while gold is tracking USD strength or central bank
   purchases. In this regime, a gold reversal signal may be driven by a gold-specific factor that silver
-  does not corroborate, reducing confidence that the reversal reflects a broad precious metals regime shift.
+  does not corroborate. That reduces confidence that the reversal reflects a broad precious metals regime shift.
 </p>
 
 <h3>8.2 Regime Detection Without a Model</h3>
@@ -840,17 +865,17 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
 </p>
 
 <p>
-  The 20-bar window was not optimized&mdash;it was chosen as a round number representing 20 minutes
+  The 20-bar window was not optimized. It was chosen as a round number representing 20 minutes
   of recent history. A systematic grid search over window lengths (10, 15, 20, 30, 60) could potentially
   improve performance, but risks overfitting to the evaluation period. The composite quality score's
   percentile mapping was similarly chosen from first principles rather than optimization.
 </p>
 
 <p>
-  The sample size in the extreme buckets (dd20 17&ndash;20: n=746) is substantially smaller than the
+  The sample size in the extreme buckets (dd20 17 to 20: n=746) is substantially smaller than the
   central buckets, leading to wider confidence intervals. While the monotonic trend is robust, the exact
   win rates at the extremes should be interpreted with appropriate uncertainty (95% CI width of ~7 percentage
-  points for the 17&ndash;20 bucket vs. ~1.2 points for the 5&ndash;8 bucket).
+  points for the 17 to 20 bucket vs. ~1.2 points for the 5 to 8 bucket).
 </p>
 
 <h2>9. Conclusion</h2>
@@ -874,7 +899,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
   The composite quality score provides a second, orthogonal axis of lot scaling based on instrument-specific
   conditions (Parkinson volatility, efficiency ratio, channel width, MA distance). Together, the XAG tier
   and composite score create a two-dimensional confidence surface that modulates position size from 0.25x
-  (T4 &times; worst composite) to 3.0x (T1 &times; best composite) of the base lot, without requiring any
+  (T4 at worst composite) to 3.0x (T1 at best composite) of the base lot, without requiring any
   fitted model, parameter optimization, or periodic recalibration.
 </p>
 
@@ -884,7 +909,7 @@ $$S_{\\text{composite}} = z_{\\text{PV}} + z_{\\text{ER}} + z_{\\text{CW}} + z_{
     zero-parameter counting metric, is the strongest known predictor of intraday gold scalping signal quality.
     The approach generalizes the principle that position sizing should reflect not just the traded instrument's
     characteristics, but the coherence of the broader asset complex. Implementation requires only M1 OHLC data
-    for both XAUUSD and XAGUSD&mdash;no additional data sources, fitted models, or parameter optimization.
+    for both XAUUSD and XAGUSD. No additional data sources, fitted models, or parameter optimization are needed.
   </p>
 </div>
 `;
