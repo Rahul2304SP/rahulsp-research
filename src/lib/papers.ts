@@ -2,7 +2,6 @@ import { content as crossAssetContent } from "./papers/cross-asset-lead-lag";
 import { content as goldssmContent } from "./papers/goldssm-architecture";
 import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
-import { content as featurePipelineContent } from "./papers/107-feature-pipeline";
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
 
@@ -78,16 +77,6 @@ export const papers: Paper[] = [
       "We evaluate all 101 formulaic alpha factors from Kakushadze (2016) on intraday XAUUSD data. Only 4 of 101 factors achieve AUC above 0.515 for direction prediction, and only two (alpha024 and alpha083) survive forward selection. The failure mode is structural: Alpha101 factors exploit cross-sectional dispersion across a stock universe, a mechanism that does not exist for a single instrument. We document which factor families fail and why.",
     author: "Rahul S. P.",
     content: alpha101Content,
-  },
-  {
-    slug: "107-features-gold-pipeline",
-    title: "107 Features for Gold: Building an Institutional Feature Pipeline",
-    date: "February 2026",
-    category: "Feature Engineering",
-    abstract:
-      "We describe the design and validation of a 107-feature pipeline for intraday gold trading. The pipeline spans six feature groups: price dynamics, cross-asset signals, volatility regimes, microstructure proxies, temporal patterns, and statistical complexity measures. We detail the engineering choices behind each group, the cache invalidation strategy, and the empirical AUC contribution of each feature family. The pipeline supports both batch backtesting and live execution with sub-second latency.",
-    author: "Rahul S. P.",
-    content: featurePipelineContent,
   },
 ];
 
