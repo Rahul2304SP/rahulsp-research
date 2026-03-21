@@ -1,4 +1,3 @@
-import { content as entrySpeedContent } from "./papers/entry-speed-vs-confirmation";
 import { content as crossAssetContent } from "./papers/cross-asset-lead-lag";
 import { content as goldssmContent } from "./papers/goldssm-architecture";
 import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
@@ -59,16 +58,6 @@ export const papers: Paper[] = [
       "We test for linear lead-lag relationships across major asset pairs over 5.5 years of minute-level data. For gold (XAUUSD), no robust lead-lag signal exists from DXY, silver, or equity indices at any horizon. For equities, only MSFT-to-NAS100 and GS-to-US30 at the 5-minute horizon survive out-of-sample validation. The results challenge common assumptions about cross-asset predictability in systematic trading.",
     author: "Rahul S. P.",
     content: crossAssetContent,
-  },
-  {
-    slug: "entry-speed-vs-confirmation",
-    title: "Entry Speed vs Confirmation Quality in Tick-Level Scalping",
-    date: "March 2026",
-    category: "Empirical Studies",
-    abstract:
-      "We study the trade-off between entry speed and confirmation quality across 21,000 scalping signals over 90 days. Using 42.9 million ticks of XAUUSD data, we show that the edge in consecutive-bar reversal signals is maximal at the exact instant price crosses last_close and decays rapidly. Pending STOP orders at the break level outperform all confirmation-based entries by $12,646, with a profit factor of 1.59 vs 1.34. Every post-hoc sustain filter tested produced negative returns at all parameter combinations.",
-    author: "Rahul S. P.",
-    content: entrySpeedContent,
   },
   {
     slug: "goldssm",
