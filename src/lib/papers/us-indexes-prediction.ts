@@ -6,8 +6,8 @@ export const content = `
   All three Run 1 and Run 2 diagnostics complete. All indices have deploy-candidate models.
   NAS100 best at 68.9% val accuracy (negative generalisation gap),
   US30 68.4% with best class balance (1.6pp gap), US500 largest Run 1 to Run 2 improvement (class gap 15.5pp to 4.9pp).
-  Run 3 architecture redesign in progress: single-stream 660-bar Transformer, multi-horizon targets.
-  Walk-forward backtesting next.
+  Run 3 architecture changes regressed to 55.7% val accuracy. Root cause identified: auxiliary loss dominance
+  (30m+120m targets consumed 71% of gradient by epoch 23). Run 3b (dynamic auxiliary scaling) in progress.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -19,7 +19,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign in progress (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Walk-forward backtesting next.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3 regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b (dynamic auxiliary scaling) in progress.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2324,6 +2324,7 @@ export const content = `
 <tbody>
 <tr><td>US30</td><td>Run 1</td><td>3</td><td>67.8%</td><td>0.933</td><td>6.0pp</td><td>3.1x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
@@ -3355,8 +3356,9 @@ export const content = `
 <h3>7.6 Run 3: Architecture Redesign</h3>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>In Progress</strong> &mdash; Run 3 implements four structural changes based on Run 1 and Run 2 findings.
-  Results are not yet available. The changes described below are planned, not confirmed.
+  <strong>Complete</strong> &mdash; Run 3 implemented four structural changes based on Run 1 and Run 2 findings.
+  Results are a significant regression (55.7% val accuracy). See Section 7.7 for failure analysis,
+  root cause diagnosis, and proposed fix.
 </div>
 
 <p>
@@ -3723,10 +3725,201 @@ export const content = `
   <text x="465" y="375" class="pp-text-sub">weight: 0.3</text>
 </svg>
 
+<h3>7.7 Run 3 Results: Failure Analysis</h3>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  <strong>Run 3 regressed from 68.4% to 55.7% val accuracy.</strong> Root cause: auxiliary loss (30m+120m targets)
+  dominated 71% of the gradient by epoch 23. The 60m direction signal was diluted. Fix: dynamic auxiliary scaling
+  capping non-direction loss at 20% of the primary loss.
+</div>
+
+<p>
+  Run 3 is a negative result. The four architectural changes described in Section 7.6 were implemented and
+  trained on US30. Rather than improving on the Run 2 ceiling of 68.4%, the model regressed to 55.7% validation
+  accuracy, barely above random. This section documents the regression, the five diagnostic investigations
+  performed, the root cause identified, and the proposed fix. Negative results are valuable when they isolate
+  the failure mechanism precisely enough to guide the next iteration.
+</p>
+
+<h4>Performance Comparison</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 1</th><th>Run 2</th><th>Run 3</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Best Val Accuracy</td><td>67.8% (Ep 3)</td><td>68.4% (Ep 5)</td><td style="color:#dc2626; font-weight:600;">55.7% (Ep 3)</td></tr>
+    <tr><td>Best Val Loss</td><td>0.933</td><td>0.981</td><td style="color:#dc2626; font-weight:600;">1.562</td></tr>
+    <tr><td>Train Acc at best</td><td>74.5%</td><td>76.6%</td><td>65.5%</td></tr>
+    <tr><td>Class Gap</td><td>6.0pp</td><td>1.6pp</td><td style="color:#dc2626; font-weight:600;">16.7pp</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The regression is severe across every metric. Validation accuracy dropped 12.7 percentage points from Run 2.
+  Validation loss nearly doubled. The class gap widened from 1.6pp (near-perfect balance in Run 2) to 16.7pp,
+  indicating the model reverted to a strong directional bias. Five diagnostic investigations were performed to
+  isolate the cause.
+</p>
+
+<h4>Diagnostic 1: Training Accuracy Comparison</h4>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_02_train_accuracy_3runs.png" alt="Training accuracy comparison across Runs 1, 2, and 3. Run 3 learns slower, ruling out pure overfitting." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Training accuracy comparison. Run 3 learns slower on the training set itself, ruling out pure overfitting as the explanation.</figcaption>
+</figure>
+
+<p>
+  Run 3 learns slower on the training data (72.9% vs 78.9% at epoch 6) and generalises worse (55.4% vs 67.2%).
+  This rules out the standard overfitting narrative where the model memorises training data at the expense of
+  validation. Run 3 is failing to learn the training signal in the first place. Something in the architecture
+  is preventing the model from fitting the 60-minute direction target.
+</p>
+
+<h4>Diagnostic 2: Generalisation Gap</h4>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_03_generalization_gap_3runs.png" alt="Generalisation gap growth rate across Runs 1, 2, and 3. Run 3's gap widens fastest." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Generalisation gap (train accuracy minus validation accuracy) over training. Run 3's gap widens fastest despite lower absolute training accuracy.</figcaption>
+</figure>
+
+<p>
+  The generalisation gap grows much faster in Run 3: 29.7 percentage points at epoch 10 versus 21.4pp for Run 2.
+  Combined with Diagnostic 1, this means Run 3 is simultaneously learning less on training data and generalising
+  worse. The model is wasting capacity on something other than the primary 60-minute direction signal.
+</p>
+
+<h4>Diagnostic 3: Loss Component Breakdown (Root Cause)</h4>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_04_loss_components_run3.png" alt="Loss component breakdown showing auxiliary loss dominating the gradient in Run 3." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Loss component breakdown for Run 3. The non-direction (auxiliary) loss increasingly dominates the total gradient as training progresses.</figcaption>
+</figure>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_05_aux_dominance_run3.png" alt="Auxiliary loss as percentage of total gradient over training epochs." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Auxiliary loss as a percentage of total loss over training. By epoch 23, 71% of the gradient comes from non-direction targets.</figcaption>
+</figure>
+
+<p>
+  This is the root cause. By epoch 12, 65% of the gradient comes from non-direction losses (the auxiliary
+  30-minute and 120-minute target heads). By epoch 23, this rises to 71%. The model optimises for auxiliary
+  targets, not the 60-minute direction that is actually traded.
+</p>
+
+<p>
+  The mechanism is straightforward. The 60-minute direction loss (primary) drops faster than the auxiliary losses
+  because the 60-minute horizon is the easiest to fit (it has the most training signal per label). As the primary
+  loss shrinks, the auxiliary losses, which carry a fixed weight of 0.3 each, occupy a growing share of the total
+  gradient. The backbone parameters are updated primarily to improve 30-minute and 120-minute predictions, which
+  are not aligned with the 60-minute direction the model is evaluated on.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Total Loss</th><th>Direction (60m)</th><th>Non-direction (30m+120m)</th><th>% Non-direction</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>1.443</td><td>0.695</td><td>0.748</td><td>51.8%</td></tr>
+    <tr><td>6</td><td>1.024</td><td>0.462</td><td>0.562</td><td>54.9%</td></tr>
+    <tr><td>12</td><td>0.573</td><td>0.199</td><td>0.374</td><td style="color:#dc2626; font-weight:600;">65.2%</td></tr>
+    <tr><td>23</td><td>0.427</td><td>0.124</td><td>0.303</td><td style="color:#dc2626; font-weight:600;">71.0%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The loss breakdown makes the failure mechanism explicit. At epoch 1, the split is roughly even (51.8%
+  non-direction). By epoch 12, the primary direction loss has dropped to 0.199 while the auxiliary losses remain
+  at 0.374, giving non-direction losses a 65.2% share of the gradient. By epoch 23, the imbalance reaches 71%.
+  The shared backbone is being trained predominantly to predict 30-minute and 120-minute horizons, diluting the
+  60-minute signal that determines validation accuracy.
+</p>
+
+<h4>Diagnostic 4: VSN Feature Selection</h4>
+
+<p>
+  The Variable Selection Network was examined to determine whether it had been corrupted by the architectural
+  changes. It had not. The top feature remains dist_ma120, consistent with Runs 1 and 2. The overall ranking
+  of the top 10 features is stable. The two new lag-15 cross-asset features (dxy_ret_15m and usdjpy_ret_15m)
+  rank in the bottom 10, indicating minimal additional signal but also no disruption. The VSN is not the
+  source of the regression.
+</p>
+
+<h4>Diagnostic 5: Confounded Changes</h4>
+
+<p>
+  Run 3 made four simultaneous changes (single-stream architecture, multi-horizon targets, lag-15 features,
+  two Transformer layers). The loss component breakdown in Diagnostic 3 confirms that auxiliary loss dominance
+  is the root cause of the regression. However, because all four changes were applied together, the three
+  remaining changes (single-stream, lag-15 features, two Transformer layers) remain possible contributors
+  that require individual ablation to clear. The auxiliary loss fix is necessary; whether it is sufficient
+  will be determined by Run 3b.
+</p>
+
+<h4>Why US500 and NAS100 Were Not Run</h4>
+
+<p>
+  All three indices showed identical dynamics in Runs 1 and 2: the same overfitting timing, the same VSN
+  feature rankings, the same learning rate sensitivity. The regression observed in Run 3 is architecture-level,
+  not data-level. The auxiliary loss dominance mechanism applies equally to all three indices because it stems
+  from the fixed 0.3 weight assigned to each auxiliary head, which is independent of the underlying data. Running
+  US500 and NAS100 with the same broken loss weighting would produce the same failure mode and waste compute
+  without generating new information.
+</p>
+
+<h4>Learning Rate Schedules</h4>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_06_lr_schedule_3runs.png" alt="Learning rate schedules across all three runs." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Learning rate schedules across Runs 1, 2, and 3. Run 3 uses the same warmup + cosine schedule as Run 2.</figcaption>
+</figure>
+
+<figure style="margin: 1.5rem 0;">
+  <img src="/charts/us-indexes/us30_run3_01_val_accuracy_3runs.png" alt="Validation accuracy across Runs 1, 2, and 3. Run 3 regresses to 55.7%." style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Validation accuracy across all three runs. Run 3 regresses sharply from the 68% ceiling established by Runs 1 and 2.</figcaption>
+</figure>
+
+<h4>Proposed Fix: Dynamic Auxiliary Loss Scaling</h4>
+
+<p>
+  The fix replaces the fixed auxiliary weight of 0.3 with a dynamic cap: auxiliary loss is scaled so that the
+  total non-direction loss never exceeds 20% of the primary direction loss. In early training, the auxiliary
+  losses are naturally within this budget because all three losses are large and roughly comparable. The model
+  benefits from the regularisation effect of multi-task learning. In late training, as the primary loss drops
+  faster, the auxiliary losses would normally dominate (as observed in Run 3). The dynamic cap prevents this
+  by scaling down the auxiliary gradients, ensuring that the backbone remains dominated by the 60-minute
+  direction signal throughout training.
+</p>
+
+<p>
+  Concretely, at each training step the total auxiliary loss (30m head loss times 0.3 plus 120m head loss
+  times 0.3) is computed. If this total exceeds 0.2 times the primary 60m direction loss, a scaling factor
+  is applied to bring it back to the 20% cap. The scaling is applied to the loss values before backpropagation,
+  so the gradient magnitudes respect the cap automatically. The 20% threshold was chosen as a conservative
+  starting point: enough auxiliary signal to provide regularisation, but low enough to prevent the gradient
+  takeover observed in Run 3.
+</p>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  <strong>In Progress</strong> &mdash; Run 3b with dynamic auxiliary scaling (non-direction loss capped at 20%
+  of primary direction loss) is currently in progress. Results will determine whether auxiliary loss dominance
+  was the sole cause of the regression or whether additional ablation of the architectural changes is needed.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 
 <p>
-  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30 the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap reduced 68%). Run 3 is in progress with four architectural changes (single-stream Transformer, multi-horizon targets, lag-15 features, two Transformer layers) designed to address the generalisation ceiling identified in Runs 1 and 2. The immediate next steps are completing the Run 3 training runs, followed by walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live deployment.
+  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all
+  three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30
+  the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap
+  reduced 68%). Run 3 implemented four architectural changes (single-stream Transformer, multi-horizon targets,
+  lag-15 features, two Transformer layers) designed to break through the generalisation ceiling, but regressed
+  to 55.7% validation accuracy. Diagnostic investigation identified auxiliary loss dominance as the root cause:
+  the fixed-weight 30-minute and 120-minute target heads consumed 71% of the gradient by epoch 23, diluting
+  the primary 60-minute direction signal. Run 3b is in progress with dynamic auxiliary scaling that caps
+  non-direction loss at 20% of the primary loss. The immediate next steps are completing Run 3b, followed by
+  walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live
+  deployment.
 </p>
 
 <h2>9. References</h2>
