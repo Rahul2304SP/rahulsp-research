@@ -7,7 +7,6 @@ import { content as featurePipelineContent } from "./papers/107-feature-pipeline
 import { content as dispersionContent } from "./papers/dispersion-trading";
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
-import { content as kalmanContent } from "./papers/kalman-hmm-gold";
 
 export interface Paper {
   slug: string;
@@ -40,16 +39,6 @@ export const papers: Paper[] = [
       "Using the Caldara-Iacoviello Geopolitical Risk Index matched to XAUUSD M1 data (2018-2026 overlap, ~94 monthly observations), we test whether GPR predicts gold returns. GPR level regimes condition return distributions (higher volatility and positive skew in high-GPR months), but directional predictive power is weak. The signal operates at monthly frequency, too slow for intraday trading but potentially useful as a regime filter.",
     author: "Rahul S. P.",
     content: gprContent,
-  },
-  {
-    slug: "kalman-hmm-gold",
-    title: "Kalman Filter and HMM Regime Detection for Gold Mean-Reversion",
-    date: "March 2026",
-    category: "Empirical Studies",
-    abstract:
-      "A Kalman drift filter extracts the latent drift rate of XAUUSD M1 returns, providing a real-time mean-reversion signal. A 2-state Hidden Markov Model overlay attempts to gate entries to mean-reverting regimes only. Results across 647 trades with grid-searched parameters.",
-    author: "Rahul S. P.",
-    content: kalmanContent,
   },
   {
     slug: "dispersion-trading",
