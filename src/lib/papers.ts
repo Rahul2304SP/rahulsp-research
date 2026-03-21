@@ -52,7 +52,7 @@ export const papers: Paper[] = [
   },
   {
     slug: "cross-asset-lead-lag",
-    title: "Cross-Asset Lead-Lag Dynamics: A 5.5-Year Empirical Study",
+    title: "Cross-Asset Lead-Lag Dynamics in Financial Markets",
     date: "March 2026",
     category: "Empirical Studies",
     abstract:
