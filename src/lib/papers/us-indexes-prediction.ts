@@ -3738,34 +3738,30 @@ export const content = `
   <tbody>
     <tr><td>1</td><td>Lo, A.W. &amp; MacKinlay, A.C.</td><td>1990</td><td>An Econometric Analysis of Nonsynchronous Trading</td><td><em>Journal of Econometrics</em></td></tr>
     <tr><td>2</td><td>Chordia, T. &amp; Swaminathan, B.</td><td>2000</td><td>Trading Volume and Cross-Autocorrelations in Stock Returns</td><td><em>Journal of Finance</em></td></tr>
-    <tr><td>3</td><td>Brennan, M.J., Jegadeesh, N. &amp; Swaminathan, B.</td><td>1993</td><td>Investment Analysis and the Adjustment of Stock Prices to Common Information</td><td><em>Review of Financial Studies</em></td></tr>
-    <tr><td>4</td><td>Stoll, H.R. &amp; Whaley, R.E.</td><td>1990</td><td>The Dynamics of Stock Index and Stock Index Futures Returns</td><td><em>J. Financial &amp; Quantitative Analysis</em></td></tr>
-    <tr><td>5</td><td>Hasbrouck, J.</td><td>2003</td><td>Intraday Price Formation in U.S. Equity Index Markets</td><td><em>Journal of Finance</em></td></tr>
-    <tr><td>6</td><td>Huth, N. &amp; Abergel, F.</td><td>2011</td><td>High Frequency Lead/Lag Relationships: Empirical Facts</td><td>arXiv:1111.7103</td></tr>
-    <tr><td>7</td><td>Engle, R.F.</td><td>2002</td><td>Dynamic Conditional Correlation</td><td><em>J. Business &amp; Economic Statistics</em></td></tr>
-    <tr><td>8</td><td>Forbes, K.J. &amp; Rigobon, R.</td><td>2002</td><td>No Contagion, Only Interdependence</td><td><em>Journal of Finance</em></td></tr>
-    <tr><td>9</td><td>Hamilton, J.D.</td><td>1989</td><td>A New Approach to the Economic Analysis of Nonstationary Time Series</td><td><em>Econometrica</em></td></tr>
-    <tr><td>10</td><td>Ang, A. &amp; Bekaert, G.</td><td>2002</td><td>International Asset Allocation With Regime Shifts</td><td><em>Review of Financial Studies</em></td></tr>
-    <tr><td>11</td><td>Barberis, N. &amp; Shleifer, A.</td><td>2003</td><td>Style Investing</td><td><em>J. Financial Economics</em></td></tr>
-    <tr><td>12</td><td>Moskowitz, T.J. &amp; Grinblatt, M.</td><td>1999</td><td>Do Industries Explain Momentum?</td><td><em>Journal of Finance</em></td></tr>
-    <tr><td>13</td><td>Moskowitz, T.J., Ooi, Y.H. &amp; Pedersen, L.H.</td><td>2012</td><td>Time Series Momentum</td><td><em>J. Financial Economics</em></td></tr>
-    <tr><td>14</td><td>Gatev, E., Goetzmann, W.N. &amp; Rouwenhorst, K.G.</td><td>2006</td><td>Pairs Trading: Performance of a Relative Value Arbitrage Rule</td><td><em>Review of Financial Studies</em></td></tr>
-    <tr><td>15</td><td>Zhu, X.</td><td>2024</td><td>Examining Pairs Trading Profitability</td><td>Yale Economics Working Paper</td></tr>
-    <tr><td>16</td><td>Greenwood, R. &amp; Sammon, M.</td><td>2023</td><td>The Disappearing Index Effect</td><td>Harvard Business School WP 23-025</td></tr>
-    <tr><td>17</td><td>Drechsler, I., Moreira, A. &amp; Savov, A.</td><td>2018</td><td>Volatility-Managed Portfolios</td><td><em>Journal of Finance</em></td></tr>
-    <tr><td>18</td><td>Chari, A., Stedman, K.D. &amp; Lundblad, C.</td><td>2025</td><td>Risk-on/risk-off: Measuring shifts in investor risk bearing capacity</td><td><em>J. Intl. Money and Finance</em></td></tr>
-    <tr><td>19</td><td>NBER WP 31907</td><td>2023</td><td>Risk-On Risk-Off: A Multifaceted Approach</td><td>NBER</td></tr>
-    <tr><td>20</td><td>Li</td><td>2025</td><td>Volatility Risk and Vol-of-Vol Risk: State-Dependent VIX-S&amp;P Correlations</td><td><em>J. Futures Markets</em></td></tr>
-    <tr><td>21</td><td>Rothe, J.</td><td>2023</td><td>Dynamic Sector Rotation</td><td>SSRN WP #4573209</td></tr>
-    <tr><td>22</td><td>Mamais</td><td>2025</td><td>Explaining and Predicting Momentum Performance Shifts</td><td><em>J. Forecasting</em></td></tr>
-    <tr><td>23</td><td>Li, Chen &amp; Liu</td><td>2025</td><td>High-frequency lead-lag in Chinese index futures</td><td>arXiv:2501.03171</td></tr>
-    <tr><td>24</td><td>Fry-McKibbin &amp; Hsiao</td><td>2018</td><td>Markov-Switching Models for US Equity Indices</td><td>Working Paper</td></tr>
-    <tr><td>25</td><td>Johansen, S.</td><td>1991</td><td>Estimation and Hypothesis Testing of Cointegration Vectors</td><td><em>Econometrica</em></td></tr>
-    <tr><td>26</td><td>CME Group</td><td>&mdash;</td><td>Stock Index Spread Opportunities</td><td>Education Whitepaper</td></tr>
-    <tr><td>27</td><td>Nasdaq</td><td>2020</td><td>A Tale of Three Crises in the Past Two Decades</td><td>Whitepaper</td></tr>
-    <tr><td>28</td><td>Nasdaq</td><td>2025</td><td>Understanding the DJIA: Price-Weighted vs. Cap-Weighted Attribution</td><td>Whitepaper</td></tr>
-    <tr><td>29</td><td>Lim, B., Ar&iacute;k, S.&Ouml;., Loeff, N. &amp; Pfister, T.</td><td>2021</td><td>Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting</td><td><em>International Journal of Forecasting</em></td></tr>
-    <tr><td>30</td><td>Granger, C.W.J.</td><td>1969</td><td>Investigating Causal Relations by Econometric Models and Cross-spectral Methods</td><td><em>Econometrica</em></td></tr>
+    <tr><td>3</td><td>Stoll, H.R. &amp; Whaley, R.E.</td><td>1990</td><td>The Dynamics of Stock Index and Stock Index Futures Returns</td><td><em>J. Financial &amp; Quantitative Analysis</em></td></tr>
+    <tr><td>4</td><td>Hasbrouck, J.</td><td>2003</td><td>Intraday Price Formation in U.S. Equity Index Markets</td><td><em>Journal of Finance</em></td></tr>
+    <tr><td>5</td><td>Huth, N. &amp; Abergel, F.</td><td>2011</td><td>High Frequency Lead/Lag Relationships: Empirical Facts</td><td>arXiv:1111.7103</td></tr>
+    <tr><td>6</td><td>Engle, R.F.</td><td>2002</td><td>Dynamic Conditional Correlation</td><td><em>J. Business &amp; Economic Statistics</em></td></tr>
+    <tr><td>7</td><td>Forbes, K.J. &amp; Rigobon, R.</td><td>2002</td><td>No Contagion, Only Interdependence</td><td><em>Journal of Finance</em></td></tr>
+    <tr><td>8</td><td>Hamilton, J.D.</td><td>1989</td><td>A New Approach to the Economic Analysis of Nonstationary Time Series</td><td><em>Econometrica</em></td></tr>
+    <tr><td>9</td><td>Ang, A. &amp; Bekaert, G.</td><td>2002</td><td>International Asset Allocation With Regime Shifts</td><td><em>Review of Financial Studies</em></td></tr>
+    <tr><td>10</td><td>Barberis, N. &amp; Shleifer, A.</td><td>2003</td><td>Style Investing</td><td><em>J. Financial Economics</em></td></tr>
+    <tr><td>11</td><td>Moskowitz, T.J. &amp; Grinblatt, M.</td><td>1999</td><td>Do Industries Explain Momentum?</td><td><em>Journal of Finance</em></td></tr>
+    <tr><td>12</td><td>Moskowitz, T.J., Ooi, Y.H. &amp; Pedersen, L.H.</td><td>2012</td><td>Time Series Momentum</td><td><em>J. Financial Economics</em></td></tr>
+    <tr><td>13</td><td>Zhu, X.</td><td>2024</td><td>Examining Pairs Trading Profitability</td><td>Yale Economics Working Paper</td></tr>
+    <tr><td>14</td><td>Greenwood, R. &amp; Sammon, M.</td><td>2023</td><td>The Disappearing Index Effect</td><td>Harvard Business School WP 23-025</td></tr>
+    <tr><td>15</td><td>Li</td><td>2025</td><td>Volatility Risk and Vol-of-Vol Risk: State-Dependent VIX-S&amp;P Correlations</td><td><em>J. Futures Markets</em></td></tr>
+    <tr><td>16</td><td>Rothe, J.</td><td>2023</td><td>Dynamic Sector Rotation</td><td>SSRN WP #4573209</td></tr>
+    <tr><td>17</td><td>Mamais</td><td>2025</td><td>Explaining and Predicting Momentum Performance Shifts</td><td><em>J. Forecasting</em></td></tr>
+    <tr><td>18</td><td>Li, Chen &amp; Liu</td><td>2025</td><td>High-frequency lead-lag in Chinese index futures</td><td>arXiv:2501.03171</td></tr>
+    <tr><td>19</td><td>Johansen, S.</td><td>1991</td><td>Estimation and Hypothesis Testing of Cointegration Vectors</td><td><em>Econometrica</em></td></tr>
+    <tr><td>20</td><td>Nasdaq</td><td>2020</td><td>A Tale of Three Crises in the Past Two Decades</td><td>Whitepaper</td></tr>
+    <tr><td>21</td><td>Nasdaq</td><td>2025</td><td>Understanding the DJIA: Price-Weighted vs. Cap-Weighted Attribution</td><td>Whitepaper</td></tr>
+    <tr><td>22</td><td>Lim, B., Ar&iacute;k, S.&Ouml;., Loeff, N. &amp; Pfister, T.</td><td>2021</td><td>Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting</td><td><em>International Journal of Forecasting</em></td></tr>
+    <tr><td>23</td><td>Granger, C.W.J.</td><td>1969</td><td>Investigating Causal Relations by Econometric Models and Cross-spectral Methods</td><td><em>Econometrica</em></td></tr>
+    <tr><td>24</td><td>Pagonidis, A.S.</td><td>2014</td><td>The IBS Effect: Mean Reversion in Equity ETFs</td><td>NAAIM Wagner Award Paper</td></tr>
+    <tr><td>25</td><td>Connors, L. &amp; Alvarez, C.</td><td>2009</td><td>Short Term Trading Strategies That Work</td><td>TradingMarkets</td></tr>
+    <tr><td>26</td><td>Collobert, R. &amp; Weston, J.</td><td>2008</td><td>A Unified Architecture for Natural Language Processing</td><td><em>ICML 2008</em></td></tr>
   </tbody>
 </table>
 `;
