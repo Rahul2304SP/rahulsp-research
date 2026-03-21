@@ -33,11 +33,11 @@ export const papers: Paper[] = [
   },
   {
     slug: "gpr-gold",
-    title: "Geopolitical Risk and Gold: A 40-Year Empirical Study",
+    title: "Geopolitical Risk and Gold: An Empirical Study",
     date: "March 2026",
     category: "Empirical Studies",
     abstract:
-      "Using the Caldara-Iacoviello Geopolitical Risk Index (1985-2026), we examine the relationship between geopolitical risk and gold returns across multiple horizons. While GPR level regimes significantly condition gold return distributions, the directional predictive power is weak. High-GPR months show elevated gold volatility and positive skew, but the signal operates at monthly frequency — too slow for intraday trading, though valuable as a regime filter.",
+      "Using the Caldara-Iacoviello Geopolitical Risk Index matched to XAUUSD M1 data (2018-2026 overlap, ~94 monthly observations), we test whether GPR predicts gold returns. GPR level regimes condition return distributions (higher volatility and positive skew in high-GPR months), but directional predictive power is weak. The signal operates at monthly frequency, too slow for intraday trading but potentially useful as a regime filter.",
     author: "Rahul S. P.",
     content: gprContent,
   },
