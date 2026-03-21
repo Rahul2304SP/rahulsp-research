@@ -4,7 +4,6 @@ import { content as goldssmContent } from "./papers/goldssm-architecture";
 import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
 import { content as featurePipelineContent } from "./papers/107-feature-pipeline";
-import { content as dispersionContent } from "./papers/dispersion-trading";
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
 
@@ -39,16 +38,6 @@ export const papers: Paper[] = [
       "Using the Caldara-Iacoviello Geopolitical Risk Index matched to XAUUSD M1 data (2018-2026 overlap, ~94 monthly observations), we test whether GPR predicts gold returns. GPR level regimes condition return distributions (higher volatility and positive skew in high-GPR months), but directional predictive power is weak. The signal operates at monthly frequency, too slow for intraday trading but potentially useful as a regime filter.",
     author: "Rahul S. P.",
     content: gprContent,
-  },
-  {
-    slug: "dispersion-trading",
-    title: "Cross-Instrument Dispersion Trading on the Dow 30",
-    date: "March 2026",
-    category: "Empirical Studies",
-    abstract:
-      "Dispersion across 21 Dow 30 components strongly predicts forward index volatility (r = 0.164 at 5 minutes) but has zero directional predictive power. A convergence trade buying the index when stocks diverge shows a real but regime-dependent out-of-sample edge across 58 walk-forward windows.",
-    author: "Rahul S. P.",
-    content: dispersionContent,
   },
   {
     slug: "xag-directional-disagreement",
