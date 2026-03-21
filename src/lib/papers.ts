@@ -1,6 +1,5 @@
 import { content as crossAssetContent } from "./papers/cross-asset-lead-lag";
 import { content as goldssmContent } from "./papers/goldssm-architecture";
-import { content as alpha101Content } from "./papers/alpha101-intraday-gold";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
@@ -67,16 +66,6 @@ export const papers: Paper[] = [
       "We present GoldSSM, a selective state space model for intraday gold price direction forecasting. The architecture combines a Variable Selection Network, a stack of Mamba blocks with selective scan, and temporal attention pooling. At 2.0M parameters, GoldSSM serves as a drop-in replacement for Transformer-based models with identical forward signatures, while offering linear-time sequence processing and improved handling of long-range dependencies in financial time series.",
     author: "Rahul S. P.",
     content: goldssmContent,
-  },
-  {
-    slug: "alpha101-intraday-gold",
-    title: "Alpha101 on Intraday Gold: Why Most Equity Factors Fail",
-    date: "February 2026",
-    category: "Feature Engineering",
-    abstract:
-      "We evaluate all 101 formulaic alpha factors from Kakushadze (2016) on intraday XAUUSD data. Only 4 of 101 factors achieve AUC above 0.515 for direction prediction, and only two (alpha024 and alpha083) survive forward selection. The failure mode is structural: Alpha101 factors exploit cross-sectional dispersion across a stock universe, a mechanism that does not exist for a single instrument. We document which factor families fail and why.",
-    author: "Rahul S. P.",
-    content: alpha101Content,
   },
 ];
 
