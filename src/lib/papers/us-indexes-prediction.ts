@@ -3,11 +3,10 @@ export const content = `
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
   Data inventory, feature specification, normaliser selection, and model configuration finalised
   (43 features after pruning, 17 passthrough / 26 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
-  All three Run 1 diagnostics complete &mdash; NAS100 best at 68.9% val accuracy (negative generalisation gap),
-  US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% val accuracy (+0.6pp), class gap 6.0pp &rarr; 1.6pp,
-  bearish bias eliminated. US500 Run 2 complete: 62.0% val accuracy, class gap 15.5pp &rarr; 4.9pp (68% reduction),
-  bullish bias largely eliminated, val loss improved 18%. NAS100 Run 2 pending.
-  This page will be updated as results become available.
+  All three Run 1 and Run 2 diagnostics complete. All indices have deploy-candidate models.
+  NAS100 best at 68.9% val accuracy (negative generalisation gap),
+  US30 68.4% with best class balance (1.6pp gap), US500 largest Run 1 to Run 2 improvement (class gap 15.5pp to 4.9pp).
+  Walk-forward backtesting next.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -19,7 +18,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 pending.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Walk-forward backtesting next.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2326,10 +2325,11 @@ export const content = `
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
-<tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 1</strong></td><td><strong>5</strong></td><td><strong>68.9%</strong></td><td><strong>0.792</strong></td><td><strong>0.6pp</strong></td><td><strong>2.2x</strong></td><td style="color:#059669;"><strong>Deploy candidate (Run 2 pending)</strong></td></tr>
+<tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 2</strong></td><td><strong>3</strong></td><td><strong>68.9%</strong></td><td><strong>0.783</strong></td><td><strong>20.2pp*</strong></td><td><strong>1.8x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 </tbody>
 </table>
-<p>NAS100 Run 1 already achieves balanced classes and low VSN concentration. Run 2 for NAS100 will test whether the parameter changes that improved US30 and US500 yield further gains, or whether NAS100's Run 1 configuration is already near-optimal.</p>
+<p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 1 &amp; Run 2 Detail</summary>
@@ -2852,7 +2852,7 @@ export const content = `
 </details>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
-<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100 — Run 1 Detail</summary>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100 — Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
 <h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
@@ -3020,6 +3020,85 @@ export const content = `
 <figure>
   <img src="/charts/us-indexes/nas100_run1_06_vsn_entropy.png" alt="NAS100 Run 1 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
   <figcaption>VSN entropy: highest diversity of all three indices at 97.6% of maximum.</figcaption>
+</figure>
+
+<hr style="margin: 2rem 0; border-top: 2px solid #e5e7eb;" />
+
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 2 (Diagnostic)</h4>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  and validation on historical data. They do not represent live trading performance. Validation
+  accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
+  seen during training.
+</div>
+
+<h4>Run 1 vs Run 2 Comparison</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 1 (Ep 3)</th><th>Run 2 (Ep 3)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Val Accuracy</td><td>68.8%</td><td>68.9% (+0.1pp, identical)</td></tr>
+    <tr><td>Val Loss</td><td>0.822</td><td>0.783 (-5%)</td></tr>
+    <tr><td>Class Gap</td><td>0.6pp</td><td>20.2pp (worse at peak)</td></tr>
+    <tr><td>UP/DOWN Acc</td><td>69.1/68.5</td><td>78.5/58.3 (bullish bias)</td></tr>
+    <tr><td>p_up Mean</td><td>0.505</td><td>0.568 (shifted)</td></tr>
+    <tr><td>VSN Mean Ratio</td><td>4.0x</td><td>1.8x (-55%)</td></tr>
+  </tbody>
+</table>
+
+<h4>Epoch 5 Comparison (Best Class Balance)</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 1 (Ep 3)</th><th>Run 2 (Ep 5)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Val Accuracy</td><td>68.8%</td><td>68.3% (-0.5pp)</td></tr>
+    <tr><td>Class Gap</td><td>0.6pp</td><td>0.7pp (identical)</td></tr>
+  </tbody>
+</table>
+
+<h4>Key Findings</h4>
+
+<ol>
+  <li><strong>Peak accuracy identical (68.9%) across both runs.</strong> NAS100 learns the same signal regardless of LR/entropy.</li>
+  <li><strong>Val loss improved 5% (0.783 vs 0.822).</strong> Better calibration.</li>
+  <li><strong>Bullish bias at peak epoch (20.2pp gap)</strong> because lower LR learns UP before DOWN. This resolves by epoch 5.</li>
+  <li><strong>VSN concentration halved (4.0x to 1.8x).</strong> The entropy lambda change worked.</li>
+  <li><strong>Run 1's configuration was already near-optimal for NAS100.</strong> Run 2 confirms this.</li>
+</ol>
+
+<h4>Diagnosis</h4>
+
+<div class="finding-box" style="border-left-color: #059669; background: #ecfdf5;">
+  <strong>NAS100 Run 1 was already the strongest model.</strong> Run 2 confirms the signal is robust to
+  hyperparameter changes. Recommended deployment: use Run 1 epoch 3 for balanced predictions, or
+  Run 2 epoch 5 for equivalent balance with better-calibrated probabilities.
+</div>
+
+<h4>Charts</h4>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run2_01_loss_curves.png" alt="NAS100 Run 2 loss curves" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>NAS100 Run 2: val loss 0.783, a 5% improvement over Run 1.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run2_02_direction_accuracy.png" alt="NAS100 Run 2 direction accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Direction accuracy: 68.9% val peak, identical to Run 1.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run2_05_per_class_accuracy.png" alt="NAS100 Run 2 per-class accuracy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>Per-class: transient bullish bias at epoch 3 (78.5% UP vs 58.3% DOWN) resolves to 0.7pp gap by epoch 5.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/nas100_run2_06_vsn_entropy.png" alt="NAS100 Run 2 VSN entropy" style="max-width: 100%; border-radius: 8px;" />
+  <figcaption>VSN concentration halved from 4.0x to 1.8x, confirming the entropy lambda increase worked.</figcaption>
 </figure>
 
 </div>
@@ -3275,7 +3354,7 @@ export const content = `
 <h2>8. Current Status and Next Steps</h2>
 
 <p>
-  Phase 2 is complete with seven empirical gap studies (six original plus Granger causality validation). Phase 3 has produced deploy-candidate models for all three indices, with NAS100 Run 2 as the final pending experiment. The immediate next steps are completing NAS100 Run 2, running walk-forward out-of-sample backtests on validation data, and preparing the MT5 execution bridge for live deployment.
+  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30 the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap reduced 68%). The immediate next steps are walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
