@@ -1,13 +1,8 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Data inventory, feature specification, normaliser selection, and model configuration finalised
-  (43 features after pruning, 17 passthrough / 26 rolling z-score, VSN+TCN+Transformer with 4 temporal streams).
-  All three Run 1 and Run 2 diagnostics complete. All indices have deploy-candidate models.
-  NAS100 best at 68.9% val accuracy (negative generalisation gap),
-  US30 68.4% with best class balance (1.6pp gap), US500 largest Run 1 to Run 2 improvement (class gap 15.5pp to 4.9pp).
-  Run 3a/3b both failed (55.7%, 55.4%). Root cause: single-stream has 2.6x fewer params (562K vs 1,451K).
-  Run 3c in progress: testing whether scaling the single-stream to 4,155K params (2.9x Run 2) resolves the capacity bottleneck before reverting to 4-stream.
+  Run 3 series complete (3a/3b/3c all ~55%). Root cause: position-agnostic VSN cannot specialise by timescale.
+  Reverting to 4-stream with dynamic aux scaling for Run 4.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -19,7 +14,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c in progress: scaled single-stream (4,155K params, 320-dim, 3 layers) testing the capacity hypothesis before reverting to 4-stream.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Reverting to 4-stream with dynamic aux scaling for Run 4.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2326,6 +2321,7 @@ export const content = `
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr style="background:#fef2f2;"><td>US30</td><td>Run 3a</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
 <tr style="background:#fef2f2;"><td>US30</td><td>Run 3b</td><td>&mdash;</td><td style="color:#dc2626; font-weight:600;">55.4%</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; capacity bottleneck</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3c</td><td>8</td><td style="color:#dc2626; font-weight:600;">55.3%</td><td>2.964</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; position-agnostic VSN</td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
@@ -4004,15 +4000,11 @@ export const content = `
 
 <h4>Run 3c: Testing the Capacity Hypothesis</h4>
 
-<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>In Progress</strong> &mdash; Run 3c is training. Results will be reported here once complete.
-</div>
-
 <p>
-  Before reverting to 4-stream, we are running one more test. The Run 3a/3b failure was diagnosed as a
+  Before reverting to 4-stream, we ran one final test. The Run 3a/3b failure was diagnosed as a
   parameter and representation bottleneck (562K params, 128-dim embedding), not necessarily an inherent flaw
-  of the single-stream design. Run 3c scales up the single-stream model to test whether giving it enough
-  capacity resolves the problem.
+  of the single-stream design. Run 3c scaled the single-stream model to 4,155K params (7.4x Run 3b, 2.9x Run 2)
+  to determine whether capacity alone explains the failure.
 </p>
 
 <table>
@@ -4030,14 +4022,6 @@ export const content = `
   </tbody>
 </table>
 
-<p>
-  The initial attempt with batch size 384 consumed approximately 45GB of VRAM, exceeding the RTX 5090's 32GB.
-  The original estimate of 26GB underestimated PyTorch memory fragmentation and gradient storage by roughly 1.7x.
-  Reducing batch size to 192 brings VRAM to approximately 22.5GB. The learning rate was kept at 1.5e-4 rather
-  than halving it proportionally (the linear scaling rule would suggest 7.5e-5), because noisier gradients
-  from smaller batches act as implicit regularisation, which may help with the overfitting observed in all prior runs.
-</p>
-
 <table>
   <thead>
     <tr><th>Metric</th><th>Run 2 (4-stream)</th><th>Run 3b (1-stream)</th><th>Run 3c (scaled)</th></tr>
@@ -4051,9 +4035,86 @@ export const content = `
 </table>
 
 <p>
-  Run 3c has 2.9x Run 2's parameters and 10.5x Run 3b's. If the single-stream design can work, this
-  configuration has enough capacity to prove it. If it still fails, the multi-stream architecture is
-  fundamentally superior for this problem size, and we revert to 4-stream with dynamic aux scaling for Run 4.
+  Result: 55.3% validation accuracy. Identical to Run 3b. Scaling 7.4x made zero difference.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Train Acc</th><th>Val Acc</th><th>Train Loss</th><th>Val Loss</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>59.4%</td><td>54.1%</td><td>1.133</td><td>1.309</td></tr>
+    <tr><td>3</td><td>72.1%</td><td>55.1%</td><td>0.835</td><td>2.140</td></tr>
+    <tr><td>8 (best)</td><td>90.0%</td><td>55.3%</td><td>0.225</td><td>2.964</td></tr>
+    <tr><td>10</td><td>91.2%</td><td>55.1%</td><td>0.184</td><td>3.171</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Cross-run comparison:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Run</th><th>Architecture</th><th>Params</th><th>Best Val Acc</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Run 2</td><td>4-stream, 1L, 4H, E=128</td><td>1,451K</td><td>68.4%</td></tr>
+    <tr><td>Run 3a</td><td>1-stream 660, 2L, 8H, E=128</td><td>562K</td><td>55.7%</td></tr>
+    <tr><td>Run 3b</td><td>1-stream 660, 2L, 8H, E=128, dyn aux</td><td>562K</td><td>55.4%</td></tr>
+    <tr><td>Run 3c</td><td>1-stream 660, 3L, 8H, E=320, dyn aux</td><td>4,155K</td><td>55.3%</td></tr>
+  </tbody>
+</table>
+
+<h4>Root Cause: Position-Agnostic VSN</h4>
+
+<p>
+  The VSN computes feature weights as softmax(gate_net(features)) at each position. The gate network sees
+  only feature values, with no position information. It does not know whether it is processing position 50
+  (10 hours ago) or position 650 (10 minutes ago).
+</p>
+
+<p>
+  In the 4-stream design, each stream's VSN specialises. The SHORT stream focuses on price structure
+  (dist_ma120, trend_strength). The LONG stream focuses on macro context (roro_ratio, VIX, cross-index
+  dispersion). SHORT and LONG have zero top-5 overlap. The single-stream VSN must pick one weight for
+  roro_ratio across all 660 positions. But roro_ratio is informative at LONG timescales and uninformative
+  at SHORT. The VSN picks a compromised average that works for neither.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>4-stream avg</th><th>Single-stream</th><th>Difference</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>dist_ma120</td><td>0.0334</td><td>0.0332</td><td>-0.0002</td></tr>
+    <tr><td>trend_strength</td><td>0.0256</td><td>0.0208</td><td>-0.0048</td></tr>
+    <tr><td>tod_cos</td><td>0.0259</td><td>0.0177</td><td>-0.0082</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Correlation between 4-stream average and single-stream weights: 0.651 (would be 0.95+ if equivalent).
+</p>
+
+<p>
+  Why more parameters cannot fix this: the VSN is the first layer. If it suppresses roro_ratio at position 650
+  (noise there), the downstream Transformer never sees roro_ratio at position 50 (signal there). No amount of
+  Transformer capacity recovers information the VSN already discarded.
+</p>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  Run 3c confirms the single-stream failure is structural, not capacity-related. The position-agnostic VSN
+  cannot assign different feature weights to different timescales within a single sequence. The 4-stream
+  design solves this by giving each timescale its own VSN. Reverting to 4-stream for Run 4 with dynamic
+  auxiliary scaling retained.
+</div>
+
+<h4>Decision: Revert to 4-Stream for Run 4</h4>
+
+<p>
+  Retained from Run 3 series: dynamic auxiliary scaling, multi-horizon targets, VSN entropy 0.004. Removed:
+  single-stream architecture, 3 Transformer layers, 8 attention heads, E=320, B=192, lag-15 features.
 </p>
 
 <h2>8. Current Status and Next Steps</h2>
@@ -4066,13 +4127,14 @@ export const content = `
   lag-15 features, two Transformer layers) designed to break through the generalisation ceiling, but regressed
   to 55.7% validation accuracy. Diagnostic investigation identified auxiliary loss dominance as the root cause.
   Run 3b applied dynamic auxiliary scaling, which fixed the loss balance (43% non-direction vs 71%) but did not
-  recover accuracy (55.4%). The root cause is the single-stream capacity bottleneck: 562K params and a 4x
-  representation bottleneck vs Run 2's 1,451K params and 512-dim concatenated representation. Run 3c is now
-  in progress, scaling the single-stream to 4,155K params (320-dim embedding, 3 layers) to determine whether
-  the capacity hypothesis fully explains the failure before reverting to 4-stream. The immediate next steps are
-  completing Run 3c, then either proceeding with the scaled single-stream or reverting to 4-stream with dynamic
-  aux scaling for Run 4, followed by walk-forward out-of-sample backtests on validation data and preparing the
-  MT5 execution bridge for live deployment.
+  recover accuracy (55.4%). Run 3c scaled the single-stream to 4,155K params (7.4x Run 3b, 2.9x Run 2) and
+  achieved 55.3%, identical to Run 3b. The root cause is not capacity but the position-agnostic VSN: it computes
+  feature weights with no position information, forcing a single compromised weight for each feature across all
+  660 positions. The 4-stream design avoids this by giving each timescale its own VSN, allowing SHORT and LONG
+  streams to specialise on different feature subsets with zero top-5 overlap. The immediate next steps are
+  reverting to 4-stream for Run 4 with dynamic auxiliary scaling and multi-horizon targets retained, followed by
+  walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live
+  deployment.
 </p>
 
 <h2>9. References</h2>
