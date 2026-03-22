@@ -4211,10 +4211,16 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Architecture</td><td>1-stream, E=320, 3L</td><td>7-stream, E=128, 1L</td></tr>
+    <tr><td>Streams</td><td>1 x 660 M1</td><td>MICRO(30) + SHORT(60) + MID(120) + LONG(240) + SESSION(78 M5) + SLOW(12 H1) + WEEKLY(15 H4)</td></tr>
     <tr><td>LAYERS</td><td>3</td><td>1</td></tr>
     <tr><td>NHEAD</td><td>8</td><td>4</td></tr>
     <tr><td>EMBED_DIM</td><td>320</td><td>128</td></tr>
-    <tr><td>BATCH_SIZE</td><td>192</td><td>512</td></tr>
+    <tr><td>BATCH_SIZE</td><td>192</td><td>512 (reverted, 7-stream uses ~19GB)</td></tr>
+    <tr><td>LEARNING_RATE</td><td>1.5e-4</td><td>1.5e-4 (unchanged)</td></tr>
+    <tr><td>Features</td><td>45 (incl. dxy_ret_15m, usdjpy_ret_15m)</td><td>43 (15m features removed, no signal)</td></tr>
+    <tr><td>USE_SLOW_STREAM</td><td>False</td><td>True</td></tr>
+    <tr><td>AUX_MAX_RATIO</td><td>0.20</td><td>0.20 (dynamic scaling retained)</td></tr>
+    <tr><td>LAMBDA_VSN_ENTROPY</td><td>0.004</td><td>0.004</td></tr>
     <tr><td>Params</td><td>4,155K</td><td>~2,530K</td></tr>
   </tbody>
 </table>
