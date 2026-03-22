@@ -1,8 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Run 3 series complete (3a/3b/3c all ~55%). Root cause: position-agnostic VSN cannot specialise by timescale.
-  Reverting to 4-stream with dynamic aux scaling for Run 4.
+  Run 3d in progress: 7-stream architecture (MICRO + SESSION + WEEKLY added) testing whether more specialised streams improve on 68.4%.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -14,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Reverting to 4-stream with dynamic aux scaling for Run 4.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Run 3d in progress: expanded 7-stream architecture (MICRO + SESSION + WEEKLY added) testing whether more specialised streams improve on 68.4%.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -4117,6 +4116,115 @@ export const content = `
   single-stream architecture, 3 Transformer layers, 8 attention heads, E=320, B=192, lag-15 features.
 </p>
 
+<h4>Run 3d: Expanded Multi-Stream Architecture</h4>
+
+<p>
+  The Run 3 series proved two things: (1) the multi-stream VSN specialisation is essential, and (2) each
+  stream's VSN learns genuinely distinct feature weightings. Run 3d builds on this by asking: if 4 specialised
+  streams give 68.4%, can more streams give more?
+</p>
+
+<p>
+  A gap analysis of the current 4-stream design identified three coverage holes:
+</p>
+
+<ol>
+  <li><strong>Below SHORT (nothing under 1 hour):</strong> Granger testing showed DXY strongest at lag 15, not
+    lag 60. No stream captures fast FX lead-lag.</li>
+  <li><strong>Between LONG and SLOW (4h to 12h):</strong> The US equity regular session is 6.5 hours. No stream
+    aligns to this natural rhythm.</li>
+  <li><strong>Beyond SLOW (multi-day):</strong> Features like tsmom_self_21d compress 21 days into a single
+    number. A weekly stream preserves the shape.</li>
+</ol>
+
+<p>
+  The 7-stream design fills each gap with a dedicated stream:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Raw M1 bars</th><th>Resampled</th><th>Effective T</th><th>What it captures</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>MICRO (NEW)</strong></td><td>30</td><td>M1</td><td>30</td><td>Last 30 min, fast FX lead-lag</td></tr>
+    <tr><td>SHORT</td><td>60</td><td>M1</td><td>60</td><td>Last 1 hour, price structure</td></tr>
+    <tr><td>MID</td><td>120</td><td>M1</td><td>120</td><td>Last 2 hours, medium momentum</td></tr>
+    <tr><td>LONG</td><td>240</td><td>M1</td><td>240</td><td>Last 4 hours, regime context</td></tr>
+    <tr><td><strong>SESSION (NEW)</strong></td><td>390</td><td>M5</td><td>78</td><td>Last 6.5 hours, full regular session</td></tr>
+    <tr><td>SLOW</td><td>720</td><td>H1</td><td>12</td><td>Last 12 hours, daily macro</td></tr>
+    <tr><td><strong>WEEKLY (NEW)</strong></td><td>3600</td><td>H4</td><td>15</td><td>Last ~1 week, multi-day shape</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The two resampled streams (SESSION at M5, WEEKLY at H4) add minimal attention cost because their effective
+  sequence lengths are short (78 and 15). The cost analysis:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>4-stream (Run 2)</th><th>7-stream (Run 3d)</th><th>Change</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Total T-squared</td><td>75,744</td><td>82,953</td><td>+9.5%</td></tr>
+    <tr><td>Total params</td><td>~1.45M</td><td>~2.53M</td><td>+74%</td></tr>
+    <tr><td>Representation dim</td><td>512 (4x128)</td><td>896 (7x128)</td><td>+75%</td></tr>
+    <tr><td>VRAM</td><td>~18 GB</td><td>~19 GB</td><td>+1 GB</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Total T-squared only increases 9.5%. The representation dimension goes from 512 to 896, giving prediction
+  heads 75% more information.
+</p>
+
+<p>
+  Expected VSN specialisation for each stream:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Expected VSN focus</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>MICRO</td><td>dxy_ret_60m, usdjpy_ret_60m, ret_60m (fast FX)</td></tr>
+    <tr><td>SHORT</td><td>dist_ma120, trend_strength (confirmed Run 2)</td></tr>
+    <tr><td>MID</td><td>ret_120m, dist_ma_290 (confirmed Run 2)</td></tr>
+    <tr><td>LONG</td><td>roro_ratio, cross_idx_dispersion, VIX (confirmed Run 2)</td></tr>
+    <tr><td>SESSION</td><td>vol_session_ratio, ibs, gk_vol_21d (session regime)</td></tr>
+    <tr><td>SLOW</td><td>dist_ma120, skew_240m (confirmed Run 2)</td></tr>
+    <tr><td>WEEKLY</td><td>tsmom_self_21d, kurt_240m, channel_width (multi-day shape)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Note: if a new stream's top-5 matches an existing stream's, it is redundant and will be removed.
+</p>
+
+<p>
+  Run 3d configuration vs Run 3c:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Run 3c</th><th>Run 3d</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Architecture</td><td>1-stream, E=320, 3L</td><td>7-stream, E=128, 1L</td></tr>
+    <tr><td>LAYERS</td><td>3</td><td>1</td></tr>
+    <tr><td>NHEAD</td><td>8</td><td>4</td></tr>
+    <tr><td>EMBED_DIM</td><td>320</td><td>128</td></tr>
+    <tr><td>BATCH_SIZE</td><td>192</td><td>512</td></tr>
+    <tr><td>Params</td><td>4,155K</td><td>~2,530K</td></tr>
+  </tbody>
+</table>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  <strong>In Progress:</strong> Run 3d is training. The 7-stream architecture adds MICRO (30 min), SESSION
+  (6.5 hours), and WEEKLY (~1 week) streams to test whether more specialised VSN streams can improve on the
+  68.4% accuracy from Run 2's 4-stream design.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 
 <p>
@@ -4131,10 +4239,12 @@ export const content = `
   achieved 55.3%, identical to Run 3b. The root cause is not capacity but the position-agnostic VSN: it computes
   feature weights with no position information, forcing a single compromised weight for each feature across all
   660 positions. The 4-stream design avoids this by giving each timescale its own VSN, allowing SHORT and LONG
-  streams to specialise on different feature subsets with zero top-5 overlap. The immediate next steps are
-  reverting to 4-stream for Run 4 with dynamic auxiliary scaling and multi-horizon targets retained, followed by
-  walk-forward out-of-sample backtests on validation data and preparing the MT5 execution bridge for live
-  deployment.
+  streams to specialise on different feature subsets with zero top-5 overlap. Run 3d now expands from 4 to 7
+  streams, adding MICRO (30 min, fast FX lead-lag), SESSION (6.5 hours, regular session alignment), and WEEKLY
+  (~1 week, multi-day shape) to test whether more specialised streams can improve on 68.4%. The 7-stream design
+  increases total T-squared by only 9.5% while giving prediction heads 75% more representation capacity (896 vs
+  512 dimensions). If Run 3d improves on Run 2, the next steps are walk-forward out-of-sample backtests on
+  validation data and preparing the MT5 execution bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
