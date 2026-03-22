@@ -4015,7 +4015,7 @@ export const content = `
     <tr><td>EMBED_DIM</td><td>128</td><td>320</td><td>2.5x increase eliminates 128-dim bottleneck</td></tr>
     <tr><td>LAYERS</td><td>2</td><td>3</td><td>More depth for 660 positions</td></tr>
     <tr><td>NHEAD</td><td>8</td><td>8</td><td>Unchanged (head_dim = 40)</td></tr>
-    <tr><td>BATCH_SIZE</td><td>512</td><td>192</td><td>Reduced from initial 384 after OOM at 45GB; 192 estimates ~22.5GB</td></tr>
+    <tr><td>BATCH_SIZE</td><td>512</td><td>192</td><td>Reduced from initial 384 after OOM at 47GB; 192 estimates ~22.5GB</td></tr>
     <tr><td>SEQ_LEN</td><td>660</td><td>660</td><td>Unchanged</td></tr>
     <tr><td>AUX_MAX_RATIO</td><td>0.20</td><td>0.20</td><td>Dynamic scaling retained</td></tr>
     <tr><td>LEARNING_RATE</td><td>1.5e-4</td><td>1.5e-4</td><td>Kept unchanged; noisier gradients from smaller batch may help regularise</td></tr>
