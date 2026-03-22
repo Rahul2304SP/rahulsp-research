@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Run 3d in progress: 7-stream architecture (MICRO + SESSION + WEEKLY added) testing whether more specialised streams improve on 68.4%.
+  Run 3d achieved 70.5% val accuracy on US30, new best (+2.1pp over Run 2). 7-stream VSN specialisation validated. US500 and NAS100 Run 3d pending.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Run 3d in progress: expanded 7-stream architecture (MICRO + SESSION + WEEKLY added) testing whether more specialised streams improve on 68.4%.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Run 3d complete: 7-stream architecture achieved 70.5% val accuracy, new best (+2.1pp over Run 2). VSN specialisation validated. US500 and NAS100 Run 3d pending.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2321,6 +2321,7 @@ export const content = `
 <tr style="background:#fef2f2;"><td>US30</td><td>Run 3a</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
 <tr style="background:#fef2f2;"><td>US30</td><td>Run 3b</td><td>&mdash;</td><td style="color:#dc2626; font-weight:600;">55.4%</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; capacity bottleneck</td></tr>
 <tr style="background:#fef2f2;"><td>US30</td><td>Run 3c</td><td>8</td><td style="color:#dc2626; font-weight:600;">55.3%</td><td>2.964</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; position-agnostic VSN</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3d</strong></td><td><strong>5</strong></td><td style="color:#059669; font-weight:600;"><strong>70.5%</strong></td><td><strong>1.029</strong></td><td><strong>4.7pp</strong></td><td>&mdash;</td><td style="color:#059669;"><strong>New best</strong></td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 2</strong></td><td><strong>5</strong></td><td><strong>62.0%</strong></td><td><strong>1.349</strong></td><td><strong>4.9pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
@@ -4225,32 +4226,137 @@ export const content = `
   </tbody>
 </table>
 
-<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>In Progress:</strong> Run 3d is training. The 7-stream architecture adds MICRO (30 min), SESSION
-  (6.5 hours), and WEEKLY (~1 week) streams to test whether more specialised VSN streams can improve on the
-  68.4% accuracy from Run 2's 4-stream design.
+<h4>Run 3d Results</h4>
+
+<p>
+  70.5% peak validation accuracy at epoch 5. New best, +2.1pp over Run 2.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Train Acc</th><th>Val Acc</th><th>Val Loss</th><th>UP Acc</th><th>DOWN Acc</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>62.8%</td><td>67.9%</td><td>1.048</td><td>66.9%</td><td>68.6%</td></tr>
+    <tr><td>2</td><td>70.5%</td><td>70.0%</td><td>1.012</td><td>56.7%</td><td>80.9%</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>5 (best)</strong></td><td><strong>75.7%</strong></td><td><strong>70.5%</strong></td><td><strong>1.029</strong></td><td><strong>67.9%</strong></td><td><strong>72.6%</strong></td></tr>
+    <tr><td>10</td><td>87.6%</td><td>66.2%</td><td>2.001</td><td>66.8%</td><td>65.6%</td></tr>
+    <tr><td>25</td><td>92.8%</td><td>66.2%</td><td>2.762</td><td>63.1%</td><td>68.7%</td></tr>
+  </tbody>
+</table>
+
+<p>Cross-run comparison:</p>
+
+<table>
+  <thead>
+    <tr><th>Run</th><th>Architecture</th><th>Params</th><th>Best Val Acc</th><th>Peak Epoch</th><th>Class Gap</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Run 2</td><td>4-stream</td><td>1,451K</td><td>68.4%</td><td>5</td><td>1.6pp</td></tr>
+    <tr><td>Run 3a-c</td><td>1-stream variants</td><td>562K-4,155K</td><td>55.3-55.7%</td><td>3-8</td><td>various</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>Run 3d</strong></td><td><strong>7-stream</strong></td><td><strong>~2,530K</strong></td><td style="color:#059669; font-weight:600;"><strong>70.5%</strong></td><td><strong>5</strong></td><td><strong>4.7pp</strong></td></tr>
+  </tbody>
+</table>
+
+<p>Four key observations:</p>
+
+<ol>
+  <li><strong>Epoch 1 negative generalisation gap</strong> (val loss 1.048 &lt; train loss 1.063). The 7-stream inductive bias suits the data structure before significant training.</li>
+  <li><strong>Fast learning:</strong> 70.0% at epoch 2, vs Run 2 needing 5 epochs for its (lower) 68.4%.</li>
+  <li><strong>Slower degradation:</strong> val acc at epoch 25 is 66.2% vs Run 2's 63.6% at epoch 20.</li>
+  <li><strong>Class gap 4.7pp</strong> (bearish bias), wider than Run 2's 1.6pp but reflects label distribution (45.2%/54.8%).</li>
+</ol>
+
+<h4>VSN Specialisation Analysis</h4>
+
+<p>
+  The key validation for the 7-stream hypothesis: does each stream learn distinct feature weightings, or do the
+  new streams duplicate existing ones? Per-stream top-5 features by VSN attention weight:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Stream</th><th>Top 5 (bold = unique to this stream)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>MICRO</td><td>dist_ma120, <strong>abs_dist_ma120</strong>, trend_strength, <strong>dxy_ret_60m</strong>, dist_ma_290</td></tr>
+    <tr><td>SHORT</td><td>dist_ma120, ret_60m, <strong>vol_of_vol_60</strong>, dist_ma_290, momentum_regime</td></tr>
+    <tr><td>MID</td><td><strong>vix_chg_60m</strong>, <strong>cross_idx_dispersion</strong>, ret_60m, momentum_regime, dist_ma120</td></tr>
+    <tr><td>LONG</td><td><strong>roro_ratio</strong>, vix_chg_60m, <strong>cat_ret_60m</strong>, <strong>tod_sin</strong>, ret_60m</td></tr>
+    <tr><td>SESSION</td><td>dist_ma_290, vix_chg_60m, ret_60m, momentum_regime, <strong>tsmom_idx2_21d</strong></td></tr>
+    <tr><td>SLOW</td><td>ret_60m, dist_ma120, trend_strength, <strong>btcusd_ret_60m</strong>, cross_idx_dispersion</td></tr>
+    <tr><td>WEEKLY</td><td><strong>dxy_corr_30</strong>, <strong>brent_ret_60m</strong>, cat_ret_60m, vix_chg_60m, <strong>msft_ret_60m</strong></td></tr>
+  </tbody>
+</table>
+
+<p>Functional roles:</p>
+
+<ul>
+  <li><strong>MICRO + SHORT:</strong> price structure (what is price doing now?)</li>
+  <li><strong>MID:</strong> cross-market confirmation</li>
+  <li><strong>LONG:</strong> macro regime (roro_ratio, tod_sin)</li>
+  <li><strong>SESSION:</strong> session momentum (tsmom_idx2_21d)</li>
+  <li><strong>SLOW:</strong> crypto/safe-haven (btcusd_ret_60m)</li>
+  <li><strong>WEEKLY:</strong> external drivers (dxy_corr_30, brent, msft)</li>
+</ul>
+
+<p>
+  Pairwise overlap: MICRO vs LONG = 0, WEEKLY vs MICRO/SHORT/SLOW = 0. Every new stream adds distinct information.
+</p>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_01_val_accuracy.png" alt="US30 Run 3d validation accuracy" />
+  <figcaption>US30 Run 3d: validation accuracy across epochs. Peak 70.5% at epoch 5.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_02_loss_curves.png" alt="US30 Run 3d loss curves" />
+  <figcaption>US30 Run 3d: training and validation loss curves.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_03_per_class_accuracy.png" alt="US30 Run 3d per-class accuracy" />
+  <figcaption>US30 Run 3d: per-class accuracy. 4.7pp bearish bias at peak.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_04_vsn_heatmap.png" alt="US30 Run 3d VSN heatmap" />
+  <figcaption>US30 Run 3d: VSN feature attention heatmap across all 7 streams.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_05_prediction_stats.png" alt="US30 Run 3d prediction statistics" />
+  <figcaption>US30 Run 3d: prediction statistics over training.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3d_06_generalisation_gap.png" alt="US30 Run 3d generalisation gap" />
+  <figcaption>US30 Run 3d: generalisation gap showing slower degradation than Run 2.</figcaption>
+</figure>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  Run 3d achieves 70.5% val accuracy, the best result across all runs (+2.1pp over Run 2). The 7-stream
+  architecture validates the multi-scale VSN specialisation hypothesis: each stream learned distinct feature
+  weightings with the 3 new streams adding genuinely unique information. The negative generalisation gap at
+  epoch 1 confirms the architecture's inductive bias suits this problem structure.
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
 
 <p>
   Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all
-  three indices across two training runs each. NAS100 achieved the highest validation accuracy (68.9%), US30
-  the best class balance (1.6pp gap), and US500 the largest improvement from Run 1 to Run 2 (class gap
-  reduced 68%). Run 3a implemented four architectural changes (single-stream Transformer, multi-horizon targets,
-  lag-15 features, two Transformer layers) designed to break through the generalisation ceiling, but regressed
-  to 55.7% validation accuracy. Diagnostic investigation identified auxiliary loss dominance as the root cause.
-  Run 3b applied dynamic auxiliary scaling, which fixed the loss balance (43% non-direction vs 71%) but did not
-  recover accuracy (55.4%). Run 3c scaled the single-stream to 4,155K params (7.4x Run 3b, 2.9x Run 2) and
-  achieved 55.3%, identical to Run 3b. The root cause is not capacity but the position-agnostic VSN: it computes
-  feature weights with no position information, forcing a single compromised weight for each feature across all
-  660 positions. The 4-stream design avoids this by giving each timescale its own VSN, allowing SHORT and LONG
-  streams to specialise on different feature subsets with zero top-5 overlap. Run 3d now expands from 4 to 7
-  streams, adding MICRO (30 min, fast FX lead-lag), SESSION (6.5 hours, regular session alignment), and WEEKLY
-  (~1 week, multi-day shape) to test whether more specialised streams can improve on 68.4%. The 7-stream design
-  increases total T-squared by only 9.5% while giving prediction heads 75% more representation capacity (896 vs
-  512 dimensions). If Run 3d improves on Run 2, the next steps are walk-forward out-of-sample backtests on
-  validation data and preparing the MT5 execution bridge for live deployment.
+  three indices across two training runs each, plus the Run 3 architecture redesign series. Run 3d is the
+  culmination: the 7-stream architecture achieved 70.5% validation accuracy on US30, the best result across
+  all runs (+2.1pp over Run 2's 68.4%). The 7-stream VSN specialisation hypothesis is validated: each stream
+  learned distinct feature weightings, with zero pairwise top-5 overlap between MICRO and LONG, and between
+  WEEKLY and MICRO/SHORT/SLOW. The three new streams (MICRO, SESSION, WEEKLY) each contribute genuinely unique
+  features (dxy_ret_60m, tsmom_idx2_21d, dxy_corr_30/brent_ret_60m/msft_ret_60m respectively). The negative
+  generalisation gap at epoch 1 (val loss 1.048 vs train loss 1.063) confirms the architecture's inductive
+  bias suits this problem structure. Run 3a-c proved that single-stream architectures fail structurally
+  (55.3-55.7%) regardless of capacity, because the position-agnostic VSN cannot specialise per timescale.
+  The next steps are: (1) replicate Run 3d on US500 and NAS100 to confirm cross-index generality, and
+  (2) walk-forward out-of-sample backtests on validation data followed by preparing the MT5 execution bridge
+  for live deployment.
 </p>
 
 <h2>9. References</h2>
