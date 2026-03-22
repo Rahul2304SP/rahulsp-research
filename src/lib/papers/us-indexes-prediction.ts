@@ -4023,11 +4023,20 @@ export const content = `
     <tr><td>EMBED_DIM</td><td>128</td><td>320</td><td>2.5x increase eliminates 128-dim bottleneck</td></tr>
     <tr><td>LAYERS</td><td>2</td><td>3</td><td>More depth for 660 positions</td></tr>
     <tr><td>NHEAD</td><td>8</td><td>8</td><td>Unchanged (head_dim = 40)</td></tr>
-    <tr><td>BATCH_SIZE</td><td>512</td><td>384</td><td>Reduced to fit 32GB VRAM</td></tr>
+    <tr><td>BATCH_SIZE</td><td>512</td><td>192</td><td>Reduced from initial 384 after OOM at 45GB; 192 estimates ~22.5GB</td></tr>
     <tr><td>SEQ_LEN</td><td>660</td><td>660</td><td>Unchanged</td></tr>
     <tr><td>AUX_MAX_RATIO</td><td>0.20</td><td>0.20</td><td>Dynamic scaling retained</td></tr>
+    <tr><td>LEARNING_RATE</td><td>1.5e-4</td><td>1.5e-4</td><td>Kept unchanged; noisier gradients from smaller batch may help regularise</td></tr>
   </tbody>
 </table>
+
+<p>
+  The initial attempt with batch size 384 consumed approximately 45GB of VRAM, exceeding the RTX 5090's 32GB.
+  The original estimate of 26GB underestimated PyTorch memory fragmentation and gradient storage by roughly 1.7x.
+  Reducing batch size to 192 brings VRAM to approximately 22.5GB. The learning rate was kept at 1.5e-4 rather
+  than halving it proportionally (the linear scaling rule would suggest 7.5e-5), because noisier gradients
+  from smaller batches act as implicit regularisation, which may help with the overfitting observed in all prior runs.
+</p>
 
 <table>
   <thead>
@@ -4037,7 +4046,7 @@ export const content = `
     <tr><td>Total params</td><td>1,451K</td><td>562K</td><td>4,155K</td></tr>
     <tr><td>Representation dim</td><td>512 (4x128)</td><td>128</td><td>320</td></tr>
     <tr><td>Params/position</td><td>826-16,523</td><td>601</td><td>6,295</td></tr>
-    <tr><td>VRAM</td><td>18 GB</td><td>18 GB</td><td>26 GB</td></tr>
+    <tr><td>VRAM</td><td>18 GB</td><td>18 GB</td><td>~22.5 GB</td></tr>
   </tbody>
 </table>
 
