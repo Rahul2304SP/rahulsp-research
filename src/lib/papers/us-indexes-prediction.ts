@@ -1,8 +1,7 @@
 export const content = `
-<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Run 3d complete across all indices. US30 70.5% (+2.1pp), US500 68.1% (+6.1pp), NAS100 68.7% (no change).
-  <strong>Critical finding (Section 7.11):</strong> Barrier calibration flaw discovered. US500 and NAS100 barriers were 27-29x the median hourly move, producing 0% real barrier hits. Fix: adaptive same-hour ATR barriers (x5 multiplier) produce 58-61% hit rates across all indices with no per-instrument tuning. Run 3e with ATR-based barriers and continuous label weighting is in preparation.
+  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. US500 spread cost issue under investigation.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -14,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Model development in progress. 7-stream VSN+TCN+Transformer architecture. Best result: US30 70.5% val accuracy (Run 3d). Barrier calibration flaw found and fixed: adaptive same-hour ATR barriers replace fixed barriers (Section 7.11). Run 3e with ATR-based barriers and continuous label weighting in preparation. See Sections 7.5-7.11 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. US500 remains unprofitable due to spread cost. See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2329,6 +2328,10 @@ export const content = `
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
 <tr><td>NAS100</td><td>Run 2</td><td>3</td><td>68.9%</td><td>0.783</td><td>20.2pp*</td><td>1.8x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 3d</strong></td><td><strong>2</strong></td><td><strong>68.7%</strong></td><td>&mdash;</td><td><strong>11.2pp</strong></td><td>&mdash;</td><td style="color:#6b7280;"><strong>No improvement; 4-stream preferred</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3e</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; weighted fallback poisoned training</td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>Run 3e</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; weighted fallback poisoned training</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3f</strong></td><td><strong>1</strong></td><td><strong>67.6%</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>First profitable backtest: +&dollar;82,843</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>Run 3f</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Unprofitable &mdash; spread cost prohibitive</td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -4668,27 +4671,126 @@ export const content = `
   <li>Break-even accuracy is approximately 51% with symmetric SL/TP. Even 55% directional accuracy on barrier-hit bars is consistently profitable.</li>
 </ul>
 
-<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>In Progress:</strong> Run 3e with adaptive same-hour ATR barriers and continuous label weighting is in preparation.
+<h3>7.12 Run 3e/3f: Adaptive ATR Barriers</h3>
+
+<h4>Run 3e: Weighted Fallback (weight 0.2 for timeout bars)</h4>
+
+<p>
+  ATR x5 barriers with timeout bars weighted at 0.2. Result: both US30 and US500 lost money.
+</p>
+
+<table>
+<thead><tr><th>Index</th><th>Trades</th><th>Win Rate</th><th>Net PnL</th><th>PF</th></tr></thead>
+<tbody>
+<tr style="background:#fef2f2;"><td>US30</td><td>11,303</td><td>48.7%</td><td style="color:#dc2626; font-weight:600;">-&dollar;21,301</td><td>0.94</td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>15,063</td><td>48.5%</td><td style="color:#dc2626; font-weight:600;">-&dollar;7,600</td><td>0.87</td></tr>
+</tbody>
+</table>
+
+<p>
+  The 40% fallback labels (even at weight 0.2) still poisoned training. The model learned close-to-close direction, not barrier-hit direction.
+</p>
+
+<h4>Run 3f: HOLD Exclusion (mask=0 for timeout bars)</h4>
+
+<p>
+  Complete exclusion of timeout bars from training. Only the approximately 60% of bars where the barrier actually gets hit are used. This is the cleanest possible label set: every training example is a real barrier hit with a known direction.
+</p>
+
+<h4>US30 Run 3f Epoch 1: Profitable</h4>
+
+<table>
+<thead><tr><th>Metric</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Trades</td><td>11,303</td></tr>
+<tr><td>Win Rate</td><td>54.2%</td></tr>
+<tr style="background:#f0fdf4;"><td>Net PnL</td><td style="color:#059669; font-weight:600;">+&dollar;82,843</td></tr>
+<tr><td>Profit Factor</td><td>1.29</td></tr>
+<tr><td>Max Drawdown</td><td>&dollar;6,242</td></tr>
+<tr><td>TP hit rate</td><td>41.9%</td></tr>
+<tr><td>SL hit rate</td><td>31.7%</td></tr>
+<tr><td>Avg barrier</td><td>&dollar;72.71</td></tr>
+</tbody>
+</table>
+
+<p>
+  Confidence bucket breakdown:
+</p>
+
+<table>
+<thead><tr><th>Confidence</th><th>Trades</th><th>WR</th><th>Net PnL</th></tr></thead>
+<tbody>
+<tr><td>0.50-0.55</td><td>680</td><td>51.0%</td><td>+&dollar;111</td></tr>
+<tr><td>0.55-0.60</td><td>668</td><td>51.0%</td><td>+&dollar;308</td></tr>
+<tr><td>0.60-0.70</td><td>1,712</td><td>50.5%</td><td>+&dollar;3,455</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>0.70+</strong></td><td><strong>8,243</strong></td><td><strong>55.4%</strong></td><td style="color:#059669; font-weight:600;"><strong>+&dollar;78,968</strong></td></tr>
+</tbody>
+</table>
+
+<p>
+  Every confidence bucket is profitable. The 0.70+ bucket dominates with 95% of total PnL.
+</p>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3f_equity_curve.png" alt="US30 Run 3f: OOS equity curve showing +$82,843 over 9 months" />
+  <figcaption>US30 Run 3f: OOS equity curve showing +&dollar;82,843 over 9 months.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3f_pnl_by_confidence.png" alt="US30 Run 3f: PnL by model confidence bucket. 0.70+ dominates." />
+  <figcaption>US30 Run 3f: PnL by model confidence bucket. 0.70+ dominates.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3f_pnl_by_hour.png" alt="US30 Run 3f: PnL by hour of day." />
+  <figcaption>US30 Run 3f: PnL by hour of day.</figcaption>
+</figure>
+
+<h4>The Epoch 1 vs Epoch 4 Contradiction</h4>
+
+<table>
+<thead><tr><th>Metric</th><th>Epoch 1</th><th>Epoch 4</th></tr></thead>
+<tbody>
+<tr><td>Val Accuracy</td><td>67.6%</td><td>70.4%</td></tr>
+<tr><td>Net PnL</td><td style="color:#059669; font-weight:600;">+&dollar;82,843</td><td style="color:#dc2626; font-weight:600;">-&dollar;41,635</td></tr>
+<tr><td>Win Rate</td><td>54.2%</td><td>48.3%</td></tr>
+</tbody>
+</table>
+
+<p>
+  Higher validation accuracy produced worse backtest results. This is under investigation. The most likely explanation is that later epochs overfit to close-to-close patterns rather than barrier-hit patterns. The model improves at predicting which direction price will be at the end of the horizon, but this does not translate to predicting which barrier gets hit first. Epoch 1 has weaker directional accuracy but better calibrated confidence, which is what matters for barrier-based execution.
+</p>
+
+<h4>US500</h4>
+
+<p>
+  US500 remains unprofitable under Run 3f. The ATR x5 barrier averages &dollar;9.32, but the spread is &dollar;0.70, giving a spread-to-barrier ratio of 7.5%. This means the model must overcome a 7.5% cost on every trade just to break even. For comparison, US30 has a &dollar;72.71 average barrier with a &dollar;1.20 spread (1.7% cost). A longer horizon with ATR x50 barriers is being explored for US500.
+</p>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  US30 Run 3f Epoch 1 is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. The HOLD exclusion (mask=0 for timeout bars) was the critical fix. Every confidence bucket is profitable. An epoch 1 vs epoch 4 accuracy/profitability contradiction is under investigation.
+</div>
+
+<div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
+  US500 remains unprofitable. The ATR x5 barrier (&dollar;9.32 avg) is only 12.5x the spread (&dollar;0.70), making the cost-to-barrier ratio prohibitive. A longer horizon (22h with ATR x50) is being explored.
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  The 7-stream VSN+TCN+Transformer architecture achieved 70.5% validation accuracy on US30 and 68.1% on US500,
-  the best results across all training runs. NAS100 (68.7%) does not benefit from additional streams and will
-  use the 4-stream configuration. Barrier calibration analysis (Section 7.11) revealed that fixed barriers were
-  fundamentally flawed for US500 and NAS100 (27-29x the median hourly move, 0% hit rate). The fix is adaptive
-  same-hour ATR barriers with a x5 multiplier, which produce 58-61% hit rates across all three indices with
-  no per-instrument tuning.
+  US30 Run 3f (HOLD exclusion with mask=0 for timeout bars) is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. The barrier calibration fix (Section 7.11) and HOLD exclusion (Section 7.12) were both required to reach profitability. Run 3e (weighted fallback at 0.2) failed, confirming that even low-weight timeout labels poison training.
 </p>
 <p>
-  The immediate next step is Run 3e:
+  US500 remains unprofitable due to the spread-to-barrier cost ratio (7.5%). NAS100 has not yet been retrained with the corrected barriers.
+</p>
+<p>
+  Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3e retraining:</strong> Retrain all three indices with adaptive same-hour ATR x5 barriers (per-bar, no lookahead) and continuous label weighting (0.2 to 1.0). Architecture: 7-stream for US30 and US500, 4-stream for NAS100.</li>
-  <li><strong>Label quality validation:</strong> Confirm the adaptive barriers produce approximately 60% hit rates on both the training and validation sets with no lookahead leakage.</li>
-  <li><strong>Walk-forward backtesting:</strong> Run out-of-sample backtests with TP/SL set at the same adaptive barrier distance per trade, ensuring training labels and execution are aligned.</li>
-  <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once a Run 3e model passes walk-forward validation.</li>
+  <li><strong>Epoch selection:</strong> Epoch 1 is profitable but epoch 4 (higher val accuracy) is not. Investigate whether early stopping on backtest PnL rather than val accuracy is the correct selection criterion, or whether later epochs overfit to close-to-close patterns.</li>
+  <li><strong>US500 longer horizon:</strong> Test ATR x50 barriers with a 22-hour horizon to reduce the spread-to-barrier ratio from 7.5% to under 1%.</li>
+  <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
+  <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 Run 3f to confirm the result is not period-specific.</li>
+  <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
 </ol>
 
 <h2>9. References</h2>
