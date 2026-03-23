@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Data inventory (7.1), feature specification (7.2), normaliser selection (7.3), and model configuration (7.4) finalised: 45 features, VSN+TCN+Transformer with 4 temporal streams, double-barrier labels. All three Run 1 diagnostics complete (7.5): NAS100 best at 68.9% val accuracy (negative generalisation gap), US30 67.8%, US500 63.1%. US30 Run 2 complete: 68.4% accuracy, bias eliminated. US500 Run 2 complete: 62.0% accuracy, class gap 15.5pp to 4.9pp. NAS100 Run 2 complete: 68.9% accuracy, Run 1 confirmed near-optimal. All Run 2 diagnostics complete. Run 3 architecture redesign complete (Section 7.6): single-stream 660-bar Transformer, multi-horizon targets, lag-15 cross-asset features, two Transformer layers. Run 3a regressed to 55.7% (Section 7.7): auxiliary loss dominance identified as root cause. Run 3b dynamic auxiliary scaling fixed loss balance (43% vs 71%) but accuracy remained at 55.4% (Section 7.8): root cause is single-stream capacity bottleneck (562K vs 1,451K params). Run 3c complete: scaled single-stream (4,155K params, 320-dim, 3 layers) achieved 55.3%, confirming the failure is structural (position-agnostic VSN), not capacity-related. Run 3d complete across all indices: US30 70.5% (+2.1pp), US500 68.1% (+6.1pp), NAS100 68.7% (no change). 7-stream recommended for US30/US500, 4-stream for NAS100. Walk-forward backtesting next.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Model development in progress. 7-stream VSN+TCN+Transformer architecture. Best result: US30 70.5% val accuracy (Run 3d). See Sections 7.5-7.10 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -3352,12 +3352,12 @@ export const content = `
 </div>
 </details>
 
-<h3>7.6 Run 3: Architecture Redesign</h3>
+<h3>7.6 Run 3: Single-Stream Architecture Redesign</h3>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
   <strong>Complete</strong> &mdash; Run 3 implemented four structural changes based on Run 1 and Run 2 findings.
-  Results are a significant regression (55.7% val accuracy). See Section 7.7 for failure analysis,
-  root cause diagnosis, and proposed fix.
+  Results are a significant regression (55.7% val accuracy). See Sections 7.7-7.9 for failure analysis,
+  root cause diagnosis, and proposed fixes. See Section 7.10 for the 7-stream resolution.
 </div>
 
 <p>
@@ -3724,7 +3724,7 @@ export const content = `
   <text x="465" y="375" class="pp-text-sub">weight: 0.3</text>
 </svg>
 
-<h3>7.7 Run 3 Results: Failure Analysis</h3>
+<h3>7.7 Run 3a: Failure Analysis</h3>
 
 <div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
   <strong>Run 3 regressed from 68.4% to 55.7% val accuracy.</strong> Root cause: auxiliary loss (30m+120m targets)
@@ -3740,19 +3740,9 @@ export const content = `
   the failure mechanism precisely enough to guide the next iteration.
 </p>
 
-<h4>Performance Comparison</h4>
-
-<table>
-  <thead>
-    <tr><th>Metric</th><th>Run 1</th><th>Run 2</th><th>Run 3</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Best Val Accuracy</td><td>67.8% (Ep 3)</td><td>68.4% (Ep 5)</td><td style="color:#dc2626; font-weight:600;">55.7% (Ep 3)</td></tr>
-    <tr><td>Best Val Loss</td><td>0.933</td><td>0.981</td><td style="color:#dc2626; font-weight:600;">1.562</td></tr>
-    <tr><td>Train Acc at best</td><td>74.5%</td><td>76.6%</td><td>65.5%</td></tr>
-    <tr><td>Class Gap</td><td>6.0pp</td><td>1.6pp</td><td style="color:#dc2626; font-weight:600;">16.7pp</td></tr>
-  </tbody>
-</table>
+<p>
+  See the Cross-Index Summary table in Section 7.5 for the full comparison across all runs.
+</p>
 
 <p>
   The regression is severe across every metric. Validation accuracy dropped 12.7 percentage points from Run 2.
@@ -3902,10 +3892,10 @@ export const content = `
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
   <strong>Complete</strong> &mdash; Run 3b confirmed that dynamic auxiliary scaling fixes the loss balance problem
   (43% non-direction vs 71% in Run 3a) but does not recover accuracy. The failure is architectural, not
-  loss-related. See Section 7.8.
+  loss-related. See Sections 7.8-7.9.
 </div>
 
-<h3>7.8 Run 3b Results: Dynamic Auxiliary Scaling</h3>
+<h3>7.8 Run 3b: Dynamic Auxiliary Scaling</h3>
 
 <div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
   <strong>Run 3b confirms the single-stream architecture fails due to insufficient capacity (562K vs 1,451K params),
@@ -3920,18 +3910,9 @@ export const content = `
   identical to Run 3a's 55.7%. The problem is not the loss function.
 </p>
 
-<h4>Performance Comparison</h4>
-
-<table>
-  <thead>
-    <tr><th>Run</th><th>Architecture</th><th>Best Val Acc</th><th>Params</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Run 2</td><td>4-stream, 1L, 4H</td><td>68.4%</td><td>1,451K</td></tr>
-    <tr><td>Run 3a</td><td>1-stream 660, 2L, 8H, fixed aux</td><td>55.7%</td><td>562K</td></tr>
-    <tr><td>Run 3b</td><td>1-stream 660, 2L, 8H, dynamic aux</td><td>55.4%</td><td>562K</td></tr>
-  </tbody>
-</table>
+<p>
+  See the Cross-Index Summary table in Section 7.5 for the full comparison across all runs.
+</p>
 
 <p>
   Dynamic scaling kept the gradient balanced but did not recover accuracy. The 0.3pp difference between Run 3a
@@ -4000,7 +3981,9 @@ export const content = `
   VSN ranked them in the bottom 10 with no measurable signal.
 </p>
 
-<h4>Run 3c: Testing the Capacity Hypothesis</h4>
+<h3>7.9 Run 3c: Scaled Single-Stream and Position-Agnostic VSN</h3>
+
+<h4>Testing the Capacity Hypothesis</h4>
 
 <p>
   Before reverting to 4-stream, we ran one final test. The Run 3a/3b failure was diagnosed as a
@@ -4053,20 +4036,8 @@ export const content = `
 </table>
 
 <p>
-  Cross-run comparison:
+  See the Cross-Index Summary table in Section 7.5 for the full comparison across all runs.
 </p>
-
-<table>
-  <thead>
-    <tr><th>Run</th><th>Architecture</th><th>Params</th><th>Best Val Acc</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Run 2</td><td>4-stream, 1L, 4H, E=128</td><td>1,451K</td><td>68.4%</td></tr>
-    <tr><td>Run 3a</td><td>1-stream 660, 2L, 8H, E=128</td><td>562K</td><td>55.7%</td></tr>
-    <tr><td>Run 3b</td><td>1-stream 660, 2L, 8H, E=128, dyn aux</td><td>562K</td><td>55.4%</td></tr>
-    <tr><td>Run 3c</td><td>1-stream 660, 3L, 8H, E=320, dyn aux</td><td>4,155K</td><td>55.3%</td></tr>
-  </tbody>
-</table>
 
 <h4>Root Cause: Position-Agnostic VSN</h4>
 
@@ -4119,7 +4090,9 @@ export const content = `
   single-stream architecture, 3 Transformer layers, 8 attention heads, E=320, B=192, lag-15 features.
 </p>
 
-<h4>Run 3d: Expanded Multi-Stream Architecture</h4>
+<h3>7.10 Run 3d: 7-Stream Architecture</h3>
+
+<h4>Expanded Multi-Stream Design</h4>
 
 <p>
   The Run 3 series proved two things: (1) the multi-stream VSN specialisation is essential, and (2) each
@@ -4247,18 +4220,9 @@ export const content = `
   </tbody>
 </table>
 
-<p>Cross-run comparison:</p>
-
-<table>
-  <thead>
-    <tr><th>Run</th><th>Architecture</th><th>Params</th><th>Best Val Acc</th><th>Peak Epoch</th><th>Class Gap</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Run 2</td><td>4-stream</td><td>1,451K</td><td>68.4%</td><td>5</td><td>1.6pp</td></tr>
-    <tr><td>Run 3a-c</td><td>1-stream variants</td><td>562K-4,155K</td><td>55.3-55.7%</td><td>3-8</td><td>various</td></tr>
-    <tr style="background:#f0fdf4;"><td><strong>Run 3d</strong></td><td><strong>7-stream</strong></td><td><strong>~2,530K</strong></td><td style="color:#059669; font-weight:600;"><strong>70.5%</strong></td><td><strong>5</strong></td><td><strong>4.7pp</strong></td></tr>
-  </tbody>
-</table>
+<p>
+  See the Cross-Index Summary table in Section 7.5 for the full comparison across all runs.
+</p>
 
 <p>Four key observations:</p>
 
@@ -4470,29 +4434,11 @@ export const content = `
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
-
 <p>
-  Phase 2 is complete with seven empirical gap studies. Phase 3 has produced deploy-candidate models for all
-  three indices across multiple training runs, plus the Run 3 architecture redesign series. Run 3d is the
-  culmination, now validated across all three indices:
-</p>
-
-<ul>
-  <li><strong>US30:</strong> 70.5% val accuracy (+2.1pp over Run 2). 7-stream architecture validated. 6/15 new-stream unique features. Deploy with 7-stream.</li>
-  <li><strong>US500:</strong> 68.1% val accuracy (+6.1pp over Run 2). Largest improvement of any index. 8/15 new-stream unique features (highest). Deploy with 7-stream.</li>
-  <li><strong>NAS100:</strong> 68.7% val accuracy (-0.2pp vs Run 2). The 7-stream design did not improve NAS100. Only 3/15 new-stream unique features. NAS100's mega-cap concentration means signal is already captured by the 4-stream design. Deploy with 4-stream (Run 2 config).</li>
-</ul>
-
-<p>
-  The cross-index results confirm that the benefit of additional VSN streams correlates directly with
-  cross-asset signal diversity. Run 3a-c proved that single-stream architectures fail structurally
-  (55.3-55.7%) regardless of capacity, because the position-agnostic VSN cannot specialise per timescale.
-  The 7-stream fix resolves this for US30 and US500 but is unnecessary for NAS100.
-</p>
-
-<p>
-  The next steps are: (1) walk-forward out-of-sample backtests on validation data for all three indices,
-  and (2) preparing the MT5 execution bridge for live deployment using the recommended architecture per index.
+  The 7-stream VSN+TCN+Transformer architecture achieved 70.5% validation accuracy on US30 and 68.1% on US500,
+  the best results across all training runs. NAS100 (68.7%) does not benefit from additional streams and will
+  use the 4-stream configuration. Next steps are walk-forward out-of-sample backtests on validation data for
+  all three indices and preparing the MT5 execution bridge for live deployment.
 </p>
 
 <h2>9. References</h2>
