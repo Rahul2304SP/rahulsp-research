@@ -1,7 +1,8 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  Run 3d complete across all indices. US30 70.5% (+2.1pp), US500 68.1% (+6.1pp), NAS100 68.7% (no change). Walk-forward backtesting next.
+  Run 3d complete across all indices. US30 70.5% (+2.1pp), US500 68.1% (+6.1pp), NAS100 68.7% (no change).
+  <strong>Critical finding (Section 7.11):</strong> Barrier calibration flaw discovered. US500 and NAS100 barriers were 27-29x the median hourly move, producing 0% real barrier hits. All training labels for these two indices were fallback close-to-close direction. Retraining with corrected barriers is the next step.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +14,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Model development in progress. 7-stream VSN+TCN+Transformer architecture. Best result: US30 70.5% val accuracy (Run 3d). See Sections 7.5-7.10 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Model development in progress. 7-stream VSN+TCN+Transformer architecture. Best result: US30 70.5% val accuracy (Run 3d). Barrier calibration flaw found: US500/NAS100 labels invalid (Section 7.11). Retraining with corrected barriers next. See Sections 7.5-7.11 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2331,6 +2332,7 @@ export const content = `
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
+<p class="text-sm" style="color: #dc2626; font-weight: 600; margin-top: 0.5rem;">Note: US500 and NAS100 results are invalidated by the barrier calibration flaw discovered in Section 7.11. Their barriers (US500 &dollar;90, NAS100 &dollar;200) were 27-29x the median hourly move, producing 0% real barrier hits. 100% of training labels were fallback close-to-close direction, not barrier-based signal. US30 (&dollar;100 barrier, 3.7x ratio, 21% hit rate) was partially valid but suboptimal. Retraining with corrected barriers is required.</p>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 1 &amp; Run 2 Detail</summary>
@@ -4433,13 +4435,148 @@ export const content = `
   only 3/15 for NAS100. For deployment: US30 and US500 use 7-stream, NAS100 uses 4-stream.
 </div>
 
+<h3>7.11 Barrier Calibration: A Critical Label Flaw</h3>
+
+<p>
+  After completing Run 3d across all three indices, a post-hoc analysis of the labelling pipeline revealed a
+  fundamental calibration error. The double-barrier labels used for training depend on a barrier distance parameter
+  that determines when a directional move is "significant enough" to count as a label. This barrier must be
+  calibrated to the volatility of each instrument. It was not.
+</p>
+
+<h4>The Problem</h4>
+
+<p>
+  US500 uses a &dollar;90 barrier and NAS100 uses a &dollar;200 barrier. These were set without reference to the
+  actual hourly price displacement of each index. When measured against the median absolute 60-minute move, both
+  barriers are impossibly large. US500 moves a median of &dollar;2.00 per hour, making the &dollar;90 barrier
+  27.6 times the typical hourly move. NAS100 moves a median of &dollar;6.80 per hour, making the &dollar;200
+  barrier 29.4 times the typical hourly move. Neither barrier is ever hit within the 60-minute labelling horizon.
+</p>
+
+<table>
+<thead><tr><th>Index</th><th>Barrier</th><th>Median Hourly Move</th><th>Ratio</th><th>Hit Rate</th></tr></thead>
+<tbody>
+<tr><td>US30</td><td>&dollar;100</td><td>&dollar;26</td><td>3.7x</td><td>21.1%</td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>&dollar;90</td><td>&dollar;2.0</td><td style="color:#dc2626; font-weight:600;">27.6x</td><td style="color:#dc2626; font-weight:600;">0.0%</td></tr>
+<tr style="background:#fef2f2;"><td>NAS100</td><td>&dollar;200</td><td>&dollar;6.80</td><td style="color:#dc2626; font-weight:600;">29.4x</td><td style="color:#dc2626; font-weight:600;">0.0%</td></tr>
+</tbody>
+</table>
+
+<figure>
+  <img src="/charts/us-indexes/barrier_01_barrier_hit_rates.png" alt="Barrier hit rate curves showing US500 and NAS100 at 0% hit rate" />
+  <figcaption>Barrier hit rate curves showing US500 and NAS100 at 0% hit rate.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/barrier_02_displacement_distributions.png" alt="60-minute displacement distributions with barrier distances marked" />
+  <figcaption>60-minute displacement distributions with barrier distances marked.</figcaption>
+</figure>
+
+<h4>The Fallback Bug</h4>
+
+<p>
+  The labelling code assigns a direction based on whichever barrier price hits first within the horizon window.
+  When neither barrier is hit, it silently falls back to close-to-close direction: if the close price at the end
+  of the horizon is above the entry, the label is UP; if below, DOWN. Because the US500 and NAS100 barriers are
+  never hit, 100% of their training labels are this weak fallback. The model was trained on "did the close move
+  up or down by a few dollars" rather than "which barrier did price hit first." This is a fundamentally different
+  and much weaker signal.
+</p>
+
+<figure>
+  <img src="/charts/us-indexes/barrier_04_label_quality.png" alt="Label quality: percentage of real barrier hits vs close-to-close fallback" />
+  <figcaption>Label quality: percentage of real barrier hits vs close-to-close fallback.</figcaption>
+</figure>
+
+<h4>Why Validation Accuracy Was Misleading</h4>
+
+<p>
+  The 68-70% validation accuracy reported for US500 and NAS100 is real, but it measures close-to-close direction
+  prediction, not barrier-based signal quality. A model that correctly predicts "price will be &dollar;3 higher in
+  one hour" scores as correct during validation. But the backtest places a take-profit at the barrier distance
+  (&dollar;90 for US500, &dollar;200 for NAS100). Price goes up &dollar;3 as predicted, but the TP at +&dollar;90
+  is never reached. The trade sits open until the 60-minute timeout, at which point it closes at whatever price
+  happens to be current. 93% of US500 and NAS100 trades exit on timeout rather than hitting TP or SL.
+</p>
+
+<h4>Backtest Results With Symmetric SL</h4>
+
+<p>
+  A backtest using symmetric stop-loss (SL at the same distance as TP) confirms the problem. US30, with its
+  partially valid 21.1% barrier hit rate, produces a profitable result. US500 and NAS100 hover around breakeven,
+  consistent with random timeout exits.
+</p>
+
+<table>
+<thead><tr><th>Index</th><th>Backtest WR</th><th>Net PnL</th><th>PF</th></tr></thead>
+<tbody>
+<tr style="background:#f0fdf4;"><td>US30</td><td>56.5%</td><td style="color:#059669; font-weight:600;">+&dollar;64,722</td><td>1.47</td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>50.7%</td><td style="color:#dc2626; font-weight:600;">-&dollar;4,290</td><td>0.83</td></tr>
+<tr><td>NAS100</td><td>50.2%</td><td>+&dollar;2,364</td><td>1.04</td></tr>
+</tbody>
+</table>
+
+<figure>
+  <img src="/charts/us-indexes/barrier_05_backtest_comparison.png" alt="Backtest results showing only US30 is profitable" />
+  <figcaption>Backtest results showing only US30 is profitable.</figcaption>
+</figure>
+
+<h4>Correct Barriers</h4>
+
+<p>
+  The target is approximately 30% barrier hit rate within the 60-minute horizon, which balances label quality
+  (enough real barrier hits to train on) against label quantity (not so easy that every bar hits the barrier).
+  The corrected barriers bring all three indices into the 2.8-3.2x range relative to the median hourly move.
+</p>
+
+<table>
+<thead><tr><th>Index</th><th>Current Barrier</th><th>Correct Barrier</th><th>Current Ratio</th><th>Correct Ratio</th></tr></thead>
+<tbody>
+<tr><td>US30</td><td>&dollar;100</td><td>&dollar;75</td><td>3.7x</td><td>2.8x</td></tr>
+<tr><td>US500</td><td>&dollar;90</td><td>&dollar;10</td><td>27.6x</td><td>3.1x</td></tr>
+<tr><td>NAS100</td><td>&dollar;200</td><td>&dollar;40</td><td>29.4x</td><td>3.2x</td></tr>
+</tbody>
+</table>
+
+<figure>
+  <img src="/charts/us-indexes/barrier_03_barrier_calibration.png" alt="Barrier-to-hourly-move ratios. US30 is 3.7x; US500 and NAS100 exceed 27x" />
+  <figcaption>Barrier-to-hourly-move ratios. US30 is 3.7x; US500 and NAS100 exceed 27x.</figcaption>
+</figure>
+
+<h4>Impact on Prior Results</h4>
+
+<ul>
+  <li>All Run 1, Run 2, and Run 3 results for US500 and NAS100 were trained on incorrect labels. The reported validation accuracy measures close-to-close direction prediction, not the intended barrier-based signal.</li>
+  <li>US30 was partially valid (21.1% real barrier hits) but suboptimal. The &dollar;100 barrier is larger than necessary; &dollar;75 would produce a higher proportion of real barrier labels.</li>
+  <li>The 7-stream architecture findings remain valid. The architecture improved direction prediction regardless of label quality. The relative ranking (7-stream better for US30 and US500, 4-stream sufficient for NAS100) is expected to hold with corrected labels.</li>
+  <li>Retraining with corrected barriers is the immediate next step.</li>
+</ul>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  US500 and NAS100 barriers were 27-29x the median hourly move, producing 0% real barrier hits. 100% of training
+  labels were fallback close-to-close direction, not the intended barrier-based signal. This invalidates the
+  reported backtest profitability for these two indices. US30 (3.7x ratio, 21% hit rate) was partially valid.
+  Corrected barriers: US30 &dollar;75, US500 &dollar;10, NAS100 &dollar;40.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 <p>
   The 7-stream VSN+TCN+Transformer architecture achieved 70.5% validation accuracy on US30 and 68.1% on US500,
   the best results across all training runs. NAS100 (68.7%) does not benefit from additional streams and will
-  use the 4-stream configuration. Next steps are walk-forward out-of-sample backtests on validation data for
-  all three indices and preparing the MT5 execution bridge for live deployment.
+  use the 4-stream configuration. However, barrier calibration analysis (Section 7.11) revealed that US500 and
+  NAS100 training labels are invalid: their barriers were 27-29x the median hourly move, producing 0% real barrier
+  hits and 100% fallback close-to-close labels. US30 was partially valid at 21% hit rate but suboptimal.
 </p>
+<p>
+  The immediate next steps are:
+</p>
+<ol>
+  <li><strong>Barrier-corrected retraining:</strong> Retrain all three indices with calibrated barriers (US30 &dollar;75, US500 &dollar;10, NAS100 &dollar;40) targeting approximately 30% hit rate.</li>
+  <li><strong>Label quality validation:</strong> Confirm the corrected barriers produce the expected hit rates on the training set before full retraining.</li>
+  <li><strong>Walk-forward backtesting:</strong> Run out-of-sample backtests on the retrained models with correct barriers and symmetric SL/TP.</li>
+  <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once a retrained model passes walk-forward validation.</li>
+</ol>
 
 <h2>9. References</h2>
 
