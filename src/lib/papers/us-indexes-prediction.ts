@@ -5095,32 +5095,95 @@ export const content = `
 <h4>Run 3j Plan: Addressing Root Causes</h4>
 
 <p>
-  Two root causes identified from Run 3i:
+  Four root causes identified from Run 3i:
 </p>
 
 <p>
-  <strong>1. Overfitting after one epoch.</strong> Approximately 27,500 independent samples packaged as 1.65M overlapping sequences. Fix: reduce EMBED_DIM from 128 to 64 (4x fewer parameters), plus label smoothing (0.85/0.075). A companion Run 3ja will test transition-based sample selection (train only on the first bar of each label run, not mid-move bars).
+  <strong>1. Overfitting after one epoch.</strong> Approximately 27,500 independent samples packaged as 1.65M overlapping sequences. The model memorises the training set within a single pass.
 </p>
 
 <p>
-  <strong>2. Poor long directional accuracy (47% WR).</strong> Best individual feature AUC is 0.532. The directional signal lives in medium and long-term momentum, not short-term price action. Fix: add longer-horizon features:
+  <strong>2. Poorly calibrated confidence buckets.</strong> P(HOLD) is small, pushing directional probabilities artificially high. The 0.70+ confidence bucket contains 90% of all trades, meaning the model is almost never uncertain.
 </p>
-
-<ul>
-  <li>5-day and 10-day TSMOM</li>
-  <li>Yield curve slope (T10Y2Y), 2Y and 10Y yields</li>
-  <li>10Y inflation breakeven (T10YIE)</li>
-  <li>High-yield credit spread (BAMLH0A0HYM2)</li>
-  <li>Weekly jobless claims (ICSA)</li>
-  <li>Release proximity flag (binary: scheduled data within 30 min)</li>
-</ul>
 
 <p>
-  <strong>3. Session structural effect.</strong> Fix: learnable session embedding (Asian/EUR/US) added to the Transformer, allowing the model to condition predictions on the current trading session without training separate models.
+  <strong>3. No session-conditional decision making.</strong> The same weights are applied regardless of Asian, London, or US session. Hours 02-05 UTC are consistently profitable while hours 08-14 and 19-23 consistently lose, yet the model has no mechanism to adapt.
 </p>
+
+<p>
+  <strong>4. Feature horizon mismatch.</strong> The model predicts 120-bar (2-hour) moves but the longest momentum feature is <em>ret_120m</em>, the same horizon as the prediction window. It has no view of the larger trend.
+</p>
+
+<p>
+  Run 3j introduces five changes to address these problems:
+</p>
+
+<p>
+  <strong>Change 1: Learnable Session Embedding.</strong> The raw numeric <em>session_flag</em> (0/1/2) is replaced with a learnable embedding vector (3 sessions, EMBED_DIM dimensions) added to the fused representation before the direction heads. A numeric 0/1/2 feature only gives the model a linear slope. The embedding lets it learn non-linear session-conditional behaviour: "during the Asian session, lower the short bias" or "during the US session, require higher confidence before trading." Session definitions are Asian (21:00-06:59 UTC), London (07:00-14:59), and US (15:00-20:59). The raw <em>session_flag</em> remains in the feature set for timestep-varying context across the sequence; the embedding adds a global session bias on top.
+</p>
+
+<p>
+  <strong>Change 2: Dynamic MAE-Based Label Smoothing.</strong> Instead of uniform label smoothing where all labels are softened equally, smoothing is scaled per sample based on the Max Adverse Excursion (MAE) ratio. For an UP-labelled bar, MAE is how far price dipped below entry before eventually hitting the UP barrier. For a DOWN-labelled bar, MAE is how far price rallied above entry before hitting the DOWN barrier. The MAE ratio (MAE divided by barrier size) ranges from 0.0 (clean, straight path to barrier) to approaching 1.0 (price nearly hit the opposite barrier first). Clean signals receive near-hard labels (smoothing = 0.01), while noisy signals receive heavy smoothing (up to 0.20). HOLD bars, which timed out without hitting either barrier, are the noisiest labels and receive maximum smoothing. The standard cross-entropy loss is replaced with a custom KL-divergence loss using these per-sample soft targets. This should fix the inflated confidence buckets and delay the epoch cliff by making the model train slower on noisy labels.
+</p>
+
+<p>
+  <strong>Change 3: 240-bar Momentum Feature.</strong> A 4-hour return feature (<em>ret_240m</em>) is added alongside the existing <em>ret_60m</em> and <em>ret_120m</em>. The academic TSMOM literature (Moskowitz, Ooi, and Pedersen 2012) shows that momentum at horizons longer than the prediction window provides the strongest signal. The model needs to see the "bigger picture" trend to predict where price goes over the next 2 hours.
+</p>
+
+<p>
+  <strong>Change 4: Ten Daily Macro Level Features.</strong> Daily economic data from FRED is merged to M1 bars as slow-moving context features. These are level features (not event surprises), forward-filled and shifted by one day for point-in-time safety.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Source</th><th>Frequency</th><th>What It Tells the Model</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><em>macro_t10y2y</em></td><td>T10Y2Y</td><td>Daily</td><td>Yield curve slope (negative = recession signal)</td></tr>
+    <tr><td><em>macro_dgs2</em></td><td>DGS2</td><td>Daily</td><td>2Y Treasury yield (Fed policy expectations)</td></tr>
+    <tr><td><em>macro_dgs10</em></td><td>DGS10</td><td>Daily</td><td>10Y Treasury yield (growth/inflation expectations)</td></tr>
+    <tr><td><em>macro_t10yie</em></td><td>T10YIE</td><td>Daily</td><td>10Y breakeven inflation</td></tr>
+    <tr><td><em>macro_hy_spread</em></td><td>BAMLH0A0HYM2</td><td>Daily</td><td>High-yield credit spread (credit stress proxy)</td></tr>
+    <tr><td><em>macro_dfii10</em></td><td>DFII10</td><td>Daily</td><td>10Y real yield from TIPS (real cost of capital)</td></tr>
+    <tr><td><em>macro_t5yie</em></td><td>T5YIE</td><td>Daily</td><td>5Y breakeven inflation (short-term)</td></tr>
+    <tr><td><em>macro_icsa</em></td><td>ICSA</td><td>Weekly</td><td>Initial jobless claims (labour market pulse)</td></tr>
+    <tr><td><em>macro_cpi</em></td><td>CPIAUCSL</td><td>Monthly</td><td>Headline CPI (inflation level)</td></tr>
+    <tr><td><em>macro_unrate</em></td><td>UNRATE</td><td>Monthly</td><td>Unemployment rate (labour market slack)</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Daily series have approximately 82% coverage since 2020 (missing on weekends and holidays, forward-filled). Monthly series are constant for roughly 26 days between releases. Each M1 bar uses the previous day's macro value to ensure no look-ahead bias. The VSN (Variable Selection Network) will automatically downweight useless macro features. If after three epochs the macro VSN weights are all near-uniform (high entropy), they will be disabled for Run 3k.
+</p>
+
+<p>
+  <strong>Change 5: Permutation Entropy Feature.</strong> A rolling 60-bar permutation entropy of price returns, measuring the structural predictability of recent price action. Normalised to [0, 1] where 0 means perfectly ordered (monotone trend) and 1 means maximally random (no repeating ordinal patterns). This is based on Bandt and Pompe (2002), using embedding dimension 3 (six possible ordinal patterns) computed on 1-minute returns.
+</p>
+
+<p>
+  Entropy captures something fundamentally different from both volatility and momentum. A market can be high-volatility but low-entropy (a strong directional move that is big but predictable, the model's sweet spot) or high-volatility and high-entropy (whipsawing chaos, the model's worst case). Run 3i showed that hours 08-14 and 19-23 UTC consistently lose across all 15 epochs. These are precisely the hours with the most competing information flows (economic releases, US open, London/US overlap transitions), meaning the highest entropy periods. With an entropy feature, the model can learn to predict HOLD or lower its conviction when the market is structurally unpredictable.
+</p>
+
+<p>
+  Expected outcomes compared to Run 3i:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 3i (Best)</th><th>Run 3j Target</th><th>Mechanism</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Peak win rate</td><td>51.8% (Epoch 1)</td><td>53-55%</td><td>Better features + MAE smoothing</td></tr>
+    <tr><td>Epoch cliff</td><td>Epoch 5</td><td>Epoch 8+</td><td>Smoothing slows overfitting</td></tr>
+    <tr><td>Good-hour WR</td><td>59-68%</td><td>62-70%</td><td>Session embedding amplifies session edge</td></tr>
+    <tr><td>Bad-hour loss</td><td>-&dollar;4K to -&dollar;6K/hr</td><td>-&dollar;1K to -&dollar;3K/hr</td><td>Session embedding + macro context + entropy gating</td></tr>
+    <tr><td>Confidence calibration</td><td>0.70+ = 90% of trades</td><td>0.70+ = 30-40% of trades</td><td>MAE smoothing fixes inflated probabilities</td></tr>
+    <tr><td>HOLD prediction</td><td>~25% of bars</td><td>~35% of bars</td><td>Entropy feature helps model abstain in chaotic regimes</td></tr>
+  </tbody>
+</table>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  Run 3j is in preparation with reduced model size (64-dim), macro features (yield curve, credit spreads, jobless claims), learnable session embedding, and label smoothing. Run 3ja will test transition-based sample selection.
+  Run 3j introduces five changes: learnable session embedding, dynamic MAE-based label smoothing, a 240-bar momentum feature, ten daily macro features from FRED, and permutation entropy. Training is in progress. Run 3ja (transition-based sample selection, training only on the first bar of each label run) will follow.
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
@@ -5137,8 +5200,9 @@ export const content = `
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3j (reduced model + macro features):</strong> EMBED_DIM 128 to 64 (4x fewer parameters), label smoothing (0.85/0.075), learnable session embedding (Asian/EUR/US). New macro features: yield curve slope (T10Y2Y), 2Y and 10Y yields, 10Y inflation breakeven, high-yield credit spread, weekly jobless claims, release proximity flag. This is the highest-priority next step.</li>
-  <li><strong>Run 3ja (transition-based sampling):</strong> Train only on the first bar of each label run (not mid-move bars) to reduce effective sample overlap and slow overfitting.</li>
+  <li><strong>Run 3j (session embedding + MAE smoothing + macro features):</strong> Five changes: learnable session embedding (Asian/London/US), dynamic MAE-based label smoothing (per-sample soft targets scaled by path cleanliness), 240-bar momentum feature, ten daily macro level features from FRED (yield curve, credit spreads, inflation breakevens, jobless claims, CPI, unemployment), and permutation entropy. Training is in progress.</li>
+  <li><strong>Run 3ja (transition-based sampling):</strong> Train only on the first bar of each label run (where label[i] differs from label[i-1]) to reduce effective overlap from 1.65M to approximately 27K-50K truly independent samples.</li>
+  <li><strong>Run 3k (evaluate and prune):</strong> Based on Run 3j results, prune macro features if VSN entropy is high, tune label smoothing parameters, and assess whether parameter count is excessive relative to effective samples.</li>
   <li><strong>Confidence gate at 0.70:</strong> The 0.60-0.70 bucket is a net loser. Filtering to 0.70+ should improve PF.</li>
   <li><strong>Early stopping:</strong> Epoch 1-2 only. Later epochs lose money despite higher validation accuracy.</li>
   <li><strong>US500 4-hour horizon:</strong> ATR x15 barriers (3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). First viable US500 configuration, pending training.</li>
