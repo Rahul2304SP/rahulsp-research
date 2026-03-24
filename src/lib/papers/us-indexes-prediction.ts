@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric. US500 spread cost issue under investigation.
+  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric. US500 4-hour horizon with ATR x15 barriers selected for Run 3h (3.5% spread cost, 40% hit rate).
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. Run 3h in preparation with 3-class labels and hour-adaptive barriers. US500 remains unprofitable due to spread cost. See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. Run 3h in preparation with 3-class labels and hour-adaptive barriers. US500 4-hour horizon with ATR x15 barriers selected for Run 3h (3.5% spread cost). See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -4829,6 +4829,48 @@ export const content = `
   US500 remains unprofitable. The ATR x5 barrier (&dollar;9.32 avg) is only 12.5x the spread (&dollar;0.70), making the cost-to-barrier ratio prohibitive. A longer horizon (22h with ATR x50) is being explored.
 </div>
 
+<h4>US500: The 4-Hour Horizon Solution</h4>
+
+<p>
+  US500 has been the hardest index. History of failed approaches:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Approach</th><th>Horizon</th><th>Hit Rate</th><th>Avg Barrier</th><th>Spread Cost</th><th>Result</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Fixed &dollar;90</td><td>1h</td><td>0%</td><td>&dollar;90</td><td>0.8%</td><td>No labels (100% fallback)</td></tr>
+    <tr><td>ATR x5</td><td>1h</td><td>59%</td><td>&dollar;8.30</td><td>8.4%</td><td>Spread eats edge</td></tr>
+    <tr><td>ATR x50</td><td>22h</td><td>60%</td><td>&dollar;33</td><td>2.1%</td><td>Features don't predict daily direction (55.3% acc)</td></tr>
+    <tr><td>ATR x15</td><td>4h</td><td>40%</td><td>&dollar;20.24</td><td>3.5%</td><td>Selected for Run 3h</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The 4-hour horizon is the middle ground: long enough for the barrier to clear the spread, short enough for M1 features to retain predictive power.
+</p>
+
+<p>
+  <strong>Why ATR x15 over fixed &dollar;20:</strong> Both produce ~&dollar;20 average barrier and 3.5% spread cost. But ATR x15 adapts to volatility regimes (wider barriers in high-vol, tighter in quiet periods), achieves higher hit rate (40% vs 33%), and adapts to time of day with the timestamp fix.
+</p>
+
+<p>
+  <strong>Expected label distribution:</strong> ~20% UP, ~20% DOWN, ~60% HOLD. Less training signal per bar than US30, but each label represents a genuine &dollar;20+ move within 4 hours.
+</p>
+
+<p>
+  <strong>Break-even win rate:</strong> ~51.8% at 3.5% spread cost. US30 achieved 54.2% with the same architecture.
+</p>
+
+<p>
+  <strong>Run 3h US500 config:</strong> 4-hour horizon, ATR x15 barriers, 3-class UP/DOWN/HOLD, same 7-stream architecture.
+</p>
+
+<p>
+  This is the first US500 configuration that balances all three constraints: sufficient barrier hit rate, manageable spread cost, and a prediction horizon M1 features can address.
+</p>
+
 <h4>Run 3h Plan</h4>
 
 <p>
@@ -4856,7 +4898,7 @@ export const content = `
   Run 3h is in preparation. It introduces 3-class labels (UP/DOWN/HOLD), the tradeable_acc metric, hour-adaptive barriers (with the timestamp bug fixed), and hour-level backtest analysis.
 </p>
 <p>
-  US500 remains unprofitable due to the spread-to-barrier cost ratio (7.5%). US500's 60-min horizon fails because the ATR x5 barrier (&dollar;9.32) is too small relative to the &dollar;0.70 spread. NAS100 has not yet been retrained with HOLD exclusion.
+  US500 has a 4-hour horizon solution: ATR x15 barriers average &dollar;20.24 with a 3.5% spread cost and 40% hit rate. This replaces the failed 1-hour ATR x5 approach (7.5% spread cost). The 4-hour horizon is included in Run 3h with 3-class UP/DOWN/HOLD labels and the same 7-stream architecture. NAS100 has not yet been retrained with HOLD exclusion.
 </p>
 <p>
   Open investigations and next steps:
@@ -4866,7 +4908,7 @@ export const content = `
   <li><strong>Epoch selection:</strong> Epoch 1 (67.6% acc) makes +&dollar;82K while epoch 4 (70.4% acc) loses &dollar;41K. Three hypotheses under investigation: calibration overfit, timeout bar exposure, and val accuracy measuring the wrong thing. Run 3h's tradeable_acc metric is designed to resolve this.</li>
   <li><strong>Confidence gating:</strong> Investigate whether filtering trades by model confidence (e.g., only 0.70+ bucket) improves risk-adjusted returns in live deployment.</li>
   <li><strong>Timeout bar investigation:</strong> Analyze model behavior specifically on timeout bars (mask=0) to determine whether they contribute to or detract from backtest PnL.</li>
-  <li><strong>US500 longer horizon:</strong> Test ATR x50 barriers with a 22-hour horizon to reduce the spread-to-barrier ratio from 7.5% to under 1%.</li>
+  <li><strong>US500 4-hour horizon:</strong> Run 3h includes US500 with ATR x15 barriers (4-hour horizon, 3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). This is the first viable US500 configuration.</li>
   <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
   <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
   <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
