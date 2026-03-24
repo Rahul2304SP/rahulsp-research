@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3h completed with 3-class HOLD labels and hour-stratified ATR. Epoch 1: +&dollar;37,266, PF 1.18, 7,812 trades. The model's edge is concentrated in 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. The 3-class HOLD system correctly abstains on 31% of bars. Session filter and confidence gating are the next steps.
+  US30 Run 3h completed with 3-class HOLD labels and hour-stratified ATR. Epoch 1: +&dollar;37,266, PF 1.18, 7,812 trades. The model's edge is concentrated in 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. The 3-class HOLD system correctly abstains on 31% of bars. Run 3i (asymmetric barriers and horizons to fix the structural SHORT bias) is in preparation.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3h completed: +&dollar;37,266 OOS (Ep 1), PF 1.18, 7,812 trades. 3-class HOLD labels, hour-stratified ATR, directional confidence. Edge concentrated in 00-06 UTC (+&dollar;49K, 71.1% short WR). Session filter and confidence gating next. See Sections 7.5-7.13 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3h completed: +&dollar;37,266 OOS (Ep 1), PF 1.18, 7,812 trades. 3-class HOLD labels, hour-stratified ATR, directional confidence. Edge concentrated in 00-06 UTC (+&dollar;49K, 71.1% short WR). Run 3i (asymmetric barriers and horizons) in preparation. See Sections 7.5-7.13 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -5012,6 +5012,66 @@ export const content = `
   <figcaption>Epoch 2 PnL by hour.</figcaption>
 </figure>
 
+<h4>Run 3i Plan: Asymmetric Barriers and Horizons</h4>
+
+<p>
+  Run 3i is not a session filter. It addresses the root cause of the SHORT bias by matching barriers and horizons to how each direction actually moves.
+</p>
+
+<p>
+  <strong>The evidence (market microstructure asymmetry).</strong>
+  Markets drop faster than they rise. In any 60-bar window, the average max DOWN move is &dollar;81 (47% larger than UP) while the average max UP move is &dollar;55. The DOWN barrier is hit first 51.9% of the time, even in rising markets. Symmetric barriers penalise longs because rallies are slow and steady (small bullish bars over hours) while drops are fast and sharp (large bearish bars in minutes). This is the structural source of the label imbalance (DOWN 36.5% vs UP 23.7%) and the model's short-only edge.
+</p>
+
+<p>
+  <strong>The design.</strong>
+</p>
+
+<table>
+  <thead>
+    <tr><th>Direction</th><th>Barrier</th><th>Horizon</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>LONG (UP)</td><td>ATR x 4 (smaller target)</td><td>120 bars (2 hours)</td><td>Rallies are slow: smaller target, more time</td></tr>
+    <tr><td>SHORT (DOWN)</td><td>ATR x 5 (unchanged)</td><td>60 bars (1 hour)</td><td>Drops are fast: keep current setup</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Expected impact.</strong>
+  UP labels increase from roughly 30% to 38-42%. DOWN labels stay at roughly 33.5%. HOLD decreases to roughly 25-28%. The structural SHORT bias should be eliminated because the label distribution will be balanced at source rather than filtered after the fact.
+</p>
+
+<p>
+  <strong>Why not just a session filter.</strong>
+  A session filter (trade 00-06 only) would discard 75% of trades. The asymmetric barrier approach addresses the root cause (label imbalance from microstructure asymmetry) rather than the symptom (model only works during certain hours). If the long side becomes viable, the model should work across all sessions.
+</p>
+
+<p>
+  <strong>Risks.</strong>
+</p>
+<ol>
+  <li>Asymmetric TP/SL changes risk/reward per direction (both still 1:1 individually).</li>
+  <li>The model must learn fundamentally different patterns: "slow drift up over 2 hours" vs "sharp drop in 1 hour."</li>
+  <li>May overcorrect to UP bias (addressable with per-class weighting).</li>
+  <li>Longer UP horizon reduces effective independent samples.</li>
+</ol>
+
+<p>
+  <strong>Success criteria.</strong>
+</p>
+<ol>
+  <li>UP/DOWN label balance within 5 percentage points.</li>
+  <li>Long win rate above 50%.</li>
+  <li>Short win rate maintained above 55%.</li>
+  <li>Net PnL above +&dollar;40K.</li>
+  <li>Model should be profitable during US hours (where Run 3h failed due to wrong-direction longs).</li>
+</ol>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  Run 3i with asymmetric barriers (LONG ATR x4 / 120 bars, SHORT ATR x5 / 60 bars) is in preparation.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 <p>
   US30 Run 3h is complete. The 3-class HOLD system, hour-stratified ATR fix, and directional confidence metric produce +&dollar;37,266 at epoch 1 (PF 1.18, 7,812 trades). Run 3f remains the highest raw PnL (+&dollar;82,843) but lacked hour-level analysis due to the timestamp bug. Run 3h trades 31% fewer bars (HOLD abstention) and reveals the true edge structure: hours 00-06 UTC account for +&dollar;49K while hours 08-14 and 19-23 lose -&dollar;17.6K.
@@ -5026,9 +5086,8 @@ export const content = `
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Session filter:</strong> Only trade 00-06 UTC. Run 3h shows +&dollar;49K in this window with 71.1% short-side win rate. This is the highest-priority next step.</li>
+  <li><strong>Run 3i (asymmetric barriers):</strong> LONG ATR x4 / 120 bars, SHORT ATR x5 / 60 bars. Addresses the root cause of the SHORT bias (microstructure asymmetry in label generation) rather than filtering by session. This is the highest-priority next step.</li>
   <li><strong>Confidence gate at 0.70:</strong> The 0.60-0.70 bucket is a net loser. Filtering to 0.70+ should improve PF.</li>
-  <li><strong>Label imbalance:</strong> DOWN=36.5% vs UP=23.7% creates a short bias. Rebalancing or oversampling UP labels may extend the edge beyond Asian hours.</li>
   <li><strong>Early stopping:</strong> Epoch 1-2 only. Epoch 3+ loses money despite higher tradeable_acc.</li>
   <li><strong>US500 4-hour horizon:</strong> ATR x15 barriers (3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). First viable US500 configuration, pending training.</li>
   <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
