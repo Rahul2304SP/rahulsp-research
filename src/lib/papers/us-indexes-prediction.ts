@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. US500 spread cost issue under investigation.
+  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric. US500 spread cost issue under investigation.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. US500 remains unprofitable due to spread cost. See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. Run 3h in preparation with 3-class labels and hour-adaptive barriers. US500 remains unprofitable due to spread cost. See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -4697,6 +4697,27 @@ export const content = `
   Complete exclusion of timeout bars from training. Only the approximately 60% of bars where the barrier actually gets hit are used. This is the cleanest possible label set: every training example is a real barrier hit with a known direction.
 </p>
 
+<h4>Run 3e vs Run 3f: The Single Change</h4>
+
+<p>
+  The only difference between Run 3e and Run 3f is the treatment of timeout bars. Run 3e kept them in training with a reduced loss weight of 0.2. Run 3f excluded them entirely (mask=0). That single change turned a &dollar;21K loss into an &dollar;83K gain on the same data, same model, same hyperparameters.
+</p>
+
+<table>
+<thead><tr><th>Metric</th><th>Run 3e (weight 0.2)</th><th>Run 3f Epoch 1 (weight 0.0)</th></tr></thead>
+<tbody>
+<tr><td>Trades</td><td>11,303</td><td>11,303</td></tr>
+<tr><td>Win Rate</td><td>48.7%</td><td>54.2%</td></tr>
+<tr style="background:#fef2f2;"><td>Net PnL</td><td style="color:#dc2626; font-weight:600;">-&dollar;21,301</td><td style="color:#059669; font-weight:600;">+&dollar;82,843</td></tr>
+<tr><td>Profit Factor</td><td>0.94</td><td>1.29</td></tr>
+<tr><td>Max Drawdown</td><td>&dollar;24,282</td><td>&dollar;6,242</td></tr>
+</tbody>
+</table>
+
+<p>
+  Even a small weight on timeout labels is enough to poison the gradient signal. The model learns to predict close-to-close direction (what timeout bars encode) instead of barrier-hit direction (what profitable trading requires). There is no safe non-zero weight for timeout bars.
+</p>
+
 <h4>US30 Run 3f Epoch 1: Profitable</h4>
 
 <table>
@@ -4731,6 +4752,23 @@ export const content = `
   Every confidence bucket is profitable. The 0.70+ bucket dominates with 95% of total PnL.
 </p>
 
+<h4>US30 Run 3f Epoch 3: Also Profitable</h4>
+
+<table>
+<thead><tr><th>Metric</th><th>Epoch 1</th><th>Epoch 3</th></tr></thead>
+<tbody>
+<tr><td>Trades</td><td>11,303</td><td>10,847</td></tr>
+<tr><td>Win Rate</td><td>54.2%</td><td>54.2%</td></tr>
+<tr style="background:#f0fdf4;"><td>Net PnL</td><td style="color:#059669; font-weight:600;">+&dollar;82,843</td><td style="color:#059669; font-weight:600;">+&dollar;77,277</td></tr>
+<tr><td>Profit Factor</td><td>1.29</td><td>1.27</td></tr>
+<tr><td>Max Drawdown</td><td>&dollar;6,242</td><td>&dollar;5,280</td></tr>
+</tbody>
+</table>
+
+<p>
+  Epoch 3 is also profitable with slightly fewer trades and a tighter max drawdown. Both epoch 1 and epoch 3 are viable deployment candidates.
+</p>
+
 <figure>
   <img src="/charts/us-indexes/us30_run3f_equity_curve.png" alt="US30 Run 3f: OOS equity curve showing +$82,843 over 9 months" />
   <figcaption>US30 Run 3f: OOS equity curve showing +&dollar;82,843 over 9 months.</figcaption>
@@ -4746,7 +4784,7 @@ export const content = `
   <figcaption>US30 Run 3f: PnL by hour of day.</figcaption>
 </figure>
 
-<h4>The Epoch 1 vs Epoch 4 Contradiction</h4>
+<h4>The Epoch Contradiction</h4>
 
 <table>
 <thead><tr><th>Metric</th><th>Epoch 1</th><th>Epoch 4</th></tr></thead>
@@ -4758,7 +4796,23 @@ export const content = `
 </table>
 
 <p>
-  Higher validation accuracy produced worse backtest results. This is under investigation. The most likely explanation is that later epochs overfit to close-to-close patterns rather than barrier-hit patterns. The model improves at predicting which direction price will be at the end of the horizon, but this does not translate to predicting which barrier gets hit first. Epoch 1 has weaker directional accuracy but better calibrated confidence, which is what matters for barrier-based execution.
+  Epoch 4 achieves 70.4% validation accuracy but loses &dollar;41K in backtesting. Epoch 1 achieves only 67.6% accuracy but makes +&dollar;82K. Three hypotheses explain this:
+</p>
+
+<ol>
+  <li><strong>Calibration overfit.</strong> Later epochs become more confident but wrong. The model's predicted probabilities drift away from true hit rates, so it takes trades with high confidence that are actually coin flips.</li>
+  <li><strong>Timeout bar exposure.</strong> The backtest trades on every bar, including the 40% that are timeout bars (mask=0 during training). The model never trained on these bars, but it still has to predict on them in live trading. Later epochs may overfit to the distributional properties of barrier-hit bars and perform worse on the unseen timeout bars.</li>
+  <li><strong>Val accuracy measures the wrong thing.</strong> Validation accuracy only measures performance on barrier-hit bars (where mask=1). The backtest includes all bars. An epoch that is better at predicting barrier-hit bars may be worse at predicting the full bar distribution.</li>
+</ol>
+
+<p>
+  Practical recommendation: use epoch 1 or epoch 3 for deployment. Do not chase validation accuracy.
+</p>
+
+<h4>Known Bug: Same-Hour ATR Was Not Hour-Stratified</h4>
+
+<p>
+  The ATR barrier calculation was intended to be hour-adaptive (wider barriers during US open, tighter during Asian session). However, the timestamps variable used a RangeIndex (0, 1, 2, ...) instead of actual datetime values. As a result, all bars received the same global ATR regardless of hour. The +&dollar;82K results were achieved despite this bug. The fix is applied for Run 3h.
 </p>
 
 <h4>US500</h4>
@@ -4768,28 +4822,53 @@ export const content = `
 </p>
 
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
-  US30 Run 3f Epoch 1 is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. The HOLD exclusion (mask=0 for timeout bars) was the critical fix. Every confidence bucket is profitable. An epoch 1 vs epoch 4 accuracy/profitability contradiction is under investigation.
+  US30 Run 3f Epoch 1 is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. The HOLD exclusion (mask=0 for timeout bars) was the critical fix. Every confidence bucket is profitable. Epoch 3 is also profitable (+&dollar;77,277, PF 1.27). Do not select epochs by validation accuracy; epoch 4 (70.4% acc) loses money.
 </div>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
   US500 remains unprofitable. The ATR x5 barrier (&dollar;9.32 avg) is only 12.5x the spread (&dollar;0.70), making the cost-to-barrier ratio prohibitive. A longer horizon (22h with ATR x50) is being explored.
 </div>
 
+<h4>Run 3h Plan</h4>
+
+<p>
+  Run 3h addresses the epoch contradiction, the hour-ATR bug, and the forced-prediction problem with six changes:
+</p>
+
+<ol>
+  <li><strong>3-class direction labels.</strong> UP / DOWN / HOLD. The model can now abstain instead of being forced to predict on timeout bars. Previously timeout bars were excluded from training but the model still had to predict on them in live trading. With an explicit HOLD class, the model learns when not to trade.</li>
+  <li><strong>tradeable_acc metric.</strong> Measures accuracy only on bars the model chose to trade (predicted UP or DOWN, not HOLD). This replaces val_dir_acc as the primary metric. A model that correctly abstains on ambiguous bars will have lower overall accuracy but higher tradeable_acc.</li>
+  <li><strong>barrier_hit_arr fix.</strong> Explicit boolean array instead of a float threshold for barrier-hit detection. Removes ambiguity in how barrier hits are counted.</li>
+  <li><strong>Hour-adaptive barriers.</strong> Timestamp fix for proper hour stratification. US open hours get wider barriers (reflecting higher volatility), Asian session gets tighter barriers (reflecting lower volatility). This is the bug fix for the RangeIndex issue described above.</li>
+  <li><strong>Better label distribution.</strong> Quiet hours get tighter barriers so more bars produce barrier hits (more training signal). Volatile hours get wider barriers so fewer bars produce spurious hits (cleaner labels). The net effect is a more balanced and accurate label set across the 24-hour cycle.</li>
+  <li><strong>Hour-level backtest analysis.</strong> PnL broken out by hour of day to show which sessions the model has edge in and which sessions should be excluded from live trading.</li>
+</ol>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  US30 Run 3f (HOLD exclusion with mask=0 for timeout bars) is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. The barrier calibration fix (Section 7.11) and HOLD exclusion (Section 7.12) were both required to reach profitability. Run 3e (weighted fallback at 0.2) failed, confirming that even low-weight timeout labels poison training.
+  US30 Run 3f (HOLD exclusion with mask=0 for timeout bars) is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. Epoch 3 is also profitable (+&dollar;77,277, PF 1.27, max DD &dollar;5,280). The barrier calibration fix (Section 7.11) and HOLD exclusion (Section 7.12) were both required to reach profitability. Run 3e (weighted fallback at 0.2) failed, confirming that even low-weight timeout labels poison training. A same-hour ATR bug was discovered (RangeIndex instead of datetime), meaning barriers were not actually hour-stratified despite the +&dollar;82K result.
 </p>
 <p>
-  US500 remains unprofitable due to the spread-to-barrier cost ratio (7.5%). NAS100 has not yet been retrained with the corrected barriers.
+  Run 3h is in preparation. It introduces 3-class labels (UP/DOWN/HOLD), the tradeable_acc metric, hour-adaptive barriers (with the timestamp bug fixed), and hour-level backtest analysis.
+</p>
+<p>
+  US500 remains unprofitable due to the spread-to-barrier cost ratio (7.5%). US500's 60-min horizon fails because the ATR x5 barrier (&dollar;9.32) is too small relative to the &dollar;0.70 spread. NAS100 has not yet been retrained with HOLD exclusion.
 </p>
 <p>
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Epoch selection:</strong> Epoch 1 is profitable but epoch 4 (higher val accuracy) is not. Investigate whether early stopping on backtest PnL rather than val accuracy is the correct selection criterion, or whether later epochs overfit to close-to-close patterns.</li>
+  <li><strong>Run 3h:</strong> 3-class HOLD labels, hour-adaptive barriers, tradeable_acc metric, and hour-level backtest analysis. See Section 7.12 for full plan.</li>
+  <li><strong>Epoch selection:</strong> Epoch 1 (67.6% acc) makes +&dollar;82K while epoch 4 (70.4% acc) loses &dollar;41K. Three hypotheses under investigation: calibration overfit, timeout bar exposure, and val accuracy measuring the wrong thing. Run 3h's tradeable_acc metric is designed to resolve this.</li>
+  <li><strong>Confidence gating:</strong> Investigate whether filtering trades by model confidence (e.g., only 0.70+ bucket) improves risk-adjusted returns in live deployment.</li>
+  <li><strong>Timeout bar investigation:</strong> Analyze model behavior specifically on timeout bars (mask=0) to determine whether they contribute to or detract from backtest PnL.</li>
   <li><strong>US500 longer horizon:</strong> Test ATR x50 barriers with a 22-hour horizon to reduce the spread-to-barrier ratio from 7.5% to under 1%.</li>
   <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
-  <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 Run 3f to confirm the result is not period-specific.</li>
+  <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
   <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
 </ol>
 
