@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3f is profitable (+&dollar;82,843 OOS). HOLD exclusion was the critical fix. Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric. US500 4-hour horizon with ATR x15 barriers selected for Run 3h (3.5% spread cost, 40% hit rate).
+  US30 Run 3h completed with 3-class HOLD labels and hour-stratified ATR. Epoch 1: +&dollar;37,266, PF 1.18, 7,812 trades. The model's edge is concentrated in 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. The 3-class HOLD system correctly abstains on 31% of bars. Session filter and confidence gating are the next steps.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3f is the first profitable backtest: +&dollar;82,843 OOS, PF 1.29, 54.2% WR. HOLD exclusion (mask=0 for timeout bars) was the critical fix. Run 3h in preparation with 3-class labels and hour-adaptive barriers. US500 4-hour horizon with ATR x15 barriers selected for Run 3h (3.5% spread cost). See Sections 7.5-7.12 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3h completed: +&dollar;37,266 OOS (Ep 1), PF 1.18, 7,812 trades. 3-class HOLD labels, hour-stratified ATR, directional confidence. Edge concentrated in 00-06 UTC (+&dollar;49K, 71.1% short WR). Session filter and confidence gating next. See Sections 7.5-7.13 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2332,6 +2332,7 @@ export const content = `
 <tr style="background:#fef2f2;"><td>US500</td><td>Run 3e</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; weighted fallback poisoned training</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3f</strong></td><td><strong>1</strong></td><td><strong>67.6%</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>First profitable backtest: +&dollar;82,843</strong></td></tr>
 <tr style="background:#fef2f2;"><td>US500</td><td>Run 3f</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Unprofitable &mdash; spread cost prohibitive</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -4886,29 +4887,150 @@ export const content = `
   <li><strong>Hour-level backtest analysis.</strong> PnL broken out by hour of day to show which sessions the model has edge in and which sessions should be excluded from live trading.</li>
 </ol>
 
-<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  Run 3h is in preparation with 3-class HOLD labels, hour-adaptive barriers, and the tradeable_acc metric.
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  Run 3h completed. The 3-class HOLD system correctly abstains on 31% of bars. The model's edge is concentrated in hours 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. Applying a session filter (00-06 only) and confidence gate (0.70+) would produce a cleaner, higher-PF strategy.
 </div>
+
+<h3>7.13 Run 3h: 3-Class HOLD + Hour-Stratified ATR</h3>
+
+<p>
+  Run 3h applies three fixes to the Run 3f baseline:
+</p>
+
+<ol>
+  <li><strong>3-class UP/DOWN/HOLD labels.</strong> The model can now abstain instead of being forced to predict direction on every bar.</li>
+  <li><strong>Same-hour ATR timestamp fix.</strong> Proper hour stratification, fixing the RangeIndex bug documented in Section 7.11.</li>
+  <li><strong>Directional confidence metric.</strong> max(p_up, p_down) / (p_up + p_down) instead of P(predicted class). This prevents inflated confidence scores in 3-class mode.</li>
+</ol>
+
+<h4>Training Highlights</h4>
+
+<p>
+  Tradeable accuracy (accuracy on bars the model chose to trade, excluding HOLD predictions) peaked at epoch 3 (64.7%). HOLD recall peaked at epoch 3 (70.0%). Selective accuracy at the 0.70+ confidence threshold reached 88.3% on barrier-hit bars.
+</p>
+
+<h4>Real Backtest</h4>
+
+<table>
+<thead><tr><th>Epoch</th><th>Trades</th><th>Win Rate</th><th>Net PnL</th><th>PF</th><th>Max DD</th></tr></thead>
+<tbody>
+<tr style="background:#f0fdf4;"><td><strong>Epoch 1</strong></td><td><strong>7,812</strong></td><td><strong>51.7%</strong></td><td style="color:#059669;"><strong>+&dollar;37,266</strong></td><td><strong>1.18</strong></td><td><strong>&dollar;6,100</strong></td></tr>
+<tr><td>Epoch 2</td><td>8,245</td><td>52.1%</td><td style="color:#059669;">+&dollar;34,494</td><td>1.15</td><td>&dollar;4,598</td></tr>
+<tr style="background:#fef2f2;"><td>Epoch 3</td><td>~7,742</td><td>49.8%</td><td style="color:#dc2626;">-&dollar;12,328</td><td>0.95</td><td>~&dollar;15K</td></tr>
+</tbody>
+</table>
+
+<h4>The Hour-Level Discovery</h4>
+
+<p>
+  This is the key finding from Run 3h. Breaking PnL by hour reveals that the model's edge is not uniform across the day. It is concentrated in a narrow window.
+</p>
+
+<table>
+<thead><tr><th>Hour Group</th><th>Trades</th><th>Short %</th><th>Short WR</th><th>Net PnL</th></tr></thead>
+<tbody>
+<tr style="background:#f0fdf4;"><td><strong>GOOD (00-06 UTC)</strong></td><td><strong>1,892</strong></td><td><strong>70%</strong></td><td><strong>71.1%</strong></td><td style="color:#059669;"><strong>+&dollar;48,911</strong></td></tr>
+<tr style="background:#fef2f2;"><td>BAD (08-14, 19-23)</td><td>4,445</td><td>41%</td><td>51.4%</td><td style="color:#dc2626;">-&dollar;17,600</td></tr>
+<tr><td>NEUTRAL (07, 15-18)</td><td>1,908</td><td>42%</td><td>~53%</td><td style="color:#059669;">+&dollar;3,183</td></tr>
+</tbody>
+</table>
+
+<p>
+  The model has a SHORT bias from the training label imbalance (DOWN=36.5% vs UP=23.7%). This only works during low-volatility Asian hours (00-06) where shorts naturally succeed. During US hours, the model flips to LONG but only wins 45.6%.
+</p>
+
+<h4>Comparison to Run 3f</h4>
+
+<table>
+<thead><tr><th>Metric</th><th>Run 3f Ep 1</th><th>Run 3h Ep 1</th></tr></thead>
+<tbody>
+<tr><td>Trades</td><td>11,303</td><td>7,812 (-31%)</td></tr>
+<tr><td>Net PnL</td><td>+&dollar;82,843</td><td>+&dollar;37,266</td></tr>
+<tr><td>PF</td><td>1.29</td><td>1.18</td></tr>
+<tr><td>Hour analysis</td><td>Not available (bug)</td><td>Full breakdown</td></tr>
+</tbody>
+</table>
+
+<p>
+  Run 3h trades fewer bars (HOLD abstention) and makes less total PnL, but provides the hour-level analysis revealing the true edge structure.
+</p>
+
+<h4>Bugs Fixed During This Run</h4>
+
+<ol>
+  <li><strong>HOLD weight bug.</strong> HOLD bars got weight 1.0 while UP/DOWN got 10.0 (from LST magnitude). Fixed to weight 10.0 for HOLD.</li>
+  <li><strong>Confidence bug.</strong> P(predicted class) inflated in 3-class mode. Fixed to directional confidence: max(p_up, p_down) / (p_up + p_down).</li>
+  <li><strong>Timestamp bug.</strong> Already documented in Section 7.11.</li>
+</ol>
+
+<h4>Equity Curve Periods</h4>
+
+<p>
+  Trades 0-1500: +&dollar;8K (slow start). Trades 1500-4000: +&dollar;30K (core edge). Trades 4000+: -&dollar;1K (edge decay).
+</p>
+
+<h4>Actionable Next Steps</h4>
+
+<ol>
+  <li><strong>Session filter.</strong> Only trade 00-06 UTC (+&dollar;49K with lower DD).</li>
+  <li><strong>Confidence gate at 0.70.</strong> Filter out losing 0.60-0.70 bucket.</li>
+  <li><strong>Address label imbalance.</strong> DOWN 36.5% vs UP 23.7% creates a short bias that only works in Asian hours.</li>
+  <li><strong>Early stopping at epoch 1-2.</strong> Epoch 3 loses money.</li>
+</ol>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  Run 3h reveals the model's edge is concentrated in hours 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. The 3-class HOLD system correctly abstains on 31% of bars. Applying a session filter (00-06 only) and confidence gate (0.70+) would produce a cleaner, higher-PF strategy.
+</div>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep1_equity_curve.png" alt="US30 Run 3h Epoch 1: equity curve (+$37,266)" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>US30 Run 3h Epoch 1: equity curve (+&dollar;37,266).</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep1_pnl_by_confidence.png" alt="PnL by confidence bucket. 0.70+ dominates." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>PnL by confidence bucket. 0.70+ dominates.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep1_pnl_by_hour.png" alt="PnL by hour: edge concentrated in 00-06 UTC." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>PnL by hour: edge concentrated in 00-06 UTC.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep2_equity_curve.png" alt="Epoch 2: equity curve (+$34,494)" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>Epoch 2: equity curve (+&dollar;34,494).</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep2_pnl_by_confidence.png" alt="Epoch 2 PnL by confidence." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>Epoch 2 PnL by confidence.</figcaption>
+</figure>
+
+<figure>
+  <img src="/charts/us-indexes/us30_run3h_ep2_pnl_by_hour.png" alt="Epoch 2 PnL by hour." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <figcaption>Epoch 2 PnL by hour.</figcaption>
+</figure>
 
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  US30 Run 3f (HOLD exclusion with mask=0 for timeout bars) is the first profitable backtest in the study: +&dollar;82,843 over 9 months OOS, PF 1.29, 54.2% win rate. Epoch 3 is also profitable (+&dollar;77,277, PF 1.27, max DD &dollar;5,280). The barrier calibration fix (Section 7.11) and HOLD exclusion (Section 7.12) were both required to reach profitability. Run 3e (weighted fallback at 0.2) failed, confirming that even low-weight timeout labels poison training. A same-hour ATR bug was discovered (RangeIndex instead of datetime), meaning barriers were not actually hour-stratified despite the +&dollar;82K result.
+  US30 Run 3h is complete. The 3-class HOLD system, hour-stratified ATR fix, and directional confidence metric produce +&dollar;37,266 at epoch 1 (PF 1.18, 7,812 trades). Run 3f remains the highest raw PnL (+&dollar;82,843) but lacked hour-level analysis due to the timestamp bug. Run 3h trades 31% fewer bars (HOLD abstention) and reveals the true edge structure: hours 00-06 UTC account for +&dollar;49K while hours 08-14 and 19-23 lose -&dollar;17.6K.
 </p>
 <p>
-  Run 3h is in preparation. It introduces 3-class labels (UP/DOWN/HOLD), the tradeable_acc metric, hour-adaptive barriers (with the timestamp bug fixed), and hour-level backtest analysis.
+  The epoch contradiction persists. Epoch 1 is profitable, epoch 3 loses money. Early stopping at epoch 1-2 is required. The tradeable_acc metric peaks at epoch 3 (64.7%) but backtest PnL peaks at epoch 1, confirming that validation accuracy is not a reliable proxy for trading performance.
 </p>
 <p>
-  US500 has a 4-hour horizon solution: ATR x15 barriers average &dollar;20.24 with a 3.5% spread cost and 40% hit rate. This replaces the failed 1-hour ATR x5 approach (7.5% spread cost). The 4-hour horizon is included in Run 3h with 3-class UP/DOWN/HOLD labels and the same 7-stream architecture. NAS100 has not yet been retrained with HOLD exclusion.
+  US500 has a 4-hour horizon solution: ATR x15 barriers average &dollar;20.24 with a 3.5% spread cost and 40% hit rate. This replaces the failed 1-hour ATR x5 approach (7.5% spread cost). NAS100 has not yet been retrained with HOLD exclusion.
 </p>
 <p>
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3h:</strong> 3-class HOLD labels, hour-adaptive barriers, tradeable_acc metric, and hour-level backtest analysis. See Section 7.12 for full plan.</li>
-  <li><strong>Epoch selection:</strong> Epoch 1 (67.6% acc) makes +&dollar;82K while epoch 4 (70.4% acc) loses &dollar;41K. Three hypotheses under investigation: calibration overfit, timeout bar exposure, and val accuracy measuring the wrong thing. Run 3h's tradeable_acc metric is designed to resolve this.</li>
-  <li><strong>Confidence gating:</strong> Investigate whether filtering trades by model confidence (e.g., only 0.70+ bucket) improves risk-adjusted returns in live deployment.</li>
-  <li><strong>Timeout bar investigation:</strong> Analyze model behavior specifically on timeout bars (mask=0) to determine whether they contribute to or detract from backtest PnL.</li>
-  <li><strong>US500 4-hour horizon:</strong> Run 3h includes US500 with ATR x15 barriers (4-hour horizon, 3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). This is the first viable US500 configuration.</li>
+  <li><strong>Session filter:</strong> Only trade 00-06 UTC. Run 3h shows +&dollar;49K in this window with 71.1% short-side win rate. This is the highest-priority next step.</li>
+  <li><strong>Confidence gate at 0.70:</strong> The 0.60-0.70 bucket is a net loser. Filtering to 0.70+ should improve PF.</li>
+  <li><strong>Label imbalance:</strong> DOWN=36.5% vs UP=23.7% creates a short bias. Rebalancing or oversampling UP labels may extend the edge beyond Asian hours.</li>
+  <li><strong>Early stopping:</strong> Epoch 1-2 only. Epoch 3+ loses money despite higher tradeable_acc.</li>
+  <li><strong>US500 4-hour horizon:</strong> ATR x15 barriers (3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). First viable US500 configuration, pending training.</li>
   <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
   <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
   <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
