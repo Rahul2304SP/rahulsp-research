@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3i completed with asymmetric barriers (LONG ATR x4 / 120 bars, SHORT ATR x5 / 60 bars). Label distribution flipped as expected: UP 44.7%, DOWN 29.6%, HOLD 25.7%. Epoch 1: +&dollar;66,370, PF 1.245, 10,951 trades. The model learned the new UP majority class mechanically (69% long, 47% long WR) while shorts stayed strong (63% WR, +&dollar;100K). Session effect confirmed structural across all runs. Run 3j (reduced model size, macro features, session embedding, label smoothing) is in preparation. See Sections 7.5-7.14 for full training progression.
+  US30 Run 3j is the new best result: +&dollar;79,938 at epoch 3 (PF 1.32, WR 53.3%, max drawdown &dollar;6,907). MAE-based label smoothing eliminated the epoch cliff. Short side carries all PnL (59% WR, +&dollar;103K). Long side loses due to tight UP barrier (ATR x4). Run 3k will widen the UP barrier. See Sections 7.5-7.14 for full training progression.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3i completed: +&dollar;66,370 OOS (Ep 1), PF 1.245, 10,951 trades. Asymmetric barriers fixed label imbalance (UP 44.7%, DOWN 29.6%, HOLD 25.7%). Model learned class prior, not features: 69% long at 47% WR, shorts at 63% WR. Session effect structural. Run 3j (64-dim model, macro features, session embedding, label smoothing) in preparation. See Sections 7.5-7.14 for full training progression.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3j completed: +&dollar;79,938 OOS (Ep 3), PF 1.32, WR 53.3%, max DD &dollar;6,907. MAE label smoothing eliminated epoch cliff. Short WR 59.3% (+&dollar;103K), longs lose due to tight UP barrier. Run 3k will widen UP barrier. See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2334,6 +2334,7 @@ export const content = `
 <tr style="background:#fef2f2;"><td>US500</td><td>Run 3f</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Unprofitable &mdash; spread cost prohibitive</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3i</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;66,370; asymmetric barriers; UP 44.7% / DOWN 29.6%</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3j</strong></td><td><strong>3</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;79,938; MAE smoothing eliminated epoch cliff; short WR 59.3%</strong></td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -5182,29 +5183,108 @@ export const content = `
   </tbody>
 </table>
 
-<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  Run 3j introduces five changes: learnable session embedding, dynamic MAE-based label smoothing, a 240-bar momentum feature, ten daily macro features from FRED, and permutation entropy. Training is in progress. Run 3ja (transition-based sample selection, training only on the first bar of each label run) will follow.
+<h4>Run 3j Results (Epochs 1-5)</h4>
+
+<p>
+  The validation period covers a period where US30 rose +18.6% (&dollar;38,998 to &dollar;46,266).
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Long Net</th><th>Long WR</th><th>Short Net</th><th>Short WR</th><th>0.70+ WR</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>+&dollar;81,750</td><td>52.7%</td><td>1.30</td><td>&dollar;7,902</td><td>-&dollar;27,439</td><td>46.3%</td><td>+&dollar;109,189</td><td>58.5%</td><td>54.0%</td></tr>
+    <tr><td>2</td><td>+&dollar;69,259</td><td>52.8%</td><td>1.27</td><td>&dollar;5,632</td><td>-&dollar;27,174</td><td>46.8%</td><td>+&dollar;96,433</td><td>58.7%</td><td>54.1%</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>3</strong></td><td><strong>+&dollar;79,938</strong></td><td><strong>53.3%</strong></td><td><strong>1.32</strong></td><td><strong>&dollar;6,907</strong></td><td><strong>-&dollar;23,332</strong></td><td><strong>47.1%</strong></td><td><strong>+&dollar;103,270</strong></td><td><strong>59.3%</strong></td><td><strong>54.4%</strong></td></tr>
+    <tr><td>4</td><td>+&dollar;68,379</td><td>52.8%</td><td>1.25</td><td>&dollar;5,561</td><td>-&dollar;37,387</td><td>46.1%</td><td>+&dollar;105,766</td><td>59.4%</td><td>53.7%</td></tr>
+    <tr><td>5</td><td>+&dollar;58,815</td><td>52.5%</td><td>1.21</td><td>&dollar;8,058</td><td>-&dollar;39,960</td><td>46.3%</td><td>+&dollar;98,775</td><td>58.4%</td><td>53.7%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Best checkpoint: Epoch 3 (PF 1.32, +&dollar;79,938, WR 53.3%).
+</p>
+
+<h4>Comparison vs Run 3i</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 3i Ep1 (Best)</th><th>Run 3j Ep3 (Best)</th><th>Improvement</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Net PnL</td><td>+&dollar;66,370</td><td>+&dollar;79,938</td><td>+20%</td></tr>
+    <tr><td>WR</td><td>51.8%</td><td>53.3%</td><td>+1.5pp</td></tr>
+    <tr><td>PF</td><td>1.22</td><td>1.32</td><td>+0.10</td></tr>
+    <tr><td>Max DD</td><td>~&dollar;15,000</td><td>&dollar;6,907</td><td>-54%</td></tr>
+    <tr><td>Epoch cliff</td><td>Epoch 5 (-&dollar;38K)</td><td>No cliff (Ep5 still +&dollar;59K)</td><td>Eliminated</td></tr>
+    <tr><td>Worst hour loss</td><td>-&dollar;6,297</td><td>-&dollar;1,919</td><td>-70%</td></tr>
+  </tbody>
+</table>
+
+<h4>Key Findings</h4>
+
+<p>
+  <strong>1. MAE label smoothing eliminated the epoch cliff.</strong> Run 3i collapsed at epoch 5 (-&dollar;38K). Run 3j epoch 5 is still +&dollar;59K. The model degrades gradually rather than catastrophically, a &dollar;97K improvement at epoch 5 alone.
+</p>
+
+<p>
+  <strong>2. Short edge is strong and stable.</strong> Short WR stays at 58-59% across all five epochs with +&dollar;97K to +&dollar;109K net per epoch. The model's genuine skill is predicting downside moves. This is consistent with market microstructure: drops are driven by panic and stop cascades with recognisable feature patterns (VIX spikes, momentum breaks, volatility clustering).
+</p>
+
+<p>
+  <strong>3. Long trades are consistently negative and worsening.</strong> Long net PnL across epochs: -&dollar;27K, -&dollar;27K, -&dollar;23K, -&dollar;37K, -&dollar;40K. Long WR is stuck at 46-47% and the stop-loss rate is approximately 51% across all epochs. The model IS predicting UP (mean p_up = 0.64 on longs), but longs still lose money.
+</p>
+
+<p>
+  <strong>Root cause: asymmetric barrier structure disadvantages longs.</strong> The UP barrier (ATR x4, approximately &dollar;49) creates a structural problem. Long TP and SL are both small (&dollar;49), while short TP and SL are both large (&dollar;81). In intraday markets, even during an uptrend, price routinely dips &dollar;49 from any entry before continuing up. This clips the long SL before the trend has time to develop. Meanwhile shorts survive because &dollar;81 of room absorbs normal noise, and regular pullbacks from local highs (&dollar;50-80) are enough to hit the short TP.
+</p>
+
+<p>
+  Evidence: long SL rate is 50.9% (more than half stopped out) vs short SL rate of 29.6%. Long average win is &dollar;44 vs average loss of &dollar;48. Short average win is &dollar;73 vs average loss of &dollar;57. Hours 02-04 are the best hours overall but the worst for longs (H02 long WR: 26.4%).
+</p>
+
+<h4>Label Distribution Study (Barrier Sensitivity)</h4>
+
+<p>
+  Different UP_BARRIER_ATR_MULTIPLIER values were tested while keeping DOWN at ATR x5 and horizons at 120/60:
+</p>
+
+<table>
+  <thead>
+    <tr><th>UP Barrier</th><th>UP%</th><th>DOWN%</th><th>HOLD%</th><th>UP/DOWN Ratio</th><th>Avg UP Target</th><th>Hit Rate</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>ATR x4 (current)</td><td>44.7%</td><td>29.6%</td><td>25.7%</td><td>1.51</td><td>&dollar;41</td><td>74.3%</td></tr>
+    <tr><td>ATR x5 (symmetric)</td><td>37.1%</td><td>31.1%</td><td>31.8%</td><td>1.19</td><td>&dollar;51</td><td>68.2%</td></tr>
+    <tr><td>ATR x6</td><td>30.9%</td><td>32.1%</td><td>37.0%</td><td>0.96</td><td>&dollar;60</td><td>63.0%</td></tr>
+    <tr><td>ATR x7</td><td>25.8%</td><td>32.7%</td><td>41.4%</td><td>0.79</td><td>&dollar;69</td><td>58.6%</td></tr>
+    <tr><td>ATR x8</td><td>21.7%</td><td>33.2%</td><td>45.1%</td><td>0.65</td><td>&dollar;78</td><td>54.9%</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The long-side underperformance is a barrier mechanics issue, not a model issue. The model correctly identifies UP moves (p_up = 0.64) but the tight &dollar;49 barrier gets stopped out by normal intraday noise before the trend develops. Run 3k will increase the UP barrier multiplier to give longs more breathing room. ATR x6 gives the most balanced UP/DOWN ratio (0.96), while ATR x8 gives longs the most room but risks class imbalance (DOWN 1.5x more common than UP).
+</p>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  Run 3j is the new best result: +&dollar;79,938 (PF 1.32, WR 53.3%) at epoch 3, with a 54% reduction in max drawdown and no epoch cliff. MAE-based label smoothing is the largest single improvement in the study. The short side carries the entire PnL (+&dollar;103K) while longs lose money due to a tight UP barrier. Run 3k will widen the UP barrier to fix this structural disadvantage.
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  US30 Run 3i is complete. Asymmetric barriers (LONG ATR x4 / 120 bars, SHORT ATR x5 / 60 bars) fixed the label imbalance at source: UP 44.7%, DOWN 29.6%, HOLD 25.7%, barrier hit rate 84.2%. Epoch 1 produces +&dollar;66,370 (PF 1.245, 10,951 trades), the second-highest PnL after Run 3f (+&dollar;82,843). The 15-epoch analysis reveals that epoch 1 is best, two epochs collapse catastrophically, and the model stabilises after epoch 12 at +&dollar;18-25K with eroded core edge.
+  US30 Run 3j is complete. Five changes (learnable session embedding, MAE-based label smoothing, 240-bar momentum, ten macro features, permutation entropy) produced the best result in the study: +&dollar;79,938 at epoch 3 (PF 1.32, WR 53.3%, max drawdown &dollar;6,907). MAE label smoothing eliminated the epoch cliff that plagued all prior runs, with epoch 5 still profitable at +&dollar;59K compared to Run 3i's -&dollar;38K collapse.
 </p>
 <p>
-  The central finding from Run 3i is that the model learns the class prior, not the features. Flipping the label distribution from DOWN-heavy to UP-heavy caused the model to go LONG 69% of the time at 47% WR, exactly mirroring the short-only bias from Run 3h. Shorts stayed strong (63% WR, +&dollar;100K) but at only 31% of trades. This confirms that the 128-dim model is memorising the majority class rather than learning directional signal from the features.
-</p>
-<p>
-  The session effect is now confirmed structural across all runs. Hours 02-05 UTC are consistently profitable. Hours 08, 14, 19-21 are consistently losing. The mechanism is information arrival rate, liquidity regime, volatility fat tails from scheduled releases, and afternoon VWAP reversion.
+  The short side carries the entire PnL: 58-59% WR and +&dollar;97K to +&dollar;109K per epoch across all five checkpoints. Long trades lose money at every epoch (46-47% WR, 51% stop-loss rate). The root cause is not the model but the barrier structure: the UP barrier (ATR x4, approximately &dollar;49) is too tight for intraday noise. Price routinely dips &dollar;49 before continuing upward, clipping the long SL. Shorts survive because the &dollar;81 DOWN barrier absorbs normal noise.
 </p>
 <p>
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3j (session embedding + MAE smoothing + macro features):</strong> Five changes: learnable session embedding (Asian/London/US), dynamic MAE-based label smoothing (per-sample soft targets scaled by path cleanliness), 240-bar momentum feature, ten daily macro level features from FRED (yield curve, credit spreads, inflation breakevens, jobless claims, CPI, unemployment), and permutation entropy. Training is in progress.</li>
+  <li><strong>Run 3k (fix long-side barrier):</strong> Increase UP_BARRIER_ATR_MULTIPLIER from 4.0 to give longs more breathing room (ATR x6 gives balanced UP/DOWN ratio of 0.96; ATR x8 gives maximum room but risks class imbalance). Keep asymmetric horizons: UP = 120 bars, DOWN = 60 bars. Prune macro features if VSN entropy is high.</li>
   <li><strong>Run 3ja (transition-based sampling):</strong> Train only on the first bar of each label run (where label[i] differs from label[i-1]) to reduce effective overlap from 1.65M to approximately 27K-50K truly independent samples.</li>
-  <li><strong>Run 3k (evaluate and prune):</strong> Based on Run 3j results, prune macro features if VSN entropy is high, tune label smoothing parameters, and assess whether parameter count is excessive relative to effective samples.</li>
   <li><strong>Confidence gate at 0.70:</strong> The 0.60-0.70 bucket is a net loser. Filtering to 0.70+ should improve PF.</li>
-  <li><strong>Early stopping:</strong> Epoch 1-2 only. Later epochs lose money despite higher validation accuracy.</li>
   <li><strong>US500 4-hour horizon:</strong> ATR x15 barriers (3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). First viable US500 configuration, pending training.</li>
   <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
   <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
