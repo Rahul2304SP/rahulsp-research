@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 Run 3j is the new best result: +&dollar;79,938 at epoch 3 (PF 1.32, WR 53.3%, max drawdown &dollar;6,907). MAE-based label smoothing eliminated the epoch cliff. Short side carries all PnL (59% WR, +&dollar;103K). Long side loses due to tight UP barrier (ATR x4). Run 3k will widen the UP barrier. See Sections 7.5-7.14 for full training progression.
+  US30 best result: Run 3j at +&dollar;79,938 (PF 1.32, WR 53.3%). Run 3k confirmed the long-side problem is architectural: the 3-class softmax creates a zero-sum competition where improving shorts degrades longs. Nine new regime features showed promise in VSN weights but cannot overcome the bottleneck. Run 3L will split into two specialist models (long-only and short-only binary classifiers). See Sections 7.5-7.14 for full progression.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>US30 Run 3j completed: +&dollar;79,938 OOS (Ep 3), PF 1.32, WR 53.3%, max DD &dollar;6,907. MAE label smoothing eliminated epoch cliff. Short WR 59.3% (+&dollar;103K), longs lose due to tight UP barrier. Run 3k will widen UP barrier. See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Best: Run 3j +&dollar;79,938 (PF 1.32, WR 53.3%). Run 3k confirmed long-side problem is architectural (softmax zero-sum). Run 3L: dual-model architecture (long + short specialists). See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2335,6 +2335,7 @@ export const content = `
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3i</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;66,370; asymmetric barriers; UP 44.7% / DOWN 29.6%</strong></td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3j</strong></td><td><strong>3</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;79,938; MAE smoothing eliminated epoch cliff; short WR 59.3%</strong></td></tr>
+<tr style="background:#fef2f2;"><td><strong>US30</strong></td><td><strong>Run 3k</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;"><strong>+&dollar;28,931; symmetric barriers hurt shorts more than helped longs; softmax zero-sum confirmed</strong></td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -5014,7 +5015,7 @@ export const content = `
   <figcaption>Epoch 2 PnL by hour.</figcaption>
 </figure>
 
-<h3>7.14 Run 3i/3j: Asymmetric Barriers and Next Steps</h3>
+<h3>7.14 Run 3i/3j/3k: Asymmetric Barriers, MAE Smoothing, and the Softmax Bottleneck</h3>
 
 <h4>Run 3i Results</h4>
 
@@ -5268,25 +5269,95 @@ export const content = `
 </p>
 
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
-  Run 3j is the new best result: +&dollar;79,938 (PF 1.32, WR 53.3%) at epoch 3, with a 54% reduction in max drawdown and no epoch cliff. MAE-based label smoothing is the largest single improvement in the study. The short side carries the entire PnL (+&dollar;103K) while longs lose money due to a tight UP barrier. Run 3k will widen the UP barrier to fix this structural disadvantage.
+  Run 3j is the new best result: +&dollar;79,938 (PF 1.32, WR 53.3%) at epoch 3, with a 54% reduction in max drawdown and no epoch cliff. MAE-based label smoothing is the largest single improvement in the study. The short side carries the entire PnL (+&dollar;103K) while longs lose money due to a tight UP barrier.
+</div>
+
+<h4>Run 3k: Intraday Regime Features and Symmetric Barriers</h4>
+
+<p>
+  Run 3k addressed the long-side problem from two angles: nine new intraday regime features and symmetric barriers (ATR x5 for both UP and DOWN).
+</p>
+
+<p>
+  <strong>Root cause investigation.</strong> Decomposing val-period returns into intraday and overnight components revealed a structural mismatch. US30 returned +1,792 pts overall, but intraday (open-to-close) summed to -4,682 pts while overnight (close-to-open) contributed +6,468 pts. All gains came from overnight gaps. Since the barriers only measure intraday moves, the val period is effectively bearish from the barrier's perspective, even though close-to-close returns are positive.
+</p>
+
+<p>
+  <strong>Regime analysis.</strong> Long trades are not uniformly bad. Monthly breakdown shows three profitable months (Apr, Nov, Dec) and nine losing months. The distinguishing features are: 20-day realised volatility (r = +0.48, d' = 0.99), gap reversal rate (r = +0.47), HY spread change (d' = 0.81), and US30-NAS100 correlation (t = +3.52 at trade level). Longs work in high-volatility, high-stress environments where the barrier is hit by genuine directional moves rather than noise.
+</p>
+
+<p>
+  <strong>Nine new features added:</strong> <em>intraday_drift_5d</em>, <em>intraday_drift_20d</em>, <em>gap_reversal_rate_20d</em>, <em>gap_vs_range_20d</em>, <em>hy_spread_chg_20d</em>, <em>realised_vol_20d</em>, <em>dist_sma_20d</em>, <em>dist_ma_240min</em>, and <em>corr_us30_nas100_120</em>. Feature count increased from 56 to 65.
+</p>
+
+<p>
+  <strong>Barrier change.</strong> UP barrier widened from ATR x4 to ATR x5 (symmetric with DOWN). Horizons remain asymmetric: UP = 120 bars, DOWN = 60 bars. The intent was to give longs the same &dollar;81 breathing room as shorts.
+</p>
+
+<h4>Run 3k Results (Epochs 1-3)</h4>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Long PnL</th><th>Long WR</th><th>Short PnL</th><th>Short WR</th><th>Trades</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>+&dollar;28,931</td><td>51.0%</td><td>1.14</td><td>&dollar;8,514</td><td>-&dollar;24,719</td><td>46.5%</td><td>+&dollar;53,649</td><td>59.0%</td><td>7,582</td></tr>
+    <tr><td>2</td><td style="color:#dc2626;">-&dollar;92,319</td><td>44.6%</td><td>0.73</td><td>&dollar;94,544</td><td>-&dollar;119,131</td><td>41.4%</td><td>+&dollar;26,812</td><td>55.5%</td><td>9,142</td></tr>
+    <tr><td>3</td><td style="color:#dc2626;">-&dollar;44,846</td><td>47.2%</td><td>0.85</td><td>&dollar;46,730</td><td>-&dollar;93,828</td><td>42.2%</td><td>+&dollar;48,982</td><td>57.9%</td><td>8,550</td></tr>
+  </tbody>
+</table>
+
+<h4>Comparison vs Run 3j</h4>
+
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Run 3j Ep3 (Best)</th><th>Run 3k Ep1 (Best)</th><th>Run 3k Ep3</th><th>Change</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Net PnL</td><td>+&dollar;79,938</td><td>+&dollar;28,931</td><td>-&dollar;44,846</td><td>Regression</td></tr>
+    <tr><td>PF</td><td>1.32</td><td>1.14</td><td>0.85</td><td>Regression</td></tr>
+    <tr><td>Long PnL</td><td>-&dollar;23,332</td><td>-&dollar;24,719</td><td>-&dollar;93,828</td><td>Much worse</td></tr>
+    <tr><td>Short PnL</td><td>+&dollar;103,270</td><td>+&dollar;53,649</td><td>+&dollar;48,982</td><td>Halved</td></tr>
+    <tr><td>Short trades</td><td>5,203</td><td>2,766</td><td>3,709</td><td>-29%</td></tr>
+  </tbody>
+</table>
+
+<h4>Key Findings</h4>
+
+<p>
+  <strong>1. The symmetric barrier hurt shorts more than it helped longs.</strong> The wider UP barrier created more HOLD labels (31.9% vs 26.5% in Run 3j). In the 3-class softmax where $p_{up} + p_{down} + p_{hold} = 1$, the inflated HOLD class cannibalized SHORT predictions. Short trades dropped from 5,203 to 2,766-3,709. Short WR remained strong (57-59%) but there were far fewer of them.
+</p>
+
+<p>
+  <strong>2. Longs got worse, not better.</strong> Despite the wider barrier giving more breathing room, long performance collapsed. At epochs 2-3, the model went long more aggressively in the worst months (Jul: 290 to 642 trades, Sep: 359 to 678 trades) with SL rates of 61-64%. The model learned the marginal UP labels (bars that were HOLD under ATR x4 but became UP under ATR x5) and traded them, but these are the weakest UP signals.
+</p>
+
+<p>
+  <strong>3. The softmax zero-sum problem is confirmed.</strong> As the model improved at predicting DOWN (val_dir_acc: 53% to 69%), it assigned LONG to remaining bars by default. "Not SHORT" became the model's definition of "LONG", which is incorrect. The shared softmax prevents the model from learning independent long and short signals.
+</p>
+
+<p>
+  <strong>4. The new regime features showed early promise but could not overcome the architectural limitation.</strong> At epoch 1, <em>corr_us30_nas100_120</em> ranked first in the short VSN context (weight 0.0212) and <em>gap_reversal_rate_20d</em> ranked second in the micro context (0.0215). The model is trying to use the features, but they compete with short-side features in the same softmax bottleneck.
+</p>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  Run 3k confirms that the long-side problem is architectural, not informational. The nine new regime features provide the right signal (the VSN picks them up), and the barrier change gives longs more room. But the 3-class softmax creates a zero-sum competition where improving shorts degrades longs. No amount of feature engineering or barrier tuning can fix this within the current single-model architecture. The solution is to split into two specialist models: a long-only binary classifier and a short-only binary classifier, each making independent decisions. This is Run 3L.
 </div>
 
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  US30 Run 3j is complete. Five changes (learnable session embedding, MAE-based label smoothing, 240-bar momentum, ten macro features, permutation entropy) produced the best result in the study: +&dollar;79,938 at epoch 3 (PF 1.32, WR 53.3%, max drawdown &dollar;6,907). MAE label smoothing eliminated the epoch cliff that plagued all prior runs, with epoch 5 still profitable at +&dollar;59K compared to Run 3i's -&dollar;38K collapse.
+  The study has reached an architectural inflection point. Run 3j remains the best single-model result (+&dollar;79,938, PF 1.32, WR 53.3%), with MAE label smoothing eliminating the epoch cliff and the short side delivering 59% WR consistently. Run 3k added nine intraday regime features and symmetric barriers, but confirmed that the long-side problem is architectural: the 3-class softmax creates a zero-sum competition where improving short predictions degrades long predictions.
 </p>
 <p>
-  The short side carries the entire PnL: 58-59% WR and +&dollar;97K to +&dollar;109K per epoch across all five checkpoints. Long trades lose money at every epoch (46-47% WR, 51% stop-loss rate). The root cause is not the model but the barrier structure: the UP barrier (ATR x4, approximately &dollar;49) is too tight for intraday noise. Price routinely dips &dollar;49 before continuing upward, clipping the long SL. Shorts survive because the &dollar;81 DOWN barrier absorbs normal noise.
+  The root cause analysis revealed that all val-period gains came from overnight gaps (+6,468 pts) while intraday moves summed to -4,682 pts. The barriers only see intraday moves, making the val period effectively bearish. Monthly analysis shows longs are profitable in high-volatility, high-stress months (Apr, Nov, Dec) and lose in low-vol months (May-Oct). The new regime features (realised vol, gap reversal rate, US30-NAS100 correlation) correctly identify these regimes in VSN weights, but compete with short-side features in the shared softmax bottleneck.
 </p>
 <p>
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3k (fix long-side barrier):</strong> Increase UP_BARRIER_ATR_MULTIPLIER from 4.0 to give longs more breathing room (ATR x6 gives balanced UP/DOWN ratio of 0.96; ATR x8 gives maximum room but risks class imbalance). Keep asymmetric horizons: UP = 120 bars, DOWN = 60 bars. Prune macro features if VSN entropy is high.</li>
+  <li><strong>Run 3L (dual-model architecture):</strong> Split into two specialist models. A long specialist trained on UP + HOLD labels only (DOWN remapped to HOLD), and a short specialist trained on DOWN + HOLD labels only (UP remapped to HOLD). Each model makes an independent binary decision. Same features, same architecture, different label distributions. This isolates the architectural change. In preparation.</li>
   <li><strong>Run 3ja (transition-based sampling):</strong> Train only on the first bar of each label run (where label[i] differs from label[i-1]) to reduce effective overlap from 1.65M to approximately 27K-50K truly independent samples.</li>
-  <li><strong>Confidence gate at 0.70:</strong> The 0.60-0.70 bucket is a net loser. Filtering to 0.70+ should improve PF.</li>
-  <li><strong>US500 4-hour horizon:</strong> ATR x15 barriers (3.5% spread cost, 40% hit rate, ~51.8% break-even win rate). First viable US500 configuration, pending training.</li>
-  <li><strong>NAS100 retraining:</strong> Retrain NAS100 with HOLD exclusion (mask=0) and ATR x5 barriers using the 4-stream architecture.</li>
+  <li><strong>US500 and NAS100:</strong> Apply the winning architecture from US30 once the dual-model approach is validated.</li>
   <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
   <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
 </ol>
