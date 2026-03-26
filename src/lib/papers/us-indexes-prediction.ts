@@ -1,7 +1,7 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
   <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
-  US30 best result: Run 3j at +&dollar;79,938 (PF 1.32, WR 53.3%). Run 3k confirmed the long-side problem is architectural: the 3-class softmax creates a zero-sum competition where improving shorts degrades longs. Nine new regime features showed promise in VSN weights but cannot overcome the bottleneck. Run 3L will split into two specialist models (long-only and short-only binary classifiers). See Sections 7.5-7.14 for full progression.
+  Dual-system architecture converged. <strong>Shorts:</strong> specialist model achieves +&dollar;127,633 (PF 1.90, 59.5% WR, Run 3L). <strong>Longs:</strong> dip-buying model achieves +&dollar;4,683 (PF 1.16, 40.2% WR, Run 3N), the first profitable long model. Runs 3j through 3O established that barrier labels are fundamentally wrong for equity longs (drift is invisible to barriers), while shorts exploit recognisable panic patterns. See Sections 7.5-7.14 for full progression.
 </div>
 
 <h2>Project Roadmap</h2>
@@ -13,7 +13,7 @@ export const content = `
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Best: Run 3j +&dollar;79,938 (PF 1.32, WR 53.3%). Run 3k confirmed long-side problem is architectural (softmax zero-sum). Run 3L: dual-model architecture (long + short specialists). See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
+    <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Dual-system: Short specialist +&dollar;127,633 (PF 1.90, Run 3L). Dip-buy long model +&dollar;4,683 (PF 1.16, Run 3N, first profitable longs). 13 runs documented. See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
 </table>
@@ -2335,7 +2335,12 @@ export const content = `
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3i</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;66,370; asymmetric barriers; UP 44.7% / DOWN 29.6%</strong></td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3j</strong></td><td><strong>3</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;79,938; MAE smoothing eliminated epoch cliff; short WR 59.3%</strong></td></tr>
-<tr style="background:#fef2f2;"><td><strong>US30</strong></td><td><strong>Run 3k</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;"><strong>+&dollar;28,931; symmetric barriers hurt shorts more than helped longs; softmax zero-sum confirmed</strong></td></tr>
+<tr style="background:#fef2f2;"><td><strong>US30</strong></td><td><strong>Run 3k</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;"><strong>+&dollar;28,931; symmetric barriers hurt shorts; softmax zero-sum confirmed</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3L Short</strong></td><td><strong>7</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;127,633; PF 1.90; short specialist; best result in study</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3L Long</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">-&dollar;13,690; barrier labels fundamentally wrong for longs</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3M</td><td>333</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">-&dollar;47,413; return labels; dip-buy signal discovered</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3N</strong></td><td><strong>30</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;4,683; first profitable longs; dip-buy model</strong></td></tr>
+<tr><td>US30</td><td>Run 3O</td><td>43</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;">+&dollar;4,157; wider TP/SL; similar PnL, fewer trades</td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -5344,22 +5349,238 @@ export const content = `
   Run 3k confirms that the long-side problem is architectural, not informational. The nine new regime features provide the right signal (the VSN picks them up), and the barrier change gives longs more room. But the 3-class softmax creates a zero-sum competition where improving shorts degrades longs. No amount of feature engineering or barrier tuning can fix this within the current single-model architecture. The solution is to split into two specialist models: a long-only binary classifier and a short-only binary classifier, each making independent decisions. This is Run 3L.
 </div>
 
+<h4>Run 3L: Dual-Model Architecture</h4>
+
+<p>
+  Run 3L split the model into two specialist binary classifiers. The <strong>long specialist</strong> trained on UP + HOLD labels only (all DOWN bars remapped to HOLD). The <strong>short specialist</strong> trained on DOWN + HOLD labels only (all UP bars remapped to HOLD). Same features, same architecture, different label distributions. The only change is the label remapping, isolating the architectural hypothesis.
+</p>
+
+<h4>Long Specialist Results (Epochs 1-22)</h4>
+
+<p>
+  Every single epoch is negative. The long specialist lost money at every checkpoint, from -&dollar;13,690 at epoch 1 to -&dollar;89,778 at epoch 14. WR never exceeded 47.1% (epoch 1) and deteriorated to 42-43% by epoch 4 onwards.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Trades</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td style="color:#dc2626;">-&dollar;13,690</td><td>47.1%</td><td>0.82</td><td>&dollar;14,538</td><td>2,106</td></tr>
+    <tr><td>3</td><td style="color:#dc2626;">-&dollar;15,706</td><td>46.8%</td><td>0.81</td><td>&dollar;18,132</td><td>2,198</td></tr>
+    <tr><td>5</td><td style="color:#dc2626;">-&dollar;74,714</td><td>41.9%</td><td>0.60</td><td>&dollar;76,192</td><td>4,113</td></tr>
+    <tr><td>14</td><td style="color:#dc2626;">-&dollar;89,778</td><td>42.2%</td><td>0.61</td><td>&dollar;90,079</td><td>5,395</td></tr>
+    <tr><td>22</td><td style="color:#dc2626;">-&dollar;85,202</td><td>43.1%</td><td>0.64</td><td>&dollar;86,405</td><td>5,772</td></tr>
+  </tbody>
+</table>
+
+<img src="/charts/us-indexes/us30_run3l_long_ep1_equity.png" alt="Run 3L Long Specialist Epoch 1 equity curve" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3L long specialist epoch 1 equity curve. Best long epoch, still consistently negative.</p>
+
+<p>
+  The unified model's longs also lost money, but the shorts masked it. Removing the softmax competition did not improve longs because the UP barrier labels are not tradeable. The UP barrier (ATR x5, approximately &dollar;80) gets hit by random intraday volatility, not by directional moves. In the val period, the DOWN barrier is hit first 53% of the time even on weeks where the market went up. The drift (+&dollar;9/day) is invisible against an &dollar;80 barrier. Predicting which barrier gets touched first is predicting noise, not direction.
+</p>
+
+<h4>Short Specialist Results (Epochs 1-8)</h4>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Trades</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td style="color:#059669;">+&dollar;117,872</td><td>58.9%</td><td>1.82</td><td>&dollar;4,275</td><td>5,979</td></tr>
+    <tr><td>2</td><td style="color:#059669;">+&dollar;119,439</td><td>58.9%</td><td>1.87</td><td>&dollar;2,825</td><td>6,189</td></tr>
+    <tr><td>4</td><td style="color:#059669;">+&dollar;119,804</td><td>58.9%</td><td>1.84</td><td>&dollar;2,829</td><td>6,609</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>7</strong></td><td><strong>+&dollar;127,633</strong></td><td><strong>59.5%</strong></td><td><strong>1.90</strong></td><td><strong>&dollar;3,334</strong></td><td><strong>6,603</strong></td></tr>
+    <tr><td>8</td><td style="color:#059669;">+&dollar;83,342</td><td>57.4%</td><td>1.63</td><td>&dollar;3,362</td><td>5,924</td></tr>
+  </tbody>
+</table>
+
+<img src="/charts/us-indexes/us30_run3l_short_ep7_equity.png" alt="Run 3L Short Specialist Epoch 7 equity curve" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3L short specialist epoch 7 equity curve (+&dollar;127,633, PF 1.90). The best result in the study.</p>
+
+<p>
+  The short specialist is the best result in the entire study. Compared to the unified model (Run 3j epoch 3): PnL improved 24% (+&dollar;103K to +&dollar;128K), PF improved 44% (1.32 to 1.90), max drawdown halved (&dollar;6,907 to &dollar;3,334), and the model traded 27% more shorts (5,203 to 6,603) at the same WR. Removing the long-side interference freed the model to be more aggressive with shorts.
+</p>
+
+<img src="/charts/us-indexes/us30_run3l_short_ep7_pnl_by_hour.png" alt="Run 3L Short Specialist Epoch 7 PnL by hour" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3L short specialist epoch 7 PnL by hour.</p>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  <strong>The short side is solved.</strong> The short specialist achieves +&dollar;127,633 (PF 1.90, 59.5% WR, max DD &dollar;3,334) at epoch 7. Epochs 1-5 are all above +&dollar;115K with PF above 1.8. The softmax zero-sum hypothesis was correct for the short side.
+</div>
+
+<div class="finding-box" style="border-left-color: #dc2626; background: #fef2f2;">
+  <strong>Barrier-based labelling is fundamentally wrong for the long side of equity indices.</strong> The edge for going long on US30 comes from slow directional drift (+&dollar;9/day), which operates at a timescale 10x larger than the barrier distance. No model architecture can learn a profitable long signal from labels that encode volatility noise rather than directional trend. The short side works because intraday drops are sharp and recognisable (panic selling, stop cascades, momentum breaks). Intraday rallies are gradual, choppy, and indistinguishable from noise at the barrier timescale.
+</div>
+
+<h4>Run 3M: Return-Based Labels for Longs</h4>
+
+<p>
+  Since barrier labels failed for longs, Run 3M switched to return-based labels: a bar is labelled UP if the 60-minute forward return exceeds +0.5% with max adverse excursion (MAE) below 0.25%. This aligns the label with actual trade mechanics: TP = +0.48%, SL = -0.25%, giving 2:1 risk-reward and a breakeven WR of 33%.
+</p>
+
+<p>
+  <strong>Class imbalance.</strong> At the 0.5% threshold, 93.7% of bars are HOLD, 3.2% UP, 3.1% DOWN. Standard training would collapse to always-HOLD. Run 3M used batch-balanced focal loss (BBFL): epoch-wise balanced sampling where each batch contains equal UP and HOLD bars, with focal loss (gamma=2) on top to focus learning on the decision boundary (Koziarski and Cyganek, 2023). LR was reduced 6x to 2.5e-5 to compensate for the 30x stronger UP gradient signal per batch, and training ran for 1,000 epochs (88 steps/epoch vs the normal 3,177).
+</p>
+
+<p>
+  <strong>Results.</strong> The model peaked at 30.4% tradeable accuracy (epoch 333) but this fell short of the 34.7% breakeven WR. At the best checkpoint, 60.7% of trades hit the SL before reaching TP. The model identifies bars that eventually go up, but cannot time the entry precisely enough to avoid the initial adverse excursion.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>TP Rate</th><th>SL Rate</th><th>Trades</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>144</td><td style="color:#dc2626;">-&dollar;57,728</td><td>29.1%</td><td>0.52</td><td>11.6%</td><td>57.2%</td><td>1,728</td></tr>
+    <tr><td>171</td><td style="color:#dc2626;">-&dollar;47,620</td><td>27.0%</td><td>0.48</td><td>12.7%</td><td>62.0%</td><td>1,227</td></tr>
+    <tr><td>333</td><td style="color:#dc2626;">-&dollar;47,413</td><td>29.3%</td><td>0.56</td><td>14.8%</td><td>60.7%</td><td>1,509</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Literature context.</strong> Research confirms this is a structural property of equity markets. The leverage effect (negative shocks increase volatility more than positive shocks decrease it), asymmetric predictability (features triggered by drops have no upside equivalent), and sentiment asymmetry (fear is sudden and pattern-rich, greed is gradual and featureless) all make intraday downside prediction a fundamentally easier ML problem than intraday upside prediction.
+</p>
+
+<h4>The Dip-Buy Discovery</h4>
+
+<p>
+  Analysis of the M1 data during Run 3M revealed that profitable long entries on US30 are not directional predictions but mean-reversion bounces after sharp dips. When the 30-bar return drops below -0.5%, the probability of a +0.5% bounce (with MAE below 0.25%) in the next 60 bars jumps to 44.5%, compared to the unconditional baseline of 2.8%. This is a 16x enrichment.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Prior 30-bar Return</th><th>UP Hit Rate</th><th>vs Baseline (2.8%)</th></tr>
+  </thead>
+  <tbody>
+    <tr style="background:#f0fdf4;"><td><strong>Below -0.5%</strong></td><td><strong>44.5%</strong></td><td><strong>16x</strong></td></tr>
+    <tr><td>-0.5% to -0.3%</td><td>8.5%</td><td>3x</td></tr>
+    <tr><td>-0.3% to -0.2%</td><td>4.6%</td><td>1.6x</td></tr>
+    <tr><td>-0.1% to +0.1%</td><td>1.4%</td><td>0.5x</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Entry timing matters more than signal quality.</strong> Within dip entries, winning trades enter while the dip is still accelerating (76% WR when deceleration below -0.20) and close to the 30-bar low (70% WR when distance below 0.02%). Waiting for confirmation that the dip has reversed means you have already missed the entry. The session effect is extreme: dips during Asian hours (H02-H05) recover 94-100% of the time, while dips during US hours (H13-H20) continue with only 18-25% recovery. This reframed the long problem entirely: the correct question is not "will price go up?" but "has this dip overshot, and is the bounce imminent?"
+</p>
+
+<h4>Run 3N: Dip-Buying Label Redesign</h4>
+
+<p>
+  Run 3N redesigned the labelling around the dip-buy signal. A two-stage approach replaced generic return labels:
+</p>
+
+<p>
+  <strong>Stage 1: Drawdown gate (rule-based).</strong> A bar qualifies as dip-eligible only when the current close is at least 0.20% below the rolling 120-bar high. Non-dip bars are automatically HOLD. The model is never queried on bars where no dip exists.
+</p>
+
+<p>
+  <strong>Stage 2: Recovery label (forward-looking, training only).</strong> Among dip-eligible bars, the label is BUY if price reaches +0.30% (TP) before hitting -0.15% (SL) within 120 bars. Otherwise NO-BUY. This gives 2:1 risk-reward and 33% breakeven WR.
+</p>
+
+<p>
+  <strong>Binary classification.</strong> A single sigmoid head replaced the 3-class softmax. Class balance improved dramatically: 22% BUY vs 78% NO-BUY (compared to Run 3M's 3%/97%). Eight new dip-context features were added: <em>dd_depth</em>, <em>dd_bars</em>, <em>dd_speed</em>, <em>dd_decel</em>, <em>dd_vol_ratio</em>, <em>dd_ibs</em>, <em>dd_cross_coherence</em>, and <em>dd_vix_spike</em>.
+</p>
+
+<p>
+  <strong>Inference dedup.</strong> Probability hysteresis requires the model to output P(BUY) above threshold for three consecutive dip-eligible bars before entering. This prevents firing 50 signals on the same dip and ensures sustained conviction.
+</p>
+
+<h4>Run 3N Results</h4>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Trades</th><th>TP/SL/TO</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>3</td><td style="color:#059669;">+&dollar;1,812</td><td>38.5%</td><td>1.09</td><td>&dollar;990</td><td>524</td><td>30/59/11%</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>30</strong></td><td><strong>+&dollar;4,683</strong></td><td><strong>40.2%</strong></td><td><strong>1.16</strong></td><td><strong>&dollar;1,197</strong></td><td><strong>769</strong></td><td><strong>31/57/12%</strong></td></tr>
+    <tr><td>83</td><td style="color:#059669;">+&dollar;3,800</td><td>39.4%</td><td>1.10</td><td>&dollar;2,035</td><td>918</td><td>29/57/14%</td></tr>
+  </tbody>
+</table>
+
+<img src="/charts/us-indexes/us30_run3n_ep30_equity.png" alt="Run 3N Epoch 30 equity curve" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3N epoch 30 equity curve (+&dollar;4,683). First profitable long model in this study.</p>
+
+<img src="/charts/us-indexes/us30_run3n_ep30_pnl_by_hour.png" alt="Run 3N Epoch 30 PnL by hour" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3N epoch 30 PnL by hour. Hour 21 (US close) dominates.</p>
+
+<p>
+  <strong>All three epochs are profitable on longs, a first for this project.</strong> The model adds value over unconditional dip-buying: TP rate improved from 22% (unconditional) to 31% (epoch 30), a 40% relative improvement. Ten of 14 months were profitable. Buy-and-hold returned +&dollar;2,096 with -&dollar;7,294 max drawdown over the same period; the dip model returned +&dollar;4,683 (2.2x) with -&dollar;1,197 max drawdown (6.1x better).
+</p>
+
+<p>
+  <strong>Hour 21 concentration.</strong> Hour 21 (US cash close, 4-5 PM ET) contributed 116% of total PnL: 108 trades at 61.1% WR for +&dollar;5,423. All other hours combined lost -&dollar;740. The mechanism is institutional MOC rebalancing, short covering, and passive fund flows at market close, which mechanically buy dips. This is non-informational flow that reliably recovers intraday drawdowns.
+</p>
+
+<div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
+  Run 3N is the first profitable long model in this study. The dip-buying framing (drawdown gate + recovery labels + hysteresis) turns the long problem from "predict if price goes up" into "detect when a dip has overshot and the bounce is imminent." Epoch 30: +&dollar;4,683, PF 1.16, WR 40.2%, max DD &dollar;1,197.
+</div>
+
+<h4>Run 3O: Wider TP/SL Dip-Buying</h4>
+
+<p>
+  Run 3O widened TP from 0.30% to 0.50% and SL from 0.15% to 0.20%, increasing the risk-reward from 2.0:1 to 2.5:1 and lowering the breakeven WR from 33% to 29%. The parameter study on training data showed this increases EV per trade by 75% (+&dollar;1.44 to +&dollar;2.52 per trade). All other parameters (drawdown gate, hysteresis, architecture, features) remained identical to Run 3N.
+</p>
+
+<p>
+  Breakeven and trailing stop variants were tested and rejected: breakeven at 0.15% reduced PnL by 26%, and trailing stops made the strategy net-negative. Dip recoveries are noisy, and price often dips back to entry before reaching TP. Premature exit kills the edge.
+</p>
+
+<h4>Run 3O Results</h4>
+
+<table>
+  <thead>
+    <tr><th>Epoch</th><th>Net PnL</th><th>WR</th><th>PF</th><th>Max DD</th><th>Trades</th><th>TP/SL/TO</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>43</td><td style="color:#059669;">+&dollar;4,157</td><td>38.6%</td><td>1.16</td><td>&dollar;2,100</td><td>521</td><td>21/56/23%</td></tr>
+  </tbody>
+</table>
+
+<img src="/charts/us-indexes/us30_run3o_ep43_equity.png" alt="Run 3O Epoch 43 equity curve" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<p class="figure-caption">Figure: Run 3O epoch 43 equity curve (+&dollar;4,157, PF 1.16). Wider TP/SL produces similar net PnL with fewer, larger trades.</p>
+
+<p>
+  The wider TP/SL produces similar net PnL (+&dollar;4,157 vs Run 3N's +&dollar;4,683) with fewer trades (521 vs 769) and larger average wins (+&dollar;152 avg win vs +&dollar;132). The higher timeout rate (23% vs 12%) reflects the wider TP being harder to reach, but timeout trades averaged positive PnL. PF matches Run 3N at 1.16.
+</p>
+
+<h4>Run Progression Summary (Runs 3L-3O)</h4>
+
+<table>
+  <thead>
+    <tr><th>Run</th><th>Change</th><th>Long PnL</th><th>Short PnL</th><th>Key Finding</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>3L Long</td><td>Specialist binary model</td><td style="color:#dc2626;">-&dollar;13,690 to -&dollar;90K</td><td>N/A</td><td>Barrier labels are noise for longs</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>3L Short</strong></td><td><strong>Specialist binary model</strong></td><td>N/A</td><td style="color:#059669;"><strong>+&dollar;127,633</strong></td><td><strong>Best result in study (PF 1.90)</strong></td></tr>
+    <tr><td>3M</td><td>Return-based labels (0.5%, MAE)</td><td style="color:#dc2626;">-&dollar;47,413</td><td>N/A</td><td>Model can't time entries; dip-buy signal discovered</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>3N</strong></td><td><strong>Dip-buying labels + hysteresis</strong></td><td style="color:#059669;"><strong>+&dollar;4,683</strong></td><td>N/A</td><td><strong>First profitable longs (WR 40.2%)</strong></td></tr>
+    <tr><td>3O</td><td>Wider TP/SL (0.50/0.20)</td><td style="color:#059669;">+&dollar;4,157</td><td>N/A</td><td>Similar PnL, fewer larger trades</td></tr>
+  </tbody>
+</table>
+
+<div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
+  The study now has two solved components. <strong>Shorts:</strong> the specialist short model achieves +&dollar;127,633 (PF 1.90, 59.5% WR) using barrier-based labels. <strong>Longs:</strong> the dip-buying model achieves +&dollar;4,683 (PF 1.16, 40.2% WR) using drawdown-gated recovery labels. These are independent systems that can be combined: the short specialist runs on every bar, and the dip model runs only when a drawdown gate triggers. Combined backtest and walk-forward validation are next.
+</div>
+
 <h2>8. Current Status and Next Steps</h2>
 <p>
-  The study has reached an architectural inflection point. Run 3j remains the best single-model result (+&dollar;79,938, PF 1.32, WR 53.3%), with MAE label smoothing eliminating the epoch cliff and the short side delivering 59% WR consistently. Run 3k added nine intraday regime features and symmetric barriers, but confirmed that the long-side problem is architectural: the 3-class softmax creates a zero-sum competition where improving short predictions degrades long predictions.
+  The study has converged on a dual-system architecture. The short specialist (Run 3L, epoch 7) achieves +&dollar;127,633 (PF 1.90, 59.5% WR, max DD &dollar;3,334) using barrier-based labels. The dip-buying long model (Run 3N, epoch 30) achieves +&dollar;4,683 (PF 1.16, 40.2% WR, max DD &dollar;1,197) using drawdown-gated recovery labels with probability hysteresis. These are fundamentally different systems: the short model predicts volatility-driven drops across all market conditions, while the long model detects mean-reversion bounces after intraday drawdowns.
 </p>
 <p>
-  The root cause analysis revealed that all val-period gains came from overnight gaps (+6,468 pts) while intraday moves summed to -4,682 pts. The barriers only see intraday moves, making the val period effectively bearish. Monthly analysis shows longs are profitable in high-volatility, high-stress months (Apr, Nov, Dec) and lose in low-vol months (May-Oct). The new regime features (realised vol, gap reversal rate, US30-NAS100 correlation) correctly identify these regimes in VSN weights, but compete with short-side features in the shared softmax bottleneck.
+  The journey from Run 3j to 3O established several structural findings about equity index prediction: (1) the 3-class softmax creates a zero-sum competition that prevents independent long and short learning, (2) barrier-based labels encode volatility noise rather than directional drift for the long side, (3) intraday downside prediction is fundamentally easier than upside prediction due to the leverage effect and sentiment asymmetry, (4) profitable long entries on equity indices are mean-reversion events after dips, not directional predictions, and (5) Hour 21 (US cash close) dominates dip-buy profitability through institutional MOC rebalancing flows.
 </p>
 <p>
   Open investigations and next steps:
 </p>
 <ol>
-  <li><strong>Run 3L (dual-model architecture):</strong> Split into two specialist models. A long specialist trained on UP + HOLD labels only (DOWN remapped to HOLD), and a short specialist trained on DOWN + HOLD labels only (UP remapped to HOLD). Each model makes an independent binary decision. Same features, same architecture, different label distributions. This isolates the architectural change. In preparation.</li>
-  <li><strong>Run 3ja (transition-based sampling):</strong> Train only on the first bar of each label run (where label[i] differs from label[i-1]) to reduce effective overlap from 1.65M to approximately 27K-50K truly independent samples.</li>
-  <li><strong>US500 and NAS100:</strong> Apply the winning architecture from US30 once the dual-model approach is validated.</li>
-  <li><strong>Walk-forward validation:</strong> Run expanding-window walk-forward on US30 to confirm the result is not period-specific.</li>
-  <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge once walk-forward validation passes.</li>
+  <li><strong>Combined dual-system backtest:</strong> Run the short specialist and dip-buy model simultaneously on the same val period to measure interaction effects, conflict rates, and combined equity curve.</li>
+  <li><strong>Walk-forward validation:</strong> Expanding-window walk-forward on US30 to confirm both systems are not period-specific.</li>
+  <li><strong>Hour-21 robustness:</strong> The dip model's profitability is concentrated at the US close. Test whether this edge persists across different market regimes and whether it can be isolated as a standalone session strategy.</li>
+  <li><strong>US500 and NAS100:</strong> Apply the dual-system architecture to the other indices once US30 is validated.</li>
+  <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge for both systems once walk-forward validation passes.</li>
 </ol>
 
 <h2>9. References</h2>
