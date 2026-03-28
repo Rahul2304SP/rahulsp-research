@@ -22,7 +22,7 @@ interface Signal {
   status: string;
 }
 
-type ModelTab = "GoldSSM-34F" | "GoldSSM-28F" | "Scalper";
+type ModelTab = "GoldSSM-34F" | "GoldSSM-28F" | "Scalper" | "US30-LS";
 
 function useMarketStatus() {
   const [status, setStatus] = useState({ isOpen: false, session: "Closed", utcTime: "" });
@@ -103,6 +103,8 @@ export default function SignalsPage() {
         : `&published_at=lt.${new Date(Date.now() - 15 * 60 * 1000).toISOString()}`;
       const modelFilter = activeModel === "Scalper"
         ? "model=like.Scalper-*"
+        : activeModel === "US30-LS"
+        ? "model=like.US30-LS*"
         : `model=eq.${activeModel}`;
       const baseUrl = `${SUPABASE_URL}/rest/v1/signals?${modelFilter}${delayFilter}&order=bar_ts.desc`;
       const allData: Signal[] = [];
@@ -198,7 +200,7 @@ export default function SignalsPage() {
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-[#1a1a2e]">Live Signals</h1>
         <p className="mt-2 text-[#6b7280] text-sm">
-          XAUUSD model and scalper signals{isPro ? "" : " with 15-minute delay"}. Updated every 30 seconds.
+          XAUUSD and US30 model signals{isPro ? "" : " with 15-minute delay"}. Updated every 30 seconds.
         </p>
       </div>
 
@@ -247,23 +249,25 @@ export default function SignalsPage() {
           {currentSession}
         </span>
         <span className="text-xs text-[#6b7280] ml-auto font-mono">
-          {utcTime} &middot; XAUUSD
+          {utcTime} &middot; {activeModel === "US30-LS" ? "US30" : "XAUUSD"}
         </span>
       </div>
 
       {/* Model tabs */}
       <div className="flex gap-2 mb-8 flex-wrap">
-        {(["GoldSSM-34F", "GoldSSM-28F", "Scalper"] as ModelTab[]).map((model) => (
+        {(["GoldSSM-34F", "GoldSSM-28F", "Scalper", "US30-LS"] as ModelTab[]).map((model) => (
           <button
             key={model}
             onClick={() => setActiveModel(model)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeModel === model
-                ? model === "Scalper" ? "bg-[#059669] text-white" : "bg-[#1e40af] text-white"
+                ? model === "Scalper" ? "bg-[#059669] text-white"
+                  : model === "US30-LS" ? "bg-[#7c3aed] text-white"
+                  : "bg-[#1e40af] text-white"
                 : "bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]"
             }`}
           >
-            {model}
+            {model === "US30-LS" ? "US30 LS" : model}
           </button>
         ))}
       </div>
@@ -332,13 +336,24 @@ export default function SignalsPage() {
         <div className="text-center py-12 text-[#dc2626]">Error: {error}</div>
       )}
 
-      {/* No signals yet */}
+      {/* No signals yet / Coming Soon */}
       {!loading && !error && signals.length === 0 && (
         <div className="text-center py-16 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
-          <p className="text-lg text-[#374151] font-medium">No signals yet</p>
-          <p className="mt-2 text-sm text-[#6b7280]">
-            Signals appear here with a 15-minute delay once the models start trading.
-          </p>
+          {activeModel === "US30-LS" ? (
+            <>
+              <p className="text-lg text-[#7c3aed] font-medium">Coming Soon</p>
+              <p className="mt-2 text-sm text-[#6b7280]">
+                US30 Long/Short dual-system model. Short specialist (PF 1.90) and dip-buy long model under final validation.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg text-[#374151] font-medium">No signals yet</p>
+              <p className="mt-2 text-sm text-[#6b7280]">
+                Signals appear here with a 15-minute delay once the models start trading.
+              </p>
+            </>
+          )}
         </div>
       )}
 
