@@ -6,6 +6,34 @@ import { supabase } from "@/lib/supabase";
 const SUPABASE_URL = "https://skthypriuhjcayuxaydf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_31hh1GrQE-w-RgSn2o59OA_FwABMlFe";
 
+// VSN
+const VSN_FEATURE_NAMES = [
+  "stdev60", "vol_30m", "xau_volume", "dist_ma120", "abs_dist_ma120",
+  "dist_ma_290", "ret_60m", "ret_120m", "corr_xau_xag_30", "corr_xau_xag_60",
+  "corr_xau_xag_120", "channel_width", "skew_240m", "kurt_240m",
+  "momentum_regime", "trend_strength", "er60", "resid_z60_dxy",
+  "beta_xag_to_xau_120", "macro_trend_signal", "dir_disagree_20",
+  "hourly_run_signed", "vix_change_120m", "corr_xau_dxy_1440",
+  "sign_agree_dxy", "xaucore_60", "vr_120", "sign_ac1",
+];
+
+interface VsnRow {
+  id: number;
+  stream: string;
+  timestamp: string;
+  weights: Record<string, number> | string;
+}
+
+function parseVsnWeights(raw: Record<string, number> | string): number[] {
+  let obj: Record<string, number>;
+  if (typeof raw === "string") {
+    try { obj = JSON.parse(raw); } catch { return []; }
+  } else {
+    obj = raw;
+  }
+  return VSN_FEATURE_NAMES.map((name) => obj[name] ?? 0);
+}
+
 interface Signal {
   id: number;
   model: string;
@@ -79,6 +107,9 @@ export default function SignalsPage() {
   const { isOpen: isMarketOpen, session: currentSession, utcTime } = useMarketStatus();
   const [user, setUser] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
+  const [showVsn, setShowVsn] = useState(false);
+  const [vsnRows, setVsnRows] = useState<VsnRow[]>([]);
+  const [vsnLoading, setVsnLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -139,6 +170,27 @@ export default function SignalsPage() {
     const interval = setInterval(fetchSignals, 30000); // refresh every 30s
     return () => clearInterval(interval);
   }, [fetchSignals]);
+
+  const fetchVsn = useCallback(async () => {
+    setVsnLoading(true);
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/vsn_weights?stream=eq.long&order=timestamp.desc&limit=60`,
+        { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setVsnRows(await res.json());
+    } catch { /* silently fail */ } finally {
+      setVsnLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeModel !== "GoldSSM-28F" || !showVsn) return;
+    fetchVsn();
+    const iv = setInterval(fetchVsn, 60_000);
+    return () => clearInterval(iv);
+  }, [activeModel, showVsn, fetchVsn]);
 
   // Compute stats
   const closedSignals = signals.filter((s) => s.status === "closed" && s.pnl !== null);
@@ -406,6 +458,117 @@ export default function SignalsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* VSN toggle — only for 28F */}
+      {activeModel === "GoldSSM-28F" && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowVsn((v) => !v)}
+            className="flex items-center gap-2 text-sm text-[#1e40af] font-medium hover:underline"
+          >
+            <span>{showVsn ? "▲" : "▼"}</span>
+            <span>{showVsn ? "Hide VSN Feature Weights" : "Show VSN Feature Weights"}</span>
+          </button>
+
+          {showVsn && (() => {
+            const latest = vsnRows.length > 0 ? vsnRows[0] : null;
+            const latestWeights = latest ? parseVsnWeights(latest.weights) : [];
+            const meanWeight = latestWeights.length > 0 ? latestWeights.reduce((a, b) => a + b, 0) / latestWeights.length : 0;
+            const maxWeight = Math.max(0.01, ...latestWeights);
+            const featureOrder = latestWeights.length > 0
+              ? VSN_FEATURE_NAMES.map((name, i) => ({ name, weight: latestWeights[i] ?? 0 })).sort((a, b) => b.weight - a.weight)
+              : VSN_FEATURE_NAMES.map((name) => ({ name, weight: 0 }));
+            const heatmapRows = [...vsnRows].reverse().map((r) => ({ ...r, parsed: parseVsnWeights(r.weights) }));
+            const heatmapMax = Math.max(0.01, ...heatmapRows.flatMap((r) => r.parsed));
+
+            // Bar chart dims
+            const barH = 20; const barGap = 3;
+            const barChartW = 700; const labelW = 160; const valueW = 56;
+            const barAreaW = barChartW - labelW - valueW;
+            const barChartH = featureOrder.length * (barH + barGap) + 8;
+
+            // Heatmap dims
+            const hmCellW = Math.max(8, Math.min(14, 700 / Math.max(1, heatmapRows.length)));
+            const hmCellH = 18; const hmLabelW = 160;
+            const hmW = hmLabelW + heatmapRows.length * hmCellW + 16;
+            const hmH = VSN_FEATURE_NAMES.length * hmCellH + 40;
+
+            return (
+              <div className="mt-4">
+                <p className="text-xs text-[#6b7280] mb-1">
+                  GoldSSM-28F &middot; Long stream &middot; 28 features &middot; Auto-refreshes every 60s
+                </p>
+                {vsnLoading && vsnRows.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-[#6b7280]">Loading VSN weights...</p>
+                ) : vsnRows.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-[#6b7280]">No VSN data yet.</p>
+                ) : (
+                  <>
+                    {/* Bar chart */}
+                    <div className="rounded-lg border border-[#e5e7eb] bg-white p-5 mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs text-[#6b7280] uppercase tracking-wide">Live Feature Weights</p>
+                        {latest && (
+                          <span className="text-[10px] text-[#1e40af] bg-[#eff6ff] px-2 py-1 rounded-full">
+                            {new Date(latest.timestamp).toLocaleString("en-GB", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="overflow-x-auto">
+                        <svg width={barChartW} height={barChartH} className="overflow-visible">
+                          {featureOrder.map((f, i) => {
+                            const y = i * (barH + barGap);
+                            const w = maxWeight > 0 ? (f.weight / maxWeight) * barAreaW : 0;
+                            return (
+                              <g key={f.name}>
+                                <text x={labelW - 8} y={y + barH / 2 + 4} textAnchor="end" fill="#374151" fontSize="11" fontFamily="monospace">{f.name}</text>
+                                <rect x={labelW} y={y + 2} width={Math.max(1, w)} height={barH - 4} rx={3} fill={f.weight >= meanWeight ? "#1e40af" : "#d1d5db"} opacity={f.weight >= meanWeight ? 0.85 : 0.6} />
+                                <text x={labelW + Math.max(1, w) + 6} y={y + barH / 2 + 4} fill="#6b7280" fontSize="10" fontFamily="monospace">{f.weight.toFixed(4)}</text>
+                              </g>
+                            );
+                          })}
+                          {maxWeight > 0 && (
+                            <>
+                              <line x1={labelW + (meanWeight / maxWeight) * barAreaW} y1={0} x2={labelW + (meanWeight / maxWeight) * barAreaW} y2={barChartH} stroke="#9ca3af" strokeWidth="1" strokeDasharray="4,4" />
+                              <text x={labelW + (meanWeight / maxWeight) * barAreaW} y={barChartH + 14} textAnchor="middle" fill="#9ca3af" fontSize="9">mean</text>
+                            </>
+                          )}
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Heatmap */}
+                    <div className="rounded-lg border border-[#e5e7eb] bg-white p-5 mb-4">
+                      <p className="text-xs text-[#6b7280] uppercase tracking-wide mb-4">Weight Evolution (Last {heatmapRows.length} Bars)</p>
+                      <div className="overflow-x-auto">
+                        <svg width={hmW} height={hmH} className="overflow-visible">
+                          {VSN_FEATURE_NAMES.map((name, fi) => (
+                            <text key={name} x={hmLabelW - 6} y={32 + fi * hmCellH + hmCellH / 2 + 3} textAnchor="end" fill="#374151" fontSize="9" fontFamily="monospace">{name}</text>
+                          ))}
+                          {heatmapRows.map((row, ti) => (
+                            <g key={ti}>
+                              {VSN_FEATURE_NAMES.map((_, fi) => {
+                                const intensity = Math.min(1, (row.parsed[fi] ?? 0) / heatmapMax);
+                                return <rect key={fi} x={hmLabelW + ti * hmCellW} y={32 + fi * hmCellH} width={hmCellW - 1} height={hmCellH - 1} rx={1} fill={`rgba(30, 64, 175, ${0.05 + intensity * 0.85})`} />;
+                              })}
+                            </g>
+                          ))}
+                          {heatmapRows.length > 0 && (
+                            <>
+                              <text x={hmLabelW} y={24} fill="#9ca3af" fontSize="9">{new Date(heatmapRows[0].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</text>
+                              <text x={hmLabelW + (heatmapRows.length - 1) * hmCellW} y={24} fill="#9ca3af" fontSize="9">{new Date(heatmapRows[heatmapRows.length - 1].timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</text>
+                            </>
+                          )}
+                        </svg>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

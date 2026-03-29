@@ -33,12 +33,6 @@ export function NavBar() {
             Performance
           </a>
           <a
-            href="/vsn"
-            className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
-          >
-            VSN Live
-          </a>
-          <a
             href="/about"
             className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
           >
@@ -67,12 +61,6 @@ export function NavBar() {
             className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
           >
             Performance
-          </a>
-          <a
-            href="/vsn"
-            className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
-          >
-            VSN
           </a>
           <a
             href="/about"
