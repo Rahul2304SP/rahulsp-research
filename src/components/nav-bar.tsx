@@ -33,6 +33,12 @@ export function NavBar() {
             Performance
           </a>
           <a
+            href="/approach"
+            className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
+          >
+            Approach
+          </a>
+          <a
             href="/about"
             className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
           >
@@ -61,6 +67,12 @@ export function NavBar() {
             className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
           >
             Performance
+          </a>
+          <a
+            href="/approach"
+            className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
+          >
+            Approach
           </a>
           <a
             href="/about"
