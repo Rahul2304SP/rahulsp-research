@@ -4899,6 +4899,21 @@ export const content = `
   Run 3h completed. The 3-class HOLD system correctly abstains on 31% of bars. The model's edge is concentrated in hours 00-06 UTC (Asian session) with 71.1% short-side win rate and +&dollar;49K PnL. Applying a session filter (00-06 only) and confidence gate (0.70+) would produce a cleaner, higher-PF strategy.
 </div>
 
+<div style="position: relative;">
+<div style="position: sticky; top: 4rem; z-index: 10; margin-bottom: -4rem; padding: 2rem 1.5rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: rgba(248,249,250,0.97); text-align: center; backdrop-filter: blur(4px);">
+  <div style="margin-bottom: 1rem;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+  </div>
+  <p style="font-size: 1.125rem; font-weight: 600; color: #1a1a2e; margin-bottom: 0.5rem;">Sections 7.13 through 8 are not yet public</p>
+  <p style="font-size: 0.875rem; color: #6b7280; max-width: 32rem; margin: 0 auto;">
+    The remaining runs and current status are being prepared for publication. Check back soon.
+  </p>
+</div>
+<div style="filter: blur(5px); user-select: none; pointer-events: none; max-height: 600px; overflow: hidden; opacity: 0.4;">
+
 <h3>7.13 Run 3h: 3-Class HOLD + Hour-Stratified ATR</h3>
 
 <p>
@@ -5582,6 +5597,9 @@ export const content = `
   <li><strong>US500 and NAS100:</strong> Apply the dual-system architecture to the other indices once US30 is validated.</li>
   <li><strong>MT5 execution bridge:</strong> Prepare the live deployment bridge for both systems once walk-forward validation passes.</li>
 </ol>
+
+</div>
+</div>
 
 <h2>9. References</h2>
 
