@@ -388,24 +388,13 @@ export default function SignalsPage() {
         <div className="text-center py-12 text-[#dc2626]">Error: {error}</div>
       )}
 
-      {/* No signals yet / Coming Soon */}
+      {/* No signals yet */}
       {!loading && !error && signals.length === 0 && (
         <div className="text-center py-16 rounded-lg border border-[#e5e7eb] bg-[#f8f9fa]">
-          {activeModel === "US30-LS" ? (
-            <>
-              <p className="text-lg text-[#7c3aed] font-medium">Coming Soon</p>
-              <p className="mt-2 text-sm text-[#6b7280]">
-                US30 Long/Short dual-system model. Short specialist (PF 1.90) and dip-buy long model under final validation.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-lg text-[#374151] font-medium">No signals yet</p>
-              <p className="mt-2 text-sm text-[#6b7280]">
-                Signals appear here with a 15-minute delay once the models start trading.
-              </p>
-            </>
-          )}
+          <p className="text-lg text-[#374151] font-medium">No signals yet</p>
+          <p className="mt-2 text-sm text-[#6b7280]">
+            Signals appear here once the model starts trading.
+          </p>
         </div>
       )}
 
@@ -420,8 +409,8 @@ export default function SignalsPage() {
                   {activeModel === "Scalper" && <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Config</th>}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Direction</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Entry</th>
-                  {activeModel !== "Scalper" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">SL</th>}
-                  {activeModel !== "Scalper" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">TP</th>}
+                  {activeModel !== "Scalper" && activeModel !== "US30-LS" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">SL</th>}
+                  {activeModel !== "Scalper" && activeModel !== "US30-LS" && <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">TP</th>}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">Exit</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-[#6b7280] uppercase tracking-wide">PnL</th>
                 </tr>
@@ -445,8 +434,8 @@ export default function SignalsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-[#374151] font-mono">{s.entry_price?.toFixed(2) ?? "—"}</td>
-                    {activeModel !== "Scalper" && <td className="px-4 py-3 text-right text-[#dc2626] font-mono">{s.sl_price?.toFixed(2) ?? "—"}</td>}
-                    {activeModel !== "Scalper" && <td className="px-4 py-3 text-right text-[#059669] font-mono">{s.tp_price?.toFixed(2) ?? "—"}</td>}
+                    {activeModel !== "Scalper" && activeModel !== "US30-LS" && <td className="px-4 py-3 text-right text-[#dc2626] font-mono">{s.sl_price?.toFixed(2) ?? "—"}</td>}
+                    {activeModel !== "Scalper" && activeModel !== "US30-LS" && <td className="px-4 py-3 text-right text-[#059669] font-mono">{s.tp_price?.toFixed(2) ?? "—"}</td>}
                     <td className="px-4 py-3 text-[#6b7280] text-xs">{s.exit_reason ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-mono font-semibold" style={{
                       color: s.pnl === null ? "#6b7280" : (s.pnl ?? 0) >= 0 ? "#059669" : "#dc2626"
