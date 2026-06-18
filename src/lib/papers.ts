@@ -3,6 +3,7 @@ import { content as goldssmContent } from "./papers/goldssm-architecture";
 import { content as xagDisagreementContent } from "./papers/xag-directional-disagreement";
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
+import { content as priceVolatilityContent } from "./papers/price-predicts-volatility";
 
 export interface Paper {
   slug: string;
@@ -15,6 +16,17 @@ export interface Paper {
 }
 
 export const papers: Paper[] = [
+  {
+    slug: "price-predicts-volatility",
+    title:
+      "How Much, Not Which Way: What 106 Public Features Actually Predict About the Dow",
+    date: "June 2026",
+    category: "Empirical Studies",
+    abstract:
+      "We set out to forecast the direction of the Dow (US30) and, after trying every model, target, and horizon, kept landing on the same flat result: a profit factor of 1.0. Instead of re-tuning, we set the trade engine aside and ran an engine-independent battery to separate the five distinct causes of a flat equity curve. Across 438,619 out-of-sample bars and 16 walk-forward folds, our features (all public, mostly price-derived) predict 60-minute realised volatility with a rank correlation of 0.70 (36 sigma above a shuffled-label null) and predict direction no better than a coin (IC 0.009, accuracy 50.8%, 0 of 106 features surviving false-discovery control). The result holds from 60 minutes to 20 days, survives a linear and a neural alternative, and is confirmed by a label-shuffle retrain null. The conclusion was not a weak model but a wrong target: size by predicted volatility, and stop forecasting direction from price.",
+    author: "Rahul S. P.",
+    content: priceVolatilityContent,
+  },
   {
     slug: "us-indexes-prediction",
     title:
