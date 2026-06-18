@@ -4,6 +4,7 @@ import { content as xagDisagreementContent } from "./papers/xag-directional-disa
 import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
 import { content as priceVolatilityContent } from "./papers/price-predicts-volatility";
+import { content as meanReversionReplicationContent } from "./papers/mean-reversion-replication";
 
 export interface Paper {
   slug: string;
@@ -26,6 +27,17 @@ export const papers: Paper[] = [
       "We set out to forecast the direction of the Dow (US30) and, after trying every model, target, and horizon, kept landing on the same flat result: a profit factor of 1.0. Instead of re-tuning, we set the trade engine aside and ran an engine-independent battery to separate the five distinct causes of a flat equity curve. Across 438,619 out-of-sample bars and 16 walk-forward folds, our features (all public, mostly price-derived) predict 60-minute realised volatility with a rank correlation of 0.70 (36 sigma above a shuffled-label null) and predict direction no better than a coin (IC 0.009, accuracy 50.8%, 0 of 106 features surviving false-discovery control). The result holds from 60 minutes to 20 days, survives a linear and a neural alternative, and is confirmed by a label-shuffle retrain null. The conclusion was not a weak model but a wrong target: size by predicted volatility, and stop forecasting direction from price.",
     author: "Rahul S. P.",
     content: priceVolatilityContent,
+  },
+  {
+    slug: "mean-reversion-replication",
+    title:
+      "Three Textbook Edges Meet the Spread: A Mean-Reversion Replication on Index CFDs",
+    date: "June 2026",
+    category: "Empirical Studies",
+    abstract:
+      "We replicate three of the most-cited OHLCV-only mean-reversion edges on the instruments people actually trade (US30, US500 and NASDAQ CFDs), with a realistic spread on every entry and exit and a frozen-parameter walk-forward. Overnight gap-fade does not replicate: its famous ~90% fill rate is an artefact of tiny gaps, and gaps large enough to fade fill under half the time (only 16% for large NASDAQ gaps). The IBS effect's reported ~70% win rate collapses to ~50%, a coin flip. Connors RSI(2) is the one partial survivor, with real 57-67% win rates, but it trades too rarely to beat a trending index. After costs and out-of-sample, none of the three beats buy-and-hold. The point is not that mean reversion is fake, but that venue, costs, and out-of-sample decay separate a backtest in a paper from a position in a live account.",
+    author: "Rahul S. P.",
+    content: meanReversionReplicationContent,
   },
   {
     slug: "us-indexes-prediction",
