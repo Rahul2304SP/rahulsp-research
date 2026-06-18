@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About | Rahul S. P.",
-  description: "Senior Analyst at Deloitte. Independent quantitative researcher in market microstructure, neural architectures, and systematic trading.",
+  description: "Assistant Manager at Deloitte. Independent quantitative researcher in market microstructure, neural architectures, and systematic trading.",
 };
 
 export default function AboutPage() {
@@ -12,7 +12,7 @@ export default function AboutPage() {
 
       <div className="max-w-2xl space-y-6 text-[#374151] leading-relaxed">
         <p className="text-lg text-[#1a1a2e]">
-          Senior Analyst at <strong>Deloitte</strong>. Independent quantitative researcher
+          Assistant Manager at <strong>Deloitte</strong>. Independent quantitative researcher
           focused on market microstructure, neural architectures for financial time series,
           and systematic trading.
         </p>
@@ -20,7 +20,7 @@ export default function AboutPage() {
         <p>
           By day, I work across financial due diligence, business performance reviews,
           and financial modelling for clients in TMT, Energy, Industrials, and Consumer
-          sectors. By night, I build and test quantitative trading systems on live markets.
+          sectors. By night, I research and build quantitative trading systems.
         </p>
 
         <p>
@@ -39,7 +39,7 @@ export default function AboutPage() {
         <div className="space-y-4 text-[#374151] text-sm leading-relaxed">
           <div className="flex justify-between items-start">
             <div>
-              <p className="font-medium text-[#1a1a2e]">Senior Analyst</p>
+              <p className="font-medium text-[#1a1a2e]">Assistant Manager</p>
               <p>Deloitte</p>
             </div>
             <p className="text-[#6b7280] whitespace-nowrap">2024 &ndash; Present</p>
