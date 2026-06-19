@@ -1,0 +1,12 @@
+# Cloudflare Pages config for rahulsp-research.
+# Build command stays in the dashboard (Next static export); this file only declares
+# the static output dir (unchanged) and the KV binding the /api/us30vol Function reads.
+name = "rahulsp-research"
+pages_build_output_dir = "out"
+compatibility_date = "2024-11-01"
+
+# KV namespace backing the US30 Volatility Dial relay (GET/POST /api/us30vol).
+# Created via `wrangler kv namespace create us30vol`.
+[[kv_namespaces]]
+binding = "US30VOL"
+id = "85bd59695b30431589b0dce215f3da0f"

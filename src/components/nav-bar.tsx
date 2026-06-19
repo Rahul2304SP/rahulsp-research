@@ -17,6 +17,12 @@ export function NavBar() {
             Research
           </a>
           <a
+            href="/tools"
+            className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
+          >
+            Tools
+          </a>
+          <a
             href="/approach"
             className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
           >
@@ -36,6 +42,12 @@ export function NavBar() {
             className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
           >
             Research
+          </a>
+          <a
+            href="/tools"
+            className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
+          >
+            Tools
           </a>
           <a
             href="/approach"
