@@ -5,6 +5,7 @@ import { content as usIndexesContent } from "./papers/us-indexes-prediction";
 import { content as gprContent } from "./papers/gpr-gold";
 import { content as priceVolatilityContent } from "./papers/price-predicts-volatility";
 import { content as meanReversionReplicationContent } from "./papers/mean-reversion-replication";
+import { content as realEdgeRetailContent } from "./papers/real-edge-retail-cant-trade";
 
 export interface Paper {
   slug: string;
@@ -80,6 +81,17 @@ export const papers: Paper[] = [
       "We test for linear lead-lag relationships across major asset pairs over 5.5 years of minute-level data. For gold (XAUUSD), no robust lead-lag signal exists from DXY, silver, or equity indices at any horizon. For equities, only MSFT-to-NAS100 and GS-to-US30 at the 5-minute horizon survive out-of-sample validation. The results challenge common assumptions about cross-asset predictability in systematic trading.",
     author: "Rahul S. P.",
     content: crossAssetContent,
+  },
+  {
+    slug: "real-edge-retail-cant-trade",
+    title:
+      "A Real Edge that Retail Can't Trade: A Cross-Sectional Factor Study on 1,021 US Stocks",
+    date: "June 2026",
+    category: "Empirical Studies",
+    abstract:
+      "After a separate study found the direction of a single index to be a coin flip, we asked whether the cross-section of stocks holds the information the level does not. On 1,021 US names from 2005 to 2026, with point-in-time SEC EDGAR fundamentals and an embargoed, expanding, cost-aware walk-forward, the cross-sectional signal is genuinely real: twelve-month momentum at t = 2.76, five-day reversal at t = 2.62, and the value premium showing its two-decade drought (earnings yield t = -4.14). Yet the combined long/short book earns a net Sharpe of just 0.38, below the 0.46 deflated-Sharpe hurdle that corrects for multiple testing, and its sector-neutral refinement is worse at 0.20. The naive momentum-only sleeve lost 71% in a single month in 2009 and 96% peak-to-trough. The signal is real and, for a retail account that cannot short hundreds of names against an institutional borrow desk on survivorship-free data, untradeable. The distance between a significant t-statistic and a dollar in a real account is the subject of the paper.",
+    author: "Rahul S. P.",
+    content: realEdgeRetailContent,
   },
   {
     slug: "goldssm",
