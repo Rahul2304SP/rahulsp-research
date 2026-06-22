@@ -20,6 +20,8 @@ interface Snap {
   range_high?: number;
   regime?: string;
   market_open?: boolean;
+  bars?: { t: number[]; c: number[] }; // recent 1-min US30 bars (epoch s, close)
+  history?: { t: number[]; sigma_pts: number[]; sigma_pct: number[] }; // forecast log
 }
 
 type Status = "loading" | "live" | "waiting" | "error";
@@ -81,15 +83,36 @@ function arc(p0: number, p1: number, r: number): string {
   return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
 }
 
-// demo (localhost preview only): a gently moving value so the needle visibly updates
+// demo (localhost preview only): a gently moving value + synthetic bars/history so the
+// charts render exactly as they will on the live feed.
 function makeDemo(): Snap {
   const t = Date.now();
   const base = 0.0042 + 0.0022 * Math.sin(t / 90_000) + (Math.random() - 0.5) * 0.0004;
   const sigma_pct = Math.max(0.0012, base);
   const price = 42180 + 90 * Math.sin(t / 120_000);
   const sigma_pts = sigma_pct * price;
-  const regime =
-    sigma_pct < 0.0025 ? "calm" : sigma_pct < 0.005 ? "normal" : sigma_pct < 0.01 ? "elevated" : "extreme";
+  const regimeOf = (s: number) => (s < 0.0025 ? "calm" : s < 0.005 ? "normal" : s < 0.01 ? "elevated" : "extreme");
+  const nowS = Math.floor(t / 1000);
+  // multi-scale deterministic "wobble" -> looks like real jagged price (not a clean sine), and
+  // animates smoothly because it is a function of each bar's absolute timestamp. Anchored so the
+  // latest bar equals the current price.
+  const wob = (s: number) =>
+    16 * Math.sin(s / 1100) + 10 * Math.sin(s / 430 + 1.3) + 6 * Math.sin(s / 170 + 2.1) +
+    3.5 * Math.sin(s / 70 + 0.6) + 1.8 * Math.sin(s / 27 + 1.9) + 0.9 * Math.sin(s / 11 + 0.3);
+  const bt: number[] = [], bc: number[] = [];
+  for (let i = 149; i >= 0; i--) {
+    const tt = nowS - i * 60;
+    bt.push(tt); bc.push(Math.round((price + wob(tt) - wob(nowS)) * 10) / 10);
+  }
+  // forecast-vol history: a slow, smooth drift (5-min forecasts evolve gradually), also deterministic
+  const vwob = (s: number) =>
+    0.0042 + 0.0016 * Math.sin(s / 5200 + 0.4) + 0.0009 * Math.sin(s / 2100 + 1.7) + 0.0005 * Math.sin(s / 800 + 2.4);
+  const ht: number[] = [], hpts: number[] = [], hpct: number[] = [];
+  for (let i = 287; i >= 0; i--) {
+    const tt = nowS - i * 300;
+    const sp = Math.max(0.0014, vwob(tt));
+    ht.push(tt); hpct.push(Math.round(sp * 1e5) / 1e5); hpts.push(Math.round(sp * price * 10) / 10);
+  }
   return {
     as_of_utc: new Date().toISOString(),
     symbol: "US30",
@@ -100,9 +123,119 @@ function makeDemo(): Snap {
     sigma_pct,
     range_low: price - sigma_pts,
     range_high: price + sigma_pts,
-    regime,
+    regime: regimeOf(sigma_pct),
     market_open: true,
+    bars: { t: bt, c: bc },
+    history: { t: ht, sigma_pts: hpts, sigma_pct: hpct },
   };
+}
+
+// ── price + forecast-range chart: recent 1-min bars, the cone forecast an hour ago (realised),
+//    and the forward cone for the next 60 min (±1σ / ±2σ, widening as √time) ──────────────────
+function PriceRangeChart({ snap }: { snap: Snap }) {
+  const bars = snap.bars;
+  if (!bars?.t || bars.t.length < 5 || !snap.sigma_pts || !snap.price) return null;
+  const CW = 660, CH = 280, padL = 52, padR = 14, padT = 14, padB = 26;
+  const iw = CW - padL - padR, ih = CH - padT - padB;
+  const horizonS = (snap.horizon_min ?? 60) * 60;
+  const now = bars.t[bars.t.length - 1];
+  const tMin = bars.t[0], tMax = now + horizonS;
+  const xOf = (t: number) => padL + ((t - tMin) / (tMax - tMin)) * iw;
+
+  const cone = (t0: number, p0: number, s60: number): { up: number[][]; lo: number[][] } => {
+    const up: number[][] = [], lo: number[][] = [];
+    for (let i = 0; i <= 16; i++) {
+      const tau = (i / 16) * horizonS, s = s60 * Math.sqrt(tau / horizonS), t = t0 + tau;
+      up.push([t, p0 + s]); lo.push([t, p0 - s]);
+    }
+    return { up, lo };
+  };
+  const nearest = (arr: number[], target: number) => {
+    let idx = 0, best = Infinity;
+    for (let i = 0; i < arr.length; i++) { const d = Math.abs(arr[i] - target); if (d < best) { best = d; idx = i; } }
+    return idx;
+  };
+
+  const fwd1 = cone(now, snap.price, snap.sigma_pts);
+  const fwd2 = cone(now, snap.price, 2 * snap.sigma_pts);
+  // realised cone: the forecast made ~one horizon ago, widening to now
+  let realised: { up: number[][]; lo: number[][] } | null = null;
+  const h = snap.history;
+  if (h?.t && h.t.length > 2) {
+    const i = nearest(h.t, now - horizonS);
+    if (Math.abs(h.t[i] - (now - horizonS)) < horizonS * 0.5) {
+      const p0 = bars.c[nearest(bars.t, h.t[i])];
+      realised = cone(h.t[i], p0, h.sigma_pts[i]);
+    }
+  }
+
+  const ys = [...bars.c, ...fwd2.up.map((p) => p[1]), ...fwd2.lo.map((p) => p[1])];
+  if (realised) ys.push(...realised.up.map((p) => p[1]), ...realised.lo.map((p) => p[1]));
+  let yMin = Math.min(...ys), yMax = Math.max(...ys);
+  const padY = (yMax - yMin) * 0.08 || 10; yMin -= padY; yMax += padY;
+  const yOf = (p: number) => padT + (1 - (p - yMin) / (yMax - yMin)) * ih;
+
+  const reg = (snap.regime && REGIMES[snap.regime]) || REGIMES.normal;
+  const band = (up: number[][], lo: number[][]) =>
+    `M ${up.map(([t, p]) => `${xOf(t).toFixed(1)} ${yOf(p).toFixed(1)}`).join(" L ")} L ` +
+    `${[...lo].reverse().map(([t, p]) => `${xOf(t).toFixed(1)} ${yOf(p).toFixed(1)}`).join(" L ")} Z`;
+  const priceLine = bars.t.map((t, i) => `${xOf(t).toFixed(1)},${yOf(bars.c[i]).toFixed(1)}`).join(" ");
+  const nowX = xOf(now);
+  const ticks = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * (yMax - yMin));
+  const fmtTime = (t: number) => new Date(t * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full" style={{ maxHeight: 300 }}>
+      {ticks.map((p, i) => (
+        <g key={i}>
+          <line x1={padL} y1={yOf(p)} x2={CW - padR} y2={yOf(p)} stroke="#f3f4f6" />
+          <text x={padL - 6} y={yOf(p) + 3} textAnchor="end" fontSize="10" fill="#9ca3af">{fmt(p)}</text>
+        </g>
+      ))}
+      {realised && <path d={band(realised.up, realised.lo)} fill="#9ca3af" opacity={0.16} />}
+      <path d={band(fwd2.up, fwd2.lo)} fill={reg.color} opacity={0.1} />
+      <path d={band(fwd1.up, fwd1.lo)} fill={reg.color} opacity={0.22} />
+      <line x1={nowX} y1={yOf(snap.price)} x2={xOf(tMax)} y2={yOf(snap.price)} stroke={reg.color} strokeDasharray="3 3" strokeWidth={1} opacity={0.65} />
+      <polyline points={priceLine} fill="none" stroke="#1a1a2e" strokeWidth={1.5} />
+      <line x1={nowX} y1={padT} x2={nowX} y2={CH - padB} stroke="#cbd5e1" strokeDasharray="2 3" />
+      <circle cx={nowX} cy={yOf(snap.price)} r={3.5} fill={reg.color} />
+      <text x={xOf(tMin)} y={CH - 8} fontSize="10" fill="#9ca3af">{fmtTime(tMin)}</text>
+      <text x={nowX} y={CH - 8} fontSize="10" fill="#6b7280" textAnchor="middle">now</text>
+      <text x={xOf(tMax)} y={CH - 8} fontSize="10" fill="#9ca3af" textAnchor="end">+{snap.horizon_min ?? 60}m</text>
+    </svg>
+  );
+}
+
+// ── forecast-volatility history: the predicted 60-min sigma (% of price) over the last ~24h ──
+function VolHistoryChart({ history }: { history?: Snap["history"] }) {
+  if (!history?.t || history.t.length < 3) return null;
+  const CW = 660, CH = 150, padL = 40, padR = 30, padT = 12, padB = 22;
+  const iw = CW - padL - padR, ih = CH - padT - padB;
+  const t = history.t, pct = history.sigma_pct.map((v) => v * 100);
+  const tMin = t[0], tMax = t[t.length - 1];
+  const xOf = (x: number) => padL + ((x - tMin) / (tMax - tMin || 1)) * iw;
+  const vMax = Math.min(Math.max(...pct, 0.5) * 1.12, 1.6);
+  const yOf = (v: number) => padT + (1 - Math.min(v, vMax) / vMax) * ih;
+  const line = t.map((x, i) => `${xOf(x).toFixed(1)},${yOf(pct[i]).toFixed(1)}`).join(" ");
+  const area = `M ${xOf(tMin).toFixed(1)} ${CH - padB} L ${line.split(" ").join(" L ")} L ${xOf(tMax).toFixed(1)} ${CH - padB} Z`;
+  const last = pct[pct.length - 1];
+  const col = (last < 0.25 ? REGIMES.calm : last < 0.5 ? REGIMES.normal : last < 1.0 ? REGIMES.elevated : REGIMES.extreme).color;
+  const thr = [{ v: 0.25 }, { v: 0.5 }, { v: 1.0 }].filter((x) => x.v <= vMax);
+  const fmtTime = (x: number) => new Date(x * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full" style={{ maxHeight: 160 }}>
+      {thr.map((x, i) => (
+        <g key={i}>
+          <line x1={padL} y1={yOf(x.v)} x2={CW - padR} y2={yOf(x.v)} stroke="#eceef1" strokeDasharray="3 3" />
+          <text x={CW - padR + 3} y={yOf(x.v) + 3} fontSize="9" fill="#c0c4cc">{x.v}%</text>
+        </g>
+      ))}
+      <path d={area} fill={col} opacity={0.12} />
+      <polyline points={line} fill="none" stroke={col} strokeWidth={1.6} />
+      <text x={xOf(tMin)} y={CH - 6} fontSize="10" fill="#9ca3af">{fmtTime(tMin)}</text>
+      <text x={xOf(tMax)} y={CH - 6} fontSize="10" fill="#9ca3af" textAnchor="end">now</text>
+    </svg>
+  );
 }
 
 export default function US30VolatilityPage() {
@@ -249,7 +382,36 @@ export default function US30VolatilityPage() {
               </p>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-[#f0f1f3] flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#6b7280]">
+            {/* ── price + expected range (recent 1-min bars, realised cone, forward cone) ── */}
+            {snap.bars && snap.bars.t && snap.bars.t.length > 4 && (
+              <div className="mt-7">
+                <p className="text-xs uppercase tracking-widest text-[#6b7280] mb-1">
+                  Dow, last few hours &amp; the next 60 minutes
+                </p>
+                <PriceRangeChart snap={snap} />
+                <p className="mt-1 text-xs text-[#9ca3af] leading-relaxed">
+                  Black line is the actual 1-minute price. The grey band is the range forecast an hour ago; the{" "}
+                  <span style={{ color: (snap.regime && REGIMES[snap.regime]?.color) || "#1e40af" }}>coloured cone</span>{" "}
+                  is the forecast for the next hour (darker = 68%, lighter = 95%).
+                </p>
+              </div>
+            )}
+
+            {/* ── forecast-volatility history ── */}
+            {snap.history && snap.history.t && snap.history.t.length > 2 && (
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-widest text-[#6b7280] mb-1">
+                  Forecast volatility, recent history
+                </p>
+                <VolHistoryChart history={snap.history} />
+                <p className="mt-1 text-xs text-[#9ca3af]">
+                  The model&apos;s predicted 60-minute move, as a percent of price. Dashed lines mark the calm /
+                  normal / elevated thresholds.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-[#f0f1f3] flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#6b7280]">
               <span>Refreshes every minute</span>
               <span className="text-[#d1d5db]">|</span>
               <span>Model: {snap.model || "US30 LGB fvol60"}</span>
