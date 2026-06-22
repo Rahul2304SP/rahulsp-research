@@ -10,3 +10,10 @@ compatibility_date = "2024-11-01"
 [[kv_namespaces]]
 binding = "US30VOL"
 id = "85bd59695b30431589b0dce215f3da0f"
+
+# World Tension GPR relay (GET/POST /api/gpr) shares the SAME namespace under a distinct key
+# ("gpr_latest"), so no new namespace is needed. /api/gpr falls back to US30VOL if this binding
+# is absent, but declaring it keeps the two tools' code cleanly separated.
+[[kv_namespaces]]
+binding = "GPR"
+id = "85bd59695b30431589b0dce215f3da0f"

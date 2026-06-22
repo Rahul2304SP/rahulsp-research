@@ -8,6 +8,13 @@ export const metadata: Metadata = {
 
 const tools = [
   {
+    href: "/tools/world-tension",
+    badge: "Live",
+    badgeColor: "#C1432E",
+    title: "World Tension",
+    desc: "A realtime read on geopolitical risk, rebuilt every minute from around 25 global news feeds and placed on the scale of the academic Caldara-Iacoviello index. The published index is monthly; this is a near-realtime proxy of the same idea.",
+  },
+  {
     href: "/tools/us30-volatility",
     badge: "Live",
     badgeColor: "#1e40af",
