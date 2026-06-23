@@ -53,7 +53,7 @@
     <div>Volume (buy/sell pressure)<span class="tagdot" style="background:#2bd4b0"></span></div>
     <div>Reasoned (risk-off)<span class="tagdot" style="background:#caa14a"></span></div>
     <div>Implied (price only)<span class="tagdot" style="background:#7a8197"></span></div>
-    <div style="margin-top:6px;color:#6f778c">ring = confidence · stream = violence</div>
+    <div style="margin-top:6px;color:#6f778c">ring = confidence · stream = expected violence</div>
   </div>
   <div id="tip"></div>
   <div id="hint"></div>
@@ -128,7 +128,7 @@ function conf(b,i){ const a=DATA.confidence[b]; const v=a?a[i]:null; return v==n
 function tagOf(b,i){ return (DATA.tag[b]&&DATA.tag[b][i])||null; }
 function ratOf(b,i){ return (DATA.rationale[b]&&DATA.rationale[b][i])||''; }
 function retTrail(b,i){ return DATA.ret[b]?trail(DATA.ret[b],i):null; }
-function viol(b,i){ const a=DATA.violence&&DATA.violence[b]; const v=a?a[i]:null; return v==null?1:v; }
+function viol(b,i){ const a=(DATA.violence_fwd&&DATA.violence_fwd[b])||(DATA.violence&&DATA.violence[b]); const v=a?a[i]:null; return v==null?1:v; }  // prefer forward (expected) violence
 function violTrail(b,i){ let m=1; for(let k=Math.max(0,i-win+1);k<=i;k++){const v=viol(b,k); if(v>m)m=v;} return m; }
 const TAGCOL={MEASURED:"#46c8ff", FLOW:"#6f8cff", VOLUME:"#2bd4b0", CONTEXT:"#caa14a", IMPLIED:"#7a8197"};
 
@@ -365,8 +365,8 @@ function bootData(d){
     let i=DATA.dates.indexOf(L.date), isNew=i<0; if(isNew){ i=DATA.dates.length; DATA.dates.push(L.date); }
     for(const b of DATA.buckets){ const lb=L.buckets[b];
       const S=(k,v)=>{ if(!DATA[k])DATA[k]={}; if(!DATA[k][b])DATA[k][b]=[]; DATA[k][b][i]=v; };
-      if(lb){ S('flow',lb.flow);S('confidence',lb.confidence);S('tag',lb.tag);S('rationale',lb.rationale);S('violence',lb.violence);S('ret',lb.ret); }
-      else if(isNew){ S('flow',null);S('confidence',null);S('tag',null);S('rationale',null);S('violence',null);S('ret',null); } }
+      if(lb){ S('flow',lb.flow);S('confidence',lb.confidence);S('tag',lb.tag);S('rationale',lb.rationale);S('violence',lb.violence);S('violence_fwd',lb.violence_fwd);S('ret',lb.ret); }
+      else if(isNew){ S('flow',null);S('confidence',null);S('tag',null);S('rationale',null);S('violence',null);S('violence_fwd',null);S('ret',null); } }
     const sl=document.getElementById('slider');
     if(isNew){ sl.max=DATA.dates.length-1; if(followLive){ cur=DATA.dates.length-1; sl.value=cur; } }
     if(followLive && DATA.cost) rebuild();
