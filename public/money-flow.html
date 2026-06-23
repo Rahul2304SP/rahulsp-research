@@ -95,12 +95,15 @@ function apply2(){ if(mode!=='2d')return;                  // post-fit affine = 
   projection.scale(B2[0]*k2).translate([B2[1]*k2+pan2[0], B2[2]*k2+pan2[1]]); }
 function defScale(){ return R0*Math.sqrt(DIST*DIST-1); }   // makes the globe radius ~ R0 on screen
 function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
-  W=innerWidth; H=innerHeight; MOBILE=W<=640; FS=MOBILE?13:11;
+  W=innerWidth; H=innerHeight; MOBILE=W<=640; FS=MOBILE?11.5:11;
   cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);                       // draw in CSS px, crisp on high-DPR phones
   R0=Math.min(W,H)*0.42; if(!curScale) curScale=defScale();
-  const bottomRes=MOBILE?116:64;                           // leave room for the (wrapped) control bar
-  TRAY.dx=Math.min(150,W*0.16); TRAY.x0=W/2-TRAY.dx; TRAY.y=H-bottomRes; TRAY.s=Math.max(15,Math.min(22,W*0.018));
+  TRAY.s=Math.max(14,Math.min(22,W*0.02));
+  TRAY.dx=Math.min(150,W*0.21); TRAY.x0=W/2-TRAY.dx;
+  const ctlEl=document.getElementById('ctl'); let ctlTop=H-(MOBILE?120:64);
+  if(ctlEl){ const rc=ctlEl.getBoundingClientRect(); if(rc.height>0) ctlTop=rc.top; }
+  TRAY.y=Math.round(ctlTop-(MOBILE?18:14)-TRAY.s);          // vault sits fully above the (wrapped) control bar
   setupProj();
 }
 window.addEventListener('resize', resize);
@@ -183,7 +186,7 @@ function rebuild(){ curFlows=flowsAt(cur);
   document.getElementById('date').textContent=DATA.dates[cur];
   document.getElementById('slider').value=cur;
 }
-function nodeRadius(b){ const v=curFlows?curFlows.net[b]:null; const a=v==null?0.3:Math.min(2.2,Math.abs(v)); return 6+7*Math.sqrt(a); }
+function nodeRadius(b){ const v=curFlows?curFlows.net[b]:null; const a=v==null?0.3:Math.min(2.2,Math.abs(v)); return (MOBILE?0.66:1)*(6+7*Math.sqrt(a)); }
 
 function draw(){
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
@@ -273,35 +276,33 @@ function draw(){
     ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
     tagDot(n.x+r*0.72,n.y-r*0.72-3);
     if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
-      ctx.fillText(NODES[b].short+lbl, n.x, n.y-r-7); }
+      ctx.fillText(NODES[b].short+(MOBILE?'':lbl), n.x, n.y-r-7); }
     if(vis>0.30) hitNodes.push({b,x:n.x,y:n.y,r:r+6}); }
 }
 
 function loop(){ if(mode==='3d' && !dragging){ idle++; if(idle>90){ curRot=[curRot[0]+0.06, curRot[1]]; projection.rotate(curRot); } }
   draw(); requestAnimationFrame(loop); }
 
-// ---- interaction (3D only): drag to spin, scroll to zoom ----
-let r0,m0,p0;
-d3.select(cv).call(d3.drag()
-  .on("start", ev=>{ dragging=true; idle=0; m0=[ev.x,ev.y];
-    if(mode==='3d') r0=projection.rotate(); else p0=[pan2[0],pan2[1]]; })
-  .on("drag", ev=>{ if(pinching)return; idle=0;
-    if(mode==='3d'){ const k=70/projection.scale();
-      let ny=r0[1]-(ev.y-m0[1])*k; ny=Math.max(-89,Math.min(89,ny));
-      curRot=[r0[0]+(ev.x-m0[0])*k, ny]; projection.rotate(curRot); }
-    else { pan2=[p0[0]+(ev.x-m0[0]), p0[1]+(ev.y-m0[1])]; apply2(); } })
-  .on("end", ()=>{ dragging=false; idle=0; }));
-// touch pinch-to-zoom (2 fingers). 1-finger spin/pan is handled by d3.drag above.
-let pinching=false, pd0=0, ps0=0;
-function tdist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
-cv.addEventListener('touchstart', e=>{ if(e.touches.length===2){ pinching=true; idle=0;
-    pd0=tdist(e.touches); ps0=(mode==='2d'?k2:curScale); } }, {passive:false});
-cv.addEventListener('touchmove', e=>{ if(pinching && e.touches.length===2){ e.preventDefault();
-    const r=tdist(e.touches)/(pd0||1);
-    if(mode==='2d'){ k2=Math.max(1,Math.min(8, ps0*r)); apply2(); }
-    else { curScale=Math.max(R0*0.7, Math.min(R0*7, ps0*r)); projection.scale(curScale); } } }, {passive:false});
-cv.addEventListener('touchend', e=>{ if(e.touches.length<2) pinching=false; });
-cv.addEventListener('touchcancel', ()=>{ pinching=false; });
+// ---- interaction: pointer events unify mouse + touch (1 ptr = spin/pan, 2 ptrs = pinch-zoom) ----
+let r0,m0,p0, pinching=false, pd0=0, ps0=0;
+const ptrs=new Map();
+function setAnchor(){ const v=[...ptrs.values()]; if(!v.length)return; m0=v[0];
+  if(mode==='3d') r0=projection.rotate(); else p0=[pan2[0],pan2[1]]; }
+cv.addEventListener('pointerdown', e=>{ try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  ptrs.set(e.pointerId,[e.clientX,e.clientY]); dragging=true; idle=0;
+  if(ptrs.size>=2){ const v=[...ptrs.values()]; pd0=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); ps0=(mode==='2d'?k2:curScale); pinching=true; }
+  else setAnchor(); });
+cv.addEventListener('pointermove', e=>{ if(!ptrs.has(e.pointerId))return; ptrs.set(e.pointerId,[e.clientX,e.clientY]); idle=0;
+  const v=[...ptrs.values()];
+  if(pinching && v.length>=2){ const d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]), r=d/(pd0||1);
+    if(mode==='2d'){ k2=Math.max(1,Math.min(8,ps0*r)); apply2(); }
+    else { curScale=Math.max(R0*0.7,Math.min(R0*7,ps0*r)); projection.scale(curScale); } return; }
+  const p=v[0];
+  if(mode==='3d'){ const k=70/projection.scale(); let ny=r0[1]-(p[1]-m0[1])*k; ny=Math.max(-89,Math.min(89,ny)); curRot=[r0[0]+(p[0]-m0[0])*k,ny]; projection.rotate(curRot); }
+  else { pan2=[p0[0]+(p[0]-m0[0]), p0[1]+(p[1]-m0[1])]; apply2(); } });
+function ptrEnd(e){ ptrs.delete(e.pointerId); if(ptrs.size<2) pinching=false;
+  if(ptrs.size===0){ dragging=false; idle=0; } else setAnchor(); }
+cv.addEventListener('pointerup', ptrEnd); cv.addEventListener('pointercancel', ptrEnd);
 cv.addEventListener('wheel', e=>{ e.preventDefault(); idle=0;
   if(mode==='2d'){ const nk=Math.max(1, Math.min(8, k2*(e.deltaY<0?1.12:0.89))), r=nk/k2;
     pan2=[e.clientX*(1-r)+r*pan2[0], e.clientY*(1-r)+r*pan2[1]]; k2=nk; apply2(); return; }   // zoom about cursor
@@ -343,6 +344,7 @@ document.querySelectorAll('.win').forEach(btn=>btn.addEventListener('click',()=>
 function bootData(d){
   DATA=d; DATA.buckets.forEach((b,k)=>BIDX[b]=k); cur=DATA.dates.length-1;
   resize(); applyMode(); slider.max=DATA.dates.length-1; slider.value=cur;
+  setTimeout(resize, 60);                                   // re-measure once the control bar's wrapped height settles
   d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(topo=>{
     world=topojson.feature(topo, topo.objects.countries); rebuild(); requestAnimationFrame(loop);
   }).catch(()=>{ rebuild(); requestAnimationFrame(loop); });
