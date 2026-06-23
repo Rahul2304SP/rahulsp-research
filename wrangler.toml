@@ -17,3 +17,11 @@ id = "85bd59695b30431589b0dce215f3da0f"
 [[kv_namespaces]]
 binding = "GPR"
 id = "85bd59695b30431589b0dce215f3da0f"
+
+# World Money-Flow live relay (GET/POST /api/moneyflow). R2 (not KV) because the local emitter
+# overwrites the live slice every ~60s = ~43k writes/month = 4% of R2's 1M/mo free cap, whereas it
+# would blow KV's 1,000/day cap. The MONEYFLOW_WRITE_KEY secret is NOT declared here (secrets are set
+# via `wrangler pages secret put MONEYFLOW_WRITE_KEY` or the dashboard env vars — never committed).
+[[r2_buckets]]
+binding = "MONEYFLOW"
+bucket_name = "moneyflow"
