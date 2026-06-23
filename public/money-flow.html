@@ -284,19 +284,22 @@ function loop(){ if(mode==='3d' && !dragging){ idle++; if(idle>90){ curRot=[curR
   draw(); requestAnimationFrame(loop); }
 
 // ---- interaction: pointer events unify mouse + touch (1 ptr = spin/pan, 2 ptrs = pinch-zoom) ----
-let r0,m0,p0, pinching=false, pd0=0, ps0=0;
+let r0,m0,p0, pinching=false, pdist=0, pmid=[0,0];
 const ptrs=new Map();
+function mid(v){ return [(v[0][0]+v[1][0])/2, (v[0][1]+v[1][1])/2]; }
 function setAnchor(){ const v=[...ptrs.values()]; if(!v.length)return; m0=v[0];
   if(mode==='3d') r0=projection.rotate(); else p0=[pan2[0],pan2[1]]; }
 cv.addEventListener('pointerdown', e=>{ try{cv.setPointerCapture(e.pointerId);}catch(_){}
   ptrs.set(e.pointerId,[e.clientX,e.clientY]); dragging=true; idle=0;
-  if(ptrs.size>=2){ const v=[...ptrs.values()]; pd0=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); ps0=(mode==='2d'?k2:curScale); pinching=true; }
+  if(ptrs.size>=2){ const v=[...ptrs.values()]; pdist=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]); pmid=mid(v); pinching=true; }
   else setAnchor(); });
 cv.addEventListener('pointermove', e=>{ if(!ptrs.has(e.pointerId))return; ptrs.set(e.pointerId,[e.clientX,e.clientY]); idle=0;
   const v=[...ptrs.values()];
-  if(pinching && v.length>=2){ const d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]), r=d/(pd0||1);
-    if(mode==='2d'){ k2=Math.max(1,Math.min(8,ps0*r)); apply2(); }
-    else { curScale=Math.max(R0*0.7,Math.min(R0*7,ps0*r)); projection.scale(curScale); } return; }
+  if(pinching && v.length>=2){ const cmid=mid(v), d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);
+    if(mode==='2d'){ const nk=Math.max(1,Math.min(8, k2*d/(pdist||d))), r=nk/k2;       // zoom about the FINGERS + two-finger pan
+      pan2=[r*pan2[0]-r*pmid[0]+cmid[0], r*pan2[1]-r*pmid[1]+cmid[1]]; k2=nk; apply2(); }
+    else { curScale=Math.max(R0*0.7,Math.min(R0*7, curScale*d/(pdist||d))); projection.scale(curScale); }
+    pdist=d; pmid=cmid; return; }
   const p=v[0];
   if(mode==='3d'){ const k=70/projection.scale(); let ny=r0[1]-(p[1]-m0[1])*k; ny=Math.max(-89,Math.min(89,ny)); curRot=[r0[0]+(p[0]-m0[0])*k,ny]; projection.rotate(curRot); }
   else { pan2=[p0[0]+(p[0]-m0[0]), p0[1]+(p[1]-m0[1])]; apply2(); } });
