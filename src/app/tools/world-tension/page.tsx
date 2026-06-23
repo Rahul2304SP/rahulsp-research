@@ -159,6 +159,8 @@ function Sparkline({ data }: { data: number[] }) {
 
 // ── world bubble map: red bubbles (sized by share of risk chatter) over the land outline ──
 function WorldMap({ geography }: { geography?: GeoPoint[] }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [hover, setHover] = useState<{ g: GeoPoint; x: number; y: number } | null>(null);
   if (!geography || geography.length === 0) return null;
   const W = WORLD.w, H = WORLD.h; // equirectangular 800 x 400
   const proj = (lon: number, lat: number): [number, number] => [
@@ -167,23 +169,46 @@ function WorldMap({ geography }: { geography?: GeoPoint[] }) {
   ];
   const maxShare = Math.max(...geography.map((g) => g.share), 1);
   const rOf = (share: number) => 5 + 26 * Math.sqrt(share / maxShare); // area ~ share
-  // biggest first so smaller bubbles draw on top and stay clickable/visible
+  // biggest first so smaller bubbles draw on top and stay hoverable
   const ordered = [...geography].sort((a, b) => b.share - a.share);
+  // pointer position relative to the wrapper, so the tooltip tracks the cursor regardless of SVG scaling
+  const show = (g: GeoPoint, e: { clientX: number; clientY: number }) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) setHover({ g, x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ background: "#f7f9fc", borderRadius: 10 }}>
-      <path d={WORLD.path} fill="#e7e9ee" stroke="#d6d9e0" strokeWidth={0.4} fillRule="evenodd" />
-      {ordered.map((g) => {
-        const [x, y] = proj(g.lon, g.lat);
-        const r = rOf(g.share);
-        return (
-          <g key={g.name}>
-            <circle cx={x} cy={y} r={r} fill="#C1432E" fillOpacity={0.3} stroke="#C1432E" strokeOpacity={0.55} strokeWidth={0.8} />
-            <circle cx={x} cy={y} r={1.8} fill="#7f1d1d" />
-            <title>{`${g.name}: ${g.share}% of risk chatter (${g.count} mentions)`}</title>
-          </g>
-        );
-      })}
-    </svg>
+    <div ref={wrapRef} className="relative" onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ background: "#f7f9fc", borderRadius: 10 }}>
+        <path d={WORLD.path} fill="#e7e9ee" stroke="#d6d9e0" strokeWidth={0.4} fillRule="evenodd" />
+        {ordered.map((g) => {
+          const [x, y] = proj(g.lon, g.lat);
+          const r = rOf(g.share);
+          const active = hover?.g.name === g.name;
+          return (
+            <g
+              key={g.name}
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => show(g, e)}
+              onMouseMove={(e) => show(g, e)}
+            >
+              <circle cx={x} cy={y} r={r} fill="#C1432E" fillOpacity={active ? 0.5 : 0.3} stroke="#C1432E" strokeOpacity={active ? 0.95 : 0.55} strokeWidth={active ? 1.6 : 0.8} />
+              <circle cx={x} cy={y} r={1.8} fill="#7f1d1d" />
+              {/* invisible, slightly larger hit target so small bubbles are easy to hover */}
+              <circle cx={x} cy={y} r={Math.max(r, 10)} fill="transparent" style={{ pointerEvents: "all" }} />
+            </g>
+          );
+        })}
+      </svg>
+      {hover && (
+        <div
+          className="pointer-events-none absolute z-10 rounded-md bg-[#1a1a2e] px-2.5 py-1.5 text-xs text-white shadow-lg"
+          style={{ left: hover.x, top: hover.y, transform: "translate(-50%, calc(-100% - 12px))", whiteSpace: "nowrap" }}
+        >
+          <span className="font-semibold">{hover.g.name}</span>
+          <span className="text-[#cbd5e1]">{`  ${hover.g.share}% of risk chatter (${hover.g.count} mentions)`}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
