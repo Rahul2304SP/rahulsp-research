@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WORLD } from "../../../lib/world-land";
 
 /**
- * World Tension — a realtime geopolitical-risk gauge. A custom news-based index is rebuilt every
- * minute from ~25 global news feeds and calibrated to the Caldara-Iacoviello GPR scale (100 = the
+ * World Tension: a near-realtime geopolitical-risk gauge. A custom news-based index is rebuilt
+ * continuously from 200+ global news feeds plus the GDELT worldwide news monitor, and calibrated
+ * to the Caldara-Iacoviello GPR scale (100 = the
  * long-run average). Polls /api/gpr, which a local emitter publishes; falls back to a bundled
  * snapshot for preview. Informational only; it is a news-based proxy, not the official index.
  */

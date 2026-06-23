@@ -19,7 +19,7 @@ const tools = [
     badge: "Live",
     badgeColor: "#C1432E",
     title: "World Tension",
-    desc: "A realtime read on geopolitical risk, rebuilt every minute from around 25 global news feeds and placed on the scale of the academic Caldara-Iacoviello index. The published index is monthly; this is a near-realtime proxy of the same idea.",
+    desc: "A live read on geopolitical risk as it unfolds, rebuilt continuously from over 200 news feeds worldwide, from the major international wires to regional papers inside the active conflict zones, alongside a global monitor that scans news from nearly every country. The signal is placed on the scale of the academic Caldara-Iacoviello index, where 100 is the long-run average, and mapped to show where the tension is concentrated. The published index is monthly and lagged; this is a near-realtime proxy of the same idea.",
   },
   {
     href: "/tools/us30-volatility",
