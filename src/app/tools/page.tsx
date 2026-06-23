@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 const tools = [
   {
-    href: "/money-flow.html",
+    href: "/money-flow",
     badge: "Live",
     badgeColor: "#2bd4b0",
     title: "World Money-Flow Map",
