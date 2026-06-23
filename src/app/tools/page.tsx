@@ -8,6 +8,13 @@ export const metadata: Metadata = {
 
 const tools = [
   {
+    href: "/money-flow.html",
+    badge: "Live",
+    badgeColor: "#2bd4b0",
+    title: "World Money-Flow Map",
+    desc: "A live 3D globe of where capital is rotating between markets right now — gold, silver, crypto, bonds, the dollar, and equity indices across the US, Europe and Asia. Every minute it fuses measured fund flows, dark-pool and on-chain order-flow, price rotation, and risk-off reasoning into one net-flow estimate per market, each tagged by how it was inferred. Descriptive, not a forecast.",
+  },
+  {
     href: "/tools/world-tension",
     badge: "Live",
     badgeColor: "#C1432E",

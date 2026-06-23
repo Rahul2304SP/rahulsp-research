@@ -1,0 +1,352 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>World Money-Flow Map</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<style>
+  html,body{margin:0;background:#06080f;color:#eef;font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
+  #wrap{position:relative;width:100vw;height:100vh}
+  canvas{position:absolute;top:0;left:0}
+  #hud{position:absolute;top:14px;left:20px;right:20px;pointer-events:none}
+  #title{font-size:22px;font-weight:700}
+  #head{font-size:17px;color:#9fe;margin-top:6px;min-height:22px}
+  #sub{font-size:11px;color:#7a8197;margin-top:2px}
+  #legend{position:absolute;top:14px;right:20px;font-size:11px;color:#9aa3b8;text-align:right;line-height:1.7}
+  #legend b{color:#cfe;font-weight:600}
+  .tagdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-left:7px;vertical-align:middle}
+  #tip{position:absolute;display:none;pointer-events:none;background:rgba(10,14,24,0.96);border:1px solid #34405a;
+       border-radius:7px;padding:9px 11px;font-size:12px;color:#dfe6f2;max-width:300px;box-shadow:0 6px 20px rgba(0,0,0,.6);z-index:9}
+  #tip .tname{font-weight:700;font-size:13px}
+  #tip .ttag{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+  #tip .trat{margin-top:5px;color:#aeb6c8;line-height:1.45}
+  #tip .tconf{margin-top:4px;color:#8fa}
+  #ctl{position:absolute;bottom:16px;left:20px;right:20px;display:flex;align-items:center;gap:14px}
+  #ctl button{background:#1b2233;color:#cfe;border:1px solid #34405a;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+  #ctl button:hover{background:#243049}
+  #ctl button.on{background:#2b6;color:#041;border-color:#2b6}
+  #slider{flex:1}
+  #date{font-variant-numeric:tabular-nums;font-size:13px;min-width:96px;color:#cde}
+  .seg{display:flex;gap:6px}
+  #hint{position:absolute;bottom:54px;left:20px;font-size:11px;color:#5a6378}
+</style></head><body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="hud">
+    <div id="title">World Money-Flow Map</div>
+    <div id="head"></div>
+    <div id="sub">DESCRIPTIVE — fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto sit in the vault tray below.</div>
+  </div>
+  <div id="legend">
+    <div><b>Evidence</b></div>
+    <div>Measured (real flow)<span class="tagdot" style="background:#46c8ff"></span></div>
+    <div>Order-flow (dark pool)<span class="tagdot" style="background:#6f8cff"></span></div>
+    <div>Volume (buy/sell pressure)<span class="tagdot" style="background:#2bd4b0"></span></div>
+    <div>Reasoned (risk-off)<span class="tagdot" style="background:#caa14a"></span></div>
+    <div>Implied (price only)<span class="tagdot" style="background:#7a8197"></span></div>
+    <div style="margin-top:6px;color:#6f778c">ring = confidence · stream = violence</div>
+  </div>
+  <div id="tip"></div>
+  <div id="hint"></div>
+  <div id="ctl">
+    <button id="mode">3D</button>
+    <button id="play">▶ Play</button>
+    <div class="seg">
+      <button data-w="1" class="win">Day</button>
+      <button data-w="5" class="win on">Week</button>
+      <button data-w="21" class="win">Month</button>
+    </div>
+    <input id="slider" type="range" min="0" max="0" value="0">
+    <div id="date"></div>
+  </div>
+</div>
+<script>
+let DATA;                         // set by bootData(): inlined (local file) or fetched (web build)
+const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W,H, projection, path, graticule=d3.geoGraticule10(), world=null;
+let cur=0, win=5, playing=false, R0=1, dragging=false, idle=0;
+let mode='3d', curRot=[40,-40], curScale=0;     // default view centred on the North Atlantic (US<->EU flat in the middle)
+let DIST=1.8, SAT=true;                          // satellite camera distance (radii): lower = wider FOV / less "round"
+function HORIZON(){ return SAT ? Math.acos(1/DIST) : Math.PI/2; }   // visible-cap half-angle
+let TRAY={x0:0,dx:0,y:0,s:18};
+let B2=[1,0,0], k2=1, pan2=[0,0];                // 2D zoom: base [scale,tx,ty], current zoom k & pan offset
+
+function setupProj(){
+  if(mode==='3d'){ SAT=(typeof d3.geoSatellite==='function');     // d3-geo-projection loaded?
+    if(SAT){ const cl=HORIZON()*180/Math.PI-1e-3;
+      projection=d3.geoSatellite().distance(DIST).tilt(0).scale(curScale||R0).translate([W/2,H*0.46]).rotate(curRot).clipAngle(cl).precision(0.3); }
+    else { projection=d3.geoOrthographic().scale((curScale||R0)/Math.sqrt(DIST*DIST-1)).translate([W/2,H*0.46]).rotate(curRot).clipAngle(90); } }
+  else { projection=d3.geoNaturalEarth1().fitExtent([[44,96],[W-44,H-150]], {type:"Sphere"});
+    B2=[projection.scale(), projection.translate()[0], projection.translate()[1]]; apply2(); }
+  path=d3.geoPath(projection, ctx);
+}
+function apply2(){ if(mode!=='2d')return;                  // post-fit affine = zoom k2 about pan offset
+  projection.scale(B2[0]*k2).translate([B2[1]*k2+pan2[0], B2[2]*k2+pan2[1]]); }
+function defScale(){ return R0*Math.sqrt(DIST*DIST-1); }   // makes the globe radius ~ R0 on screen
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight;
+  R0=Math.min(W,H)*0.42; if(!curScale) curScale=defScale();
+  TRAY.dx=Math.min(150,W*0.12); TRAY.x0=W/2-TRAY.dx; TRAY.y=H-64; TRAY.s=Math.max(15,Math.min(22,W*0.013));
+  setupProj();
+}
+window.addEventListener('resize', resize);
+
+// ---- per-node screen position + visibility (gradual edge-fade on the globe) ----
+function nodePos(b){
+  if(NODES[b].vault) return {x:TRAY.x0+NODES[b].vaultSlot*TRAY.dx, y:TRAY.y, vis:1};
+  if(mode==='2d'){ const p=projection([NODES[b].lon,NODES[b].lat]); return p?{x:p[0],y:p[1],vis:1}:null; }
+  const c=projection.rotate(), center=[-c[0],-c[1]], ll=[NODES[b].lon,NODES[b].lat];
+  const d=d3.geoDistance(ll, center), hz=HORIZON();
+  let p, off=false;
+  if(d < hz - 0.01){ p=projection(ll); }
+  else { off=true; p=projection(d3.geoInterpolate(center, ll)((hz - 0.02)/d)); }   // past horizon -> rim (flagged)
+  if(!p) return null;
+  const vis=Math.max(0.10, Math.min(1, 1.12 - (d/hz)));   // 1 facing us, ~0.10 at the rim
+  return {x:p[0], y:p[1], vis, off, q:d/hz};               // q = rim-distance ratio (0 facing .. >=1 over the edge)
+}
+
+// ---- evidence accessors ----
+function trail(arr,i){ let s=0,any=false; for(let k=Math.max(0,i-win+1);k<=i;k++){const v=arr[k]; if(v!=null){s+=v;any=true;}} return any?s:null; }
+function conf(b,i){ const a=DATA.confidence[b]; const v=a?a[i]:null; return v==null?0.5:v; }
+function tagOf(b,i){ return (DATA.tag[b]&&DATA.tag[b][i])||null; }
+function ratOf(b,i){ return (DATA.rationale[b]&&DATA.rationale[b][i])||''; }
+function retTrail(b,i){ return DATA.ret[b]?trail(DATA.ret[b],i):null; }
+function viol(b,i){ const a=DATA.violence&&DATA.violence[b]; const v=a?a[i]:null; return v==null?1:v; }
+function violTrail(b,i){ let m=1; for(let k=Math.max(0,i-win+1);k<=i;k++){const v=viol(b,k); if(v>m)m=v;} return m; }
+const TAGCOL={MEASURED:"#46c8ff", FLOW:"#6f8cff", VOLUME:"#2bd4b0", CONTEXT:"#caa14a", IMPLIED:"#7a8197"};
+
+const BIDX={};   // populated in bootData()
+function sinkhorn(u,v,C,eps,iters){ const n=u.length,m=v.length,K=[];
+  for(let i=0;i<n;i++){K[i]=[];for(let j=0;j<m;j++)K[i][j]=Math.exp(-C[i][j]/eps);}
+  let a=new Array(n).fill(1),b=new Array(m).fill(1);
+  for(let t=0;t<iters;t++){ for(let j=0;j<m;j++){let s=0;for(let i=0;i<n;i++)s+=K[i][j]*a[i];b[j]=v[j]/(s||1e-9);}
+    for(let i=0;i<n;i++){let s=0;for(let j=0;j<m;j++)s+=K[i][j]*b[j];a[i]=u[i]/(s||1e-9);} }
+  const P=[];for(let i=0;i<n;i++){P[i]=[];for(let j=0;j<m;j++)P[i][j]=a[i]*K[i][j]*b[j];}return P; }
+function flowsAt(i){ const net={}, inflow=[], outflow=[]; let tin=0,tout=0;
+  for(const b of DATA.buckets){ const v=trail(DATA.flow[b],i); net[b]=v; if(v==null) continue;
+    if(v>0){inflow.push([b,v]); tin+=v;} else if(v<0){outflow.push([b,-v]); tout+=-v;} }
+  const links=[];
+  if(tin>0&&tout>0&&DATA.cost){ const srcs=outflow.map(x=>x[0]), snks=inflow.map(x=>x[0]);
+    const u=outflow.map(x=>x[1]/tout), v=inflow.map(x=>x[1]/tin);
+    const C=srcs.map(s=>snks.map(d=>DATA.cost[BIDX[s]][BIDX[d]]));
+    const P=sinkhorn(u,v,C,0.05,60), scale=Math.min(tin,tout);
+    for(let a=0;a<srcs.length;a++) for(let b=0;b<snks.length;b++){ const w=P[a][b]*scale;
+      if(w>0.012) links.push({src:srcs[a],dst:snks[b],w,conf:(conf(srcs[a],cur)+conf(snks[b],cur))/2}); } }
+  return {net,inflow,outflow,links,tout}; }
+
+function ctrl(a,b){ const mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
+  const lift=Math.min(110,d*0.26); return {x:mx-dy/d*lift, y:my+dx/d*lift}; }
+function qpt(a,c,b,t){ const u=1-t; return {x:u*u*a.x+2*u*t*c.x+t*t*b.x, y:u*u*a.y+2*u*t*c.y+t*t*b.y}; }
+// A vault<->market stream, parametrised VAULT(s=0)->MARKET(s=1). It is the BLEND (by rim-factor f) of
+//  - a face bezier straight to the market on the visible side, and
+//  - a rim-wrap: radius smoothsteps from the vault down to the silhouette by s=0.45 then HOLDS it, so
+//    the back half rides flat along the globe edge to the market's horizon point (a string wrapping
+//    the sphere). Same endpoints for any f, so as the market spins to/over the edge the curve MORPHS
+//    continuously face-line -> rim-wrap with no sudden switch.
+function vaultAt(P,s){ const u=1-s;
+  const sx=u*u*P.Vx+2*u*s*P.cbx+s*s*P.Mx, sy=u*u*P.Vy+2*u*s*P.cby+s*s*P.My;          // face bezier
+  const e=Math.min(1,s/0.45), sm=e*e*(3-2*e), r=P.ra+(P.Rrim-P.ra)*sm, th=P.ta+P.dtheta*s;
+  const wx=P.Ox+Math.cos(th)*r, wy=P.Oy+Math.sin(th)*r;                              // rim wrap
+  return {x:sx+(wx-sx)*P.f, y:sy+(wy-sy)*P.f}; }
+function greatCircle(a,b,n){ const f=d3.geoInterpolate(a,b),c=[]; for(let k=0;k<=n;k++)c.push(f(k/n)); return c; }
+function geoLL(b){ return [NODES[b].lon, NODES[b].lat]; }
+
+let particles=[], links=[], curFlows=null, hitNodes=[];
+function rebuild(){ curFlows=flowsAt(cur);
+  links=curFlows.links.map(l=>({src:l.src,dst:l.dst,w:l.w,conf:l.conf}));
+  particles=[]; for(let li=0; li<links.length; li++){ const L=links[li];
+    const vm=Math.min(4.5,(violTrail(L.src,cur)+violTrail(L.dst,cur))/2);
+    const nP=Math.max(2, Math.round(L.w*18*vm)), spB=0.003+0.0035*Math.min(2.2,vm);
+    for(let k=0;k<nP;k++) particles.push({li, t:Math.random(), sp:spB+Math.random()*0.004}); }
+  const ins=curFlows.inflow.sort((p,q)=>q[1]-p[1]).map(p=>p[0]);
+  const outs=curFlows.outflow.sort((p,q)=>q[1]-p[1]).map(p=>p[0]);
+  const head=document.getElementById('head');
+  if(ins.length&&outs.length){ const movers=DATA.buckets.filter(b=>curFlows.net[b]!=null).sort((a,b)=>conf(b,cur)-conf(a,cur));
+    const star=movers[0], tg=tagOf(star,cur);
+    const chip = star&&tg ? ` <span style="font-size:11px;padding:1px 7px;border-radius:5px;background:${TAGCOL[tg]}22;border:1px solid ${TAGCOL[tg]}66;color:${TAGCOL[tg]}">${star}: ${tg} (${Math.round(conf(star,cur)*100)}%)</span>` : '';
+    head.innerHTML = `Money rotating INTO ${ins.slice(0,2).join(', ')} — OUT OF ${outs.slice(0,2).join(', ')}`+chip;
+  } else head.textContent='Quiet — assets moving together with the market tide';
+  document.getElementById('date').textContent=DATA.dates[cur];
+  document.getElementById('slider').value=cur;
+}
+function nodeRadius(b){ const v=curFlows?curFlows.net[b]:null; const a=v==null?0.3:Math.min(2.2,Math.abs(v)); return 6+7*Math.sqrt(a); }
+
+function draw(){
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
+  // base map / sphere
+  ctx.beginPath(); path({type:"Sphere"});
+  if(mode==='3d'){ const gr=curScale/Math.sqrt(DIST*DIST-1); const g=ctx.createRadialGradient(W/2,H*0.40,gr*0.2,W/2,H*0.46,gr*1.05);
+    g.addColorStop(0,"#13203a"); g.addColorStop(1,"#0a1020"); ctx.fillStyle=g; } else ctx.fillStyle="#0d1320";
+  ctx.fill();
+  ctx.beginPath(); path(graticule); ctx.strokeStyle="rgba(70,90,130,0.10)"; ctx.lineWidth=0.5; ctx.stroke();
+  if(world){ ctx.beginPath(); path(world); ctx.fillStyle="#1b2740"; ctx.fill();
+    ctx.lineWidth=0.5; ctx.strokeStyle="#2c3c5c"; ctx.stroke(); }
+  if(mode==='3d'){ ctx.beginPath(); path({type:"Sphere"}); ctx.strokeStyle="rgba(120,160,220,0.25)"; ctx.lineWidth=1; ctx.stroke(); }
+
+  // tray shelf
+  ctx.strokeStyle="rgba(120,130,150,0.22)"; ctx.lineWidth=1; ctx.setLineDash([5,6]);
+  ctx.beginPath(); ctx.moveTo(TRAY.x0-TRAY.s-20, TRAY.y-TRAY.s-12); ctx.lineTo(TRAY.x0+2*TRAY.dx+TRAY.s+20, TRAY.y-TRAY.s-12); ctx.stroke(); ctx.setLineDash([]);
+
+  // node positions this frame
+  const Ppos={}; for(const b in NODES){ if(DATA.flow[b]) Ppos[b]=nodePos(b); }
+  const rot=(mode==='3d'&&projection.rotate)?projection.rotate():[0,0]; const center=[-rot[0],-rot[1]];
+
+  // Render plans. On the GLOBE, market<->market flows ride the SPHERE as great circles and are
+  // OCCLUDED behind it (back half hidden, like a real globe). Flows touching the vault tray (and
+  // every flow in 2D) are screen-space beziers; a globe flow whose market is on the far side is
+  // hidden entirely (you wouldn't see it through the earth).
+  const gr=(mode==='3d')?curScale/Math.sqrt(DIST*DIST-1):R0, cx=W/2, cy=H*0.46;   // globe radius + centre
+  // A vault flow whose market is off-screen anchors on the globe rim toward the SHORTEST-SPIN
+  // direction to that market (by longitude): east of view -> right side, west -> left, further
+  // around -> further toward the edge. This leads the eye to spin the globe that way to find it.
+  // Vault<->market geometry built VAULT->MARKET. mkUnified packs the face-bezier control point + the
+  // rim-wrap polar params; vaultAt() blends them by the rim-factor f so the stream morphs smoothly
+  // face-line -> rim-wrap as the market spins toward/over the edge (no hard switch -> no jump).
+  const mkUnified=(v,m)=>{ const cb=ctrl(v,m);
+    let ta=Math.atan2(v.y-cy,v.x-cx), tm=Math.atan2(m.y-cy,m.x-cx);
+    let dt=tm-ta; while(dt>Math.PI)dt-=2*Math.PI; while(dt<-Math.PI)dt+=2*Math.PI;
+    return {Vx:v.x, Vy:v.y, Mx:m.x, My:m.y, cbx:cb.x, cby:cb.y, ta, dtheta:dt,
+            ra:Math.hypot(v.x-cx,v.y-cy), Rrim:Math.hypot(m.x-cx,m.y-cy), Ox:cx, Oy:cy}; };
+  const rimF=(q)=>{ const t=Math.max(0,Math.min(1,(q-0.6)/0.4)); return t*t*(3-2*t); };   // 0 facing .. 1 at/over rim
+  const plans=links.map(L=>{ const sV=NODES[L.src].vault, dV=NODES[L.dst].vault; const ps=Ppos[L.src], pd=Ppos[L.dst];
+    if(!ps||!pd) return null;
+    if(mode==='3d' && !sV && !dV) return {kind:'arc', src:L.src, dst:L.dst, w:L.w, conf:L.conf, gc:greatCircle(geoLL(L.src),geoLL(L.dst),40)};
+    if(mode==='3d'){ const vSrc=sV, vEnd=vSrc?ps:pd, mEnd=vSrc?pd:ps;   // vault end vs market end
+      const f=rimF(mEnd.q!=null?mEnd.q:0);                              // tray-tray (no q) -> f=0 -> straight
+      return {kind:'vault', dst:L.dst, w:L.w, conf:L.conf, dirVtoR:vSrc, f, ...mkUnified(vEnd,mEnd)}; }
+    return {kind:'bez', a:ps, b:pd, c:ctrl(ps,pd), w:L.w, conf:L.conf, dst:L.dst, vis:Math.max(0.5,Math.min(ps.vis,pd.vis))};
+  });
+
+  // faint arcs (great-circle ones are clipped to the visible hemisphere by the projection)
+  for(let i=0;i<plans.length;i++){ const P=plans[i]; if(!P) continue; const cf=P.conf||0, lw0=1+Math.min(6,P.w*5);
+    if(P.kind==='arc'){ ctx.beginPath(); path({type:"LineString", coordinates:P.gc});
+      ctx.strokeStyle=`rgba(90,160,255,${(0.05+0.16*cf).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); }
+    else if(P.kind==='vault'){ ctx.beginPath(); for(let k=0;k<=44;k++){ const q=vaultAt(P,k/44); if(k===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }
+      ctx.strokeStyle=`rgba(90,160,255,${(0.05+0.16*cf).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); }
+    else { const va=mode==='3d'?Math.max(0.5,P.vis):1; ctx.beginPath(); ctx.moveTo(P.a.x,P.a.y); ctx.quadraticCurveTo(P.c.x,P.c.y,P.b.x,P.b.y);
+      ctx.strokeStyle=`rgba(90,160,255,${((0.05+0.16*cf)*va).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); } }
+
+  // particles — on great-circle flows they sink behind the globe and reappear on the near side
+  ctx.globalCompositeOperation="lighter";
+  for(const p of particles){ const P=plans[p.li]; if(!P) continue; p.t+=p.sp; if(p.t>=1)p.t-=1;
+    let x,y;
+    if(P.kind==='arc'){ const gp=d3.geoInterpolate(geoLL(P.src),geoLL(P.dst))(p.t);
+      if(mode==='3d' && d3.geoDistance(gp,center) > HORIZON()-0.012) continue;   // past the horizon -> behind the globe
+      const pt=projection(gp); if(!pt) continue; x=pt[0]; y=pt[1]; ctx.globalAlpha=1; }
+    else if(P.kind==='vault'){ const s=P.dirVtoR?p.t:1-p.t; const pt=vaultAt(P,s); x=pt.x; y=pt.y;
+      const fade=s>0.88?Math.max(0.12,(1-s)/0.12):1; ctx.globalAlpha=1+(fade-1)*P.f; }   // fade behind the rim only when wrapping
+    else { const pt=qpt(P.a,P.c,P.b,p.t); x=pt.x; y=pt.y; ctx.globalAlpha=mode==='3d'?Math.max(0.35,P.vis):1; }
+    const col=NODES[P.dst].color;
+    ctx.beginPath(); ctx.arc(x,y,2.1,0,6.283); ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8; ctx.fill(); }
+  ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.globalCompositeOperation="source-over";
+
+  // nodes — fade gradually by visibility (never hard-disappear)
+  hitNodes=[];
+  for(const b in NODES){ const n=Ppos[b]; if(!n) continue; const vis=n.vis, r=nodeRadius(b);
+    const v=curFlows?curFlows.net[b]:null, ring=v==null?"#888":(v>0?"#46e08a":"#e85a5a");
+    const c=conf(b,cur), tg=tagOf(b,cur), tcol=TAGCOL[tg]||"#7a8197";
+    const lw=1.3+3.4*c, ra=(0.30+0.70*c)*vis, fa=(0.30+0.65*Math.max(0,Math.min(1,(c-0.5)/0.45)))*vis;
+    const rt=curFlows?retTrail(b,cur):null, lbl=(rt!=null?`  ${rt>=0?'+':''}${rt.toFixed(1)}%`:'');
+    const tagDot=(x,y)=>{ if(!tg||vis<0.35)return; ctx.beginPath(); ctx.roundRect(x,y,7,7,2); ctx.fillStyle=tcol; ctx.globalAlpha=.95*vis; ctx.fill(); ctx.globalAlpha=1; };
+    if(NODES[b].vault){ const s=TRAY.s;
+      ctx.beginPath(); ctx.roundRect(n.x-s,n.y-s,2*s,2*s,5); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
+      ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(n.x,n.y,s*0.42,0,6.283); ctx.strokeStyle="rgba(15,18,30,0.55)"; ctx.lineWidth=2; ctx.stroke();
+      tagDot(n.x+s-3,n.y-s-3);
+      ctx.fillStyle="#dfe6f2"; ctx.font="11px Inter,Arial"; ctx.textAlign="center";
+      ctx.fillText(NODES[b].short+lbl, n.x, n.y-s-8); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
+    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
+    ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
+    tagDot(n.x+r*0.72,n.y-r*0.72-3);
+    if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font="11px Inter,Arial"; ctx.textAlign="center";
+      ctx.fillText(NODES[b].short+lbl, n.x, n.y-r-7); }
+    if(vis>0.30) hitNodes.push({b,x:n.x,y:n.y,r:r+6}); }
+}
+
+function loop(){ if(mode==='3d' && !dragging){ idle++; if(idle>90){ curRot=[curRot[0]+0.06, curRot[1]]; projection.rotate(curRot); } }
+  draw(); requestAnimationFrame(loop); }
+
+// ---- interaction (3D only): drag to spin, scroll to zoom ----
+let r0,m0,p0;
+d3.select(cv).call(d3.drag()
+  .on("start", ev=>{ dragging=true; idle=0; m0=[ev.x,ev.y];
+    if(mode==='3d') r0=projection.rotate(); else p0=[pan2[0],pan2[1]]; })
+  .on("drag", ev=>{ idle=0;
+    if(mode==='3d'){ const k=70/projection.scale();
+      let ny=r0[1]-(ev.y-m0[1])*k; ny=Math.max(-89,Math.min(89,ny));
+      curRot=[r0[0]+(ev.x-m0[0])*k, ny]; projection.rotate(curRot); }
+    else { pan2=[p0[0]+(ev.x-m0[0]), p0[1]+(ev.y-m0[1])]; apply2(); } })
+  .on("end", ()=>{ dragging=false; idle=0; }));
+cv.addEventListener('wheel', e=>{ e.preventDefault(); idle=0;
+  if(mode==='2d'){ const nk=Math.max(1, Math.min(8, k2*(e.deltaY<0?1.12:0.89))), r=nk/k2;
+    pan2=[e.clientX*(1-r)+r*pan2[0], e.clientY*(1-r)+r*pan2[1]]; k2=nk; apply2(); return; }   // zoom about cursor
+  if(e.shiftKey){ // shift-scroll = field of view: lower DIST = wider FOV, flatter / less "round"
+    const old=DIST; DIST=Math.max(1.25, Math.min(6, DIST*(e.deltaY<0?0.93:1.07)));
+    curScale*=Math.sqrt(DIST*DIST-1)/Math.sqrt(old*old-1); setupProj(); }
+  else { curScale=Math.max(R0*0.7, Math.min(R0*7, projection.scale()*(e.deltaY<0?1.12:0.89))); projection.scale(curScale); }
+}, {passive:false});
+
+// ---- hover ----
+const tip=document.getElementById('tip');
+cv.addEventListener('mousemove', e=>{ if(dragging){ tip.style.display='none'; return; }
+  let hit=null,best=1e9; for(const h of hitNodes){ const d=Math.hypot(e.clientX-h.x,e.clientY-h.y); if(d<h.r&&d<best){best=d;hit=h;} }
+  if(!hit){ tip.style.display='none'; return; }
+  const b=hit.b, f=curFlows?curFlows.net[b]:null, c=conf(b,cur), tg=tagOf(b,cur), rat=ratOf(b,cur);
+  const tcol=TAGCOL[tg]||"#7a8197", dir=f==null?'—':(f>0?'INFLOW':'OUTFLOW'), dcol=f==null?'#888':(f>0?'#46e08a':'#e85a5a');
+  tip.innerHTML=`<span class="tname">${b}</span>`+(tg?`<span class="ttag" style="background:${tcol}22;border:1px solid ${tcol}66;color:${tcol}">${tg}</span>`:'')
+    +`<div style="margin-top:3px;color:${dcol}">${dir} &nbsp;flow ${f==null?'—':(f>0?'+':'')+f.toFixed(2)}</div>`
+    +`<div class="tconf">confidence ${Math.round(c*100)}%</div>`+(rat?`<div class="trat">${rat}</div>`:'');
+  tip.style.display='block'; const tw=tip.offsetWidth,th=tip.offsetHeight;
+  tip.style.left=Math.min(e.clientX+14,innerWidth-tw-8)+'px'; tip.style.top=Math.min(e.clientY+14,innerHeight-th-8)+'px'; });
+cv.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
+
+// ---- controls ----
+const slider=document.getElementById('slider'), playBtn=document.getElementById('play'), modeBtn=document.getElementById('mode'), hint=document.getElementById('hint');
+function applyMode(){ modeBtn.textContent=mode==='3d'?'3D':'2D'; modeBtn.classList.toggle('on',mode==='3d');
+  if(mode==='2d'){ k2=1; pan2=[0,0]; }
+  hint.textContent = mode==='3d' ? 'drag to spin · scroll to zoom · shift-scroll = field of view' : 'drag to pan · scroll to zoom'; setupProj(); }
+modeBtn.addEventListener('click',()=>{ mode = (mode==='3d'?'2d':'3d'); applyMode(); });
+slider.addEventListener('input',e=>{ cur=+e.target.value; rebuild(); });
+let timer=null;
+function setPlay(on){ playing=on; playBtn.textContent=on?'⏸ Pause':'▶ Play'; playBtn.classList.toggle('on',on);
+  if(timer){clearInterval(timer);timer=null;}
+  if(on) timer=setInterval(()=>{ cur++; if(cur>=DATA.dates.length){cur=Math.max(0,DATA.dates.length-DATA.frames);} rebuild(); },140); }
+playBtn.addEventListener('click',()=>setPlay(!playing));
+document.querySelectorAll('.win').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.win').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); win=+btn.dataset.w; rebuild(); }));
+
+function bootData(d){
+  DATA=d; DATA.buckets.forEach((b,k)=>BIDX[b]=k); cur=DATA.dates.length-1;
+  resize(); applyMode(); slider.max=DATA.dates.length-1; slider.value=cur;
+  d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(topo=>{
+    world=topojson.feature(topo, topo.objects.countries); rebuild(); requestAnimationFrame(loop);
+  }).catch(()=>{ rebuild(); requestAnimationFrame(loop); });
+  rebuild();
+}
+
+(function(){
+  const API='https://rahulsp.com/api/moneyflow', head=document.getElementById('head'); let followLive=true;
+  const home=document.createElement('a'); home.href='/tools'; home.textContent='← more tools';
+  home.style.cssText='position:absolute;bottom:54px;right:20px;z-index:20;color:#5a6378;font:11px Inter,Arial;text-decoration:none';
+  home.onmouseenter=()=>home.style.color='#9fe'; home.onmouseleave=()=>home.style.color='#5a6378';
+  document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(home));
+  if(document.body) document.body.appendChild(home);
+  function mergeLive(L){ if(!L||!L.date||!L.buckets||!DATA) return;
+    let i=DATA.dates.indexOf(L.date), isNew=i<0; if(isNew){ i=DATA.dates.length; DATA.dates.push(L.date); }
+    for(const b of DATA.buckets){ const lb=L.buckets[b];
+      const S=(k,v)=>{ if(!DATA[k])DATA[k]={}; if(!DATA[k][b])DATA[k][b]=[]; DATA[k][b][i]=v; };
+      if(lb){ S('flow',lb.flow);S('confidence',lb.confidence);S('tag',lb.tag);S('rationale',lb.rationale);S('violence',lb.violence);S('ret',lb.ret); }
+      else if(isNew){ S('flow',null);S('confidence',null);S('tag',null);S('rationale',null);S('violence',null);S('ret',null); } }
+    const sl=document.getElementById('slider');
+    if(isNew){ sl.max=DATA.dates.length-1; if(followLive){ cur=DATA.dates.length-1; sl.value=cur; } }
+    if(followLive && DATA.cost) rebuild();
+  }
+  function poll(){ fetch(API).then(r=>r.json()).then(L=>{ if(L&&!L.error) mergeLive(L); }).catch(()=>{}); }
+  fetch(API+"?k=history").then(r=>r.json()).then(h=>{
+    if(h.error){ head.textContent='live data warming up — check back shortly'; return; }
+    bootData(h); poll(); setInterval(poll, 60000);
+    const sl=document.getElementById('slider');
+    sl.addEventListener('input', ()=>{ followLive = (+sl.value >= DATA.dates.length-1); });
+  }).catch(()=>{ head.textContent='data unavailable'; });
+})();
+
+</script></body></html>
