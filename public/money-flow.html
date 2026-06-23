@@ -1,17 +1,19 @@
 <!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06080f">
 <title>World Money-Flow Map</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <style>
-  html,body{margin:0;background:#06080f;color:#eef;font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
-  #wrap{position:relative;width:100vw;height:100vh}
-  canvas{position:absolute;top:0;left:0}
-  #hud{position:absolute;top:14px;left:20px;right:20px;pointer-events:none}
-  #title{font-size:22px;font-weight:700}
-  #head{font-size:17px;color:#9fe;margin-top:6px;min-height:22px}
-  #sub{font-size:11px;color:#7a8197;margin-top:2px}
-  #legend{position:absolute;top:14px;right:20px;font-size:11px;color:#9aa3b8;text-align:right;line-height:1.7}
+  html,body{margin:0;height:100%;background:#06080f;color:#eef;font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden;-webkit-text-size-adjust:100%}
+  #wrap{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}      /* dvh = real visible height on iOS */
+  canvas{position:absolute;top:0;left:0;touch-action:none}                  /* we handle all touch gestures */
+  #hud{position:absolute;top:max(12px,env(safe-area-inset-top));left:18px;right:18px;pointer-events:none}
+  #title{font-size:22px;font-weight:700;text-shadow:0 1px 8px #000}
+  #head{font-size:16px;color:#9fe;margin-top:6px;min-height:22px;text-shadow:0 1px 8px #000}
+  #sub{font-size:11px;color:#7a8197;margin-top:2px;max-width:680px}
+  #legend{position:absolute;top:max(12px,env(safe-area-inset-top));right:18px;font-size:11px;color:#9aa3b8;text-align:right;line-height:1.7;background:rgba(6,8,15,.4);border-radius:8px;padding:5px 8px}
   #legend b{color:#cfe;font-weight:600}
   .tagdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-left:7px;vertical-align:middle}
   #tip{position:absolute;display:none;pointer-events:none;background:rgba(10,14,24,0.96);border:1px solid #34405a;
@@ -20,14 +22,22 @@
   #tip .ttag{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
   #tip .trat{margin-top:5px;color:#aeb6c8;line-height:1.45}
   #tip .tconf{margin-top:4px;color:#8fa}
-  #ctl{position:absolute;bottom:16px;left:20px;right:20px;display:flex;align-items:center;gap:14px}
-  #ctl button{background:#1b2233;color:#cfe;border:1px solid #34405a;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+  #ctl{position:absolute;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #ctl button{background:#1b2233;color:#cfe;border:1px solid #34405a;border-radius:8px;padding:8px 13px;cursor:pointer;font-size:14px;-webkit-tap-highlight-color:transparent}
   #ctl button:hover{background:#243049}
   #ctl button.on{background:#2b6;color:#041;border-color:#2b6}
-  #slider{flex:1}
-  #date{font-variant-numeric:tabular-nums;font-size:13px;min-width:96px;color:#cde}
+  #slider{flex:1;min-width:120px;height:26px}
+  #date{font-variant-numeric:tabular-nums;font-size:13px;min-width:92px;color:#cde}
   .seg{display:flex;gap:6px}
-  #hint{position:absolute;bottom:54px;left:20px;font-size:11px;color:#5a6378}
+  #hint{position:absolute;bottom:calc(48px + env(safe-area-inset-bottom));left:18px;font-size:11px;color:#5a6378}
+  @media (max-width:640px){
+    #title{font-size:21px} #head{font-size:15px}
+    #legend{display:none} #hint{display:none}              /* declutter; tap a node for its evidence tag */
+    #ctl{gap:8px;justify-content:center}
+    #ctl button{padding:11px 15px;font-size:15px}
+    #slider{flex:1 1 100%;order:10;height:32px}             /* slider gets its own full-width row */
+    #date{font-size:14px}
+  }
 </style></head><body>
 <div id="wrap">
   <canvas id="cv"></canvas>
@@ -70,6 +80,7 @@ let DIST=1.8, SAT=true;                          // satellite camera distance (r
 function HORIZON(){ return SAT ? Math.acos(1/DIST) : Math.PI/2; }   // visible-cap half-angle
 let TRAY={x0:0,dx:0,y:0,s:18};
 let B2=[1,0,0], k2=1, pan2=[0,0];                // 2D zoom: base [scale,tx,ty], current zoom k & pan offset
+let FS=11, MOBILE=false;                          // node-label font size; phone layout flag
 
 function setupProj(){
   if(mode==='3d'){ SAT=(typeof d3.geoSatellite==='function');     // d3-geo-projection loaded?
@@ -83,9 +94,13 @@ function setupProj(){
 function apply2(){ if(mode!=='2d')return;                  // post-fit affine = zoom k2 about pan offset
   projection.scale(B2[0]*k2).translate([B2[1]*k2+pan2[0], B2[2]*k2+pan2[1]]); }
 function defScale(){ return R0*Math.sqrt(DIST*DIST-1); }   // makes the globe radius ~ R0 on screen
-function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight;
+function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
+  W=innerWidth; H=innerHeight; MOBILE=W<=640; FS=MOBILE?13:11;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);                       // draw in CSS px, crisp on high-DPR phones
   R0=Math.min(W,H)*0.42; if(!curScale) curScale=defScale();
-  TRAY.dx=Math.min(150,W*0.12); TRAY.x0=W/2-TRAY.dx; TRAY.y=H-64; TRAY.s=Math.max(15,Math.min(22,W*0.013));
+  const bottomRes=MOBILE?116:64;                           // leave room for the (wrapped) control bar
+  TRAY.dx=Math.min(150,W*0.16); TRAY.x0=W/2-TRAY.dx; TRAY.y=H-bottomRes; TRAY.s=Math.max(15,Math.min(22,W*0.018));
   setupProj();
 }
 window.addEventListener('resize', resize);
@@ -252,12 +267,12 @@ function draw(){
       ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
       ctx.beginPath(); ctx.arc(n.x,n.y,s*0.42,0,6.283); ctx.strokeStyle="rgba(15,18,30,0.55)"; ctx.lineWidth=2; ctx.stroke();
       tagDot(n.x+s-3,n.y-s-3);
-      ctx.fillStyle="#dfe6f2"; ctx.font="11px Inter,Arial"; ctx.textAlign="center";
+      ctx.fillStyle="#dfe6f2"; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
       ctx.fillText(NODES[b].short+lbl, n.x, n.y-s-8); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
     ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
     ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
     tagDot(n.x+r*0.72,n.y-r*0.72-3);
-    if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font="11px Inter,Arial"; ctx.textAlign="center";
+    if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
       ctx.fillText(NODES[b].short+lbl, n.x, n.y-r-7); }
     if(vis>0.30) hitNodes.push({b,x:n.x,y:n.y,r:r+6}); }
 }
@@ -270,12 +285,23 @@ let r0,m0,p0;
 d3.select(cv).call(d3.drag()
   .on("start", ev=>{ dragging=true; idle=0; m0=[ev.x,ev.y];
     if(mode==='3d') r0=projection.rotate(); else p0=[pan2[0],pan2[1]]; })
-  .on("drag", ev=>{ idle=0;
+  .on("drag", ev=>{ if(pinching)return; idle=0;
     if(mode==='3d'){ const k=70/projection.scale();
       let ny=r0[1]-(ev.y-m0[1])*k; ny=Math.max(-89,Math.min(89,ny));
       curRot=[r0[0]+(ev.x-m0[0])*k, ny]; projection.rotate(curRot); }
     else { pan2=[p0[0]+(ev.x-m0[0]), p0[1]+(ev.y-m0[1])]; apply2(); } })
   .on("end", ()=>{ dragging=false; idle=0; }));
+// touch pinch-to-zoom (2 fingers). 1-finger spin/pan is handled by d3.drag above.
+let pinching=false, pd0=0, ps0=0;
+function tdist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
+cv.addEventListener('touchstart', e=>{ if(e.touches.length===2){ pinching=true; idle=0;
+    pd0=tdist(e.touches); ps0=(mode==='2d'?k2:curScale); } }, {passive:false});
+cv.addEventListener('touchmove', e=>{ if(pinching && e.touches.length===2){ e.preventDefault();
+    const r=tdist(e.touches)/(pd0||1);
+    if(mode==='2d'){ k2=Math.max(1,Math.min(8, ps0*r)); apply2(); }
+    else { curScale=Math.max(R0*0.7, Math.min(R0*7, ps0*r)); projection.scale(curScale); } } }, {passive:false});
+cv.addEventListener('touchend', e=>{ if(e.touches.length<2) pinching=false; });
+cv.addEventListener('touchcancel', ()=>{ pinching=false; });
 cv.addEventListener('wheel', e=>{ e.preventDefault(); idle=0;
   if(mode==='2d'){ const nk=Math.max(1, Math.min(8, k2*(e.deltaY<0?1.12:0.89))), r=nk/k2;
     pan2=[e.clientX*(1-r)+r*pan2[0], e.clientY*(1-r)+r*pan2[1]]; k2=nk; apply2(); return; }   // zoom about cursor
