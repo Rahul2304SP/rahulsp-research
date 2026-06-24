@@ -34,14 +34,14 @@
   #date{font-variant-numeric:tabular-nums;font-size:13px;min-width:92px;color:#cde}
   .seg{display:flex;gap:6px}
   #hint{position:absolute;bottom:calc(48px + env(safe-area-inset-bottom));left:18px;font-size:11px;color:#5a6378}
-  /* phone PORTRAIT only (touch + portrait): nudge to landscape, sat in the dark band below the map */
+  /* phone PORTRAIT + 2D only (3D globe is fine in portrait): nudge to landscape, in the dark band below the map */
   #rotate{display:none}
   @media (orientation:portrait) and (pointer:coarse){
-    #rotate{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;left:50%;bottom:20%;
+    body.is2d #rotate{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;left:50%;bottom:20%;
       transform:translateX(-50%);background:rgba(8,12,22,.9);border:1px solid #3a4868;border-radius:14px;
       padding:15px 20px;color:#cfe;font-size:15px;text-align:center;max-width:74vw;z-index:7;pointer-events:none;
       box-shadow:0 8px 30px rgba(0,0,0,.6)}
-    #rotate .ric{font-size:30px;animation:rspin 2.6s ease-in-out infinite}
+    body.is2d #rotate .ric{font-size:30px;animation:rspin 2.6s ease-in-out infinite}
   }
   @keyframes rspin{0%,55%{transform:rotate(0)}78%,100%{transform:rotate(-90deg)}}
   @media (max-width:640px){
@@ -98,7 +98,7 @@ let DATA;                         // set by bootData(): inlined (local file) or 
 const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
 const SHOCK = {
   "schema": 1,
-  "as_of_utc": "2026-06-24T16:40:00Z",
+  "as_of_utc": "2026-06-24T16:50:00Z",
   "level": 178.0,
   "drivers": [
     {
@@ -107,11 +107,11 @@ const SHOCK = {
     },
     {
       "name": "Escalation",
-      "share": 24
+      "share": 23
     },
     {
       "name": "Sanctions",
-      "share": 20
+      "share": 21
     },
     {
       "name": "Active conflict",
@@ -130,7 +130,7 @@ const SHOCK = {
       "name": "Russia",
       "lat": 57.0,
       "lon": 45.0,
-      "count": 80,
+      "count": 79,
       "share": 20
     },
     {
@@ -232,7 +232,7 @@ const SHOCK = {
       "share": 1
     }
   ],
-  "feeds_ok": 223,
+  "feeds_ok": 222,
   "feeds_total": 223,
   "calibration": "preliminary",
   "percentile_90d": 27,
@@ -860,6 +860,7 @@ cv.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
 // ---- controls ----
 const slider=document.getElementById('slider'), playBtn=document.getElementById('play'), modeBtn=document.getElementById('mode'), hint=document.getElementById('hint');
 function applyMode(){ modeBtn.textContent=mode==='3d'?'3D':'2D'; modeBtn.classList.toggle('on',mode==='3d');
+  document.body.classList.toggle('is2d', mode==='2d');     // rotate-prompt only relevant in 2D
   if(mode==='2d'){ k2=1; pan2=[0,0]; }
   hint.textContent = mode==='3d' ? 'drag to spin · scroll to zoom · shift-scroll = field of view' : 'drag to pan · scroll to zoom'; setupProj(); }
 modeBtn.addEventListener('click',()=>{ mode = (mode==='3d'?'2d':'3d'); applyMode(); });
