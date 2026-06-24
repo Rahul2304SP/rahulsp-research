@@ -1,6 +1,10 @@
 <!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#06080f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Money-Flow">
 <title>World Money-Flow Map</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
@@ -37,14 +41,15 @@
   /* phone PORTRAIT + 2D only (3D globe is fine in portrait): nudge to landscape, in the dark band below the map */
   #rotate{display:none}
   @media (orientation:portrait) and (pointer:coarse){
-    body.is2d #rotate{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;left:50%;bottom:20%;
-      transform:translateX(-50%);background:rgba(8,12,22,.9);border:1px solid #3a4868;border-radius:14px;
-      padding:15px 20px;color:#cfe;font-size:15px;text-align:center;max-width:74vw;z-index:7;pointer-events:none;
-      box-shadow:0 8px 30px rgba(0,0,0,.6)}
+    body.is2d #rotate{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;left:50%;
+      top:calc(env(safe-area-inset-top) + 11%);transform:translateX(-50%);background:rgba(8,12,22,.82);
+      border:1px solid #34405a;border-radius:14px;padding:16px 30px 16px 20px;color:#cfe;font-size:15px;
+      text-align:center;max-width:74vw;z-index:7;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
     body.is2d #rotate .ric{font-size:30px;animation:rspin 2.6s ease-in-out infinite}
-    body.is2d #rotate .rclose{position:absolute;top:2px;right:7px;background:none;border:none;color:#9aa3b8;
-      font-size:21px;line-height:1;cursor:pointer;pointer-events:auto;padding:3px 7px}
-    body.is2d #rotate .rclose:hover{color:#cfe}
+    body.is2d #rotate .rclose{position:absolute;top:6px;right:6px;width:27px;height:27px;border-radius:50%;
+      background:rgba(255,255,255,.14);border:none;color:#eef2fa;font-size:17px;line-height:1;cursor:pointer;
+      pointer-events:auto;display:flex;align-items:center;justify-content:center;padding:0}
+    body.is2d #rotate .rclose:active{background:rgba(255,255,255,.28)}
   }
   body.rotateDismissed #rotate{display:none !important}   /* user closed it -> stay hidden this session */
   @keyframes rspin{0%,55%{transform:rotate(0)}78%,100%{transform:rotate(-90deg)}}
