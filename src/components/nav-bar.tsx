@@ -17,6 +17,13 @@ export function NavBar() {
             Research
           </a>
           <a
+            href="/money-flow"
+            className="inline-flex items-center gap-1.5 font-medium text-[#1a1a2e] hover:text-[#1e40af] transition-colors"
+          >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#2bd4b0]" aria-hidden />
+            Money Flow
+          </a>
+          <a
             href="/tools"
             className="text-[#6b7280] hover:text-[#1e40af] transition-colors"
           >
@@ -42,6 +49,13 @@ export function NavBar() {
             className="text-[#6b7280] hover:text-[#1e40af] whitespace-nowrap"
           >
             Research
+          </a>
+          <a
+            href="/money-flow"
+            className="inline-flex items-center gap-1 font-medium text-[#1a1a2e] hover:text-[#1e40af] whitespace-nowrap"
+          >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#2bd4b0]" aria-hidden />
+            Money Flow
           </a>
           <a
             href="/tools"

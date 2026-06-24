@@ -34,6 +34,43 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Live highlight: World Money-Flow Map ── */}
+      <section className="pb-10">
+        <a href="/money-flow" className="block group" aria-label="Open the live World Money-Flow Map">
+          <div className="relative overflow-hidden rounded-2xl border border-[#1c2438] bg-gradient-to-br from-[#0a0f1e] via-[#0b1224] to-[#05070f] px-6 py-7 sm:px-8 sm:py-9 transition-colors group-hover:border-[#3b5bdb]">
+            {/* ambient glow */}
+            <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#1e3a8a] opacity-30 blur-3xl" />
+            <div className="relative flex items-center gap-5 sm:gap-8">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2bd4b0] opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#2bd4b0]" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#2bd4b0]">Live now</span>
+                  <span className="text-[10px] uppercase tracking-widest text-[#64748b]">Interactive globe</span>
+                </div>
+                <h2 className="font-serif text-2xl sm:text-3xl text-white mb-2 group-hover:text-[#7dd3fc] transition-colors">
+                  World Money-Flow Map
+                </h2>
+                <p className="text-sm sm:text-[15px] text-[#94a3b8] leading-relaxed max-w-md">
+                  Watch where capital is rotating right now — gold, crypto, bonds, the dollar and
+                  equity indices across the US, Europe and Asia. Rebuilt every minute from measured
+                  fund flows, order-flow and price rotation.
+                </p>
+                <span className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-[#7dd3fc] transition-all group-hover:gap-2.5">
+                  Open the live globe <span aria-hidden>&rarr;</span>
+                </span>
+              </div>
+              {/* spinning globe */}
+              <div className="relative hidden shrink-0 sm:block">
+                <div className="mf-globe h-32 w-32 md:h-40 md:w-40" />
+              </div>
+            </div>
+          </div>
+        </a>
+      </section>
+
       {/* ── Featured Study ── */}
       <section className="pb-10">
         <a href="/papers/goldssm" className="block group">

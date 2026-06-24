@@ -5,6 +5,30 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Home hero: CSS spinning money-flow globe (equirectangular texture wrapped on a sphere) ── */
+@keyframes mf-spin { from { background-position-x: 0; } to { background-position-x: -200%; } }
+.mf-globe {
+  position: relative;
+  border-radius: 50%;
+  background-image: url('/textures/earth_atmos_2048.jpg');
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+  animation: mf-spin 26s linear infinite;
+  box-shadow:
+    inset -16px -12px 38px 6px rgba(2, 6, 18, 0.78),   /* night terminator */
+    inset 14px 9px 26px rgba(140, 180, 255, 0.22),     /* sun-side highlight */
+    0 0 36px rgba(60, 120, 220, 0.45);                 /* atmosphere glow */
+}
+.mf-globe::after {                                      /* glass-sphere sheen */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, rgba(255,255,255,0.32), rgba(255,255,255,0) 44%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .mf-globe { animation: none; } }
+
 /* KaTeX styles loaded via CDN in layout */
 
 body {
