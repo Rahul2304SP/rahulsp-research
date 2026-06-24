@@ -53,7 +53,9 @@
     <div>Volume (buy/sell pressure)<span class="tagdot" style="background:#2bd4b0"></span></div>
     <div>Reasoned (risk-off)<span class="tagdot" style="background:#caa14a"></span></div>
     <div>Implied (price only)<span class="tagdot" style="background:#7a8197"></span></div>
-    <div style="margin-top:6px;color:#6f778c">ring = confidence · stream = expected violence</div>
+    <div style="margin-top:5px"><span style="color:#46e08a;font-weight:700">✓</span> validated vs real foreign/physical flow</div>
+    <div style="margin-top:5px;color:#6f778c">ring = confidence · stream = expected violence</div>
+    <div style="margin-top:3px;color:#6f778c">arrows = risk-on/off rotation (havens ⇄ risk)</div>
   </div>
   <div id="tip"></div>
   <div id="hint"></div>
@@ -130,7 +132,20 @@ function ratOf(b,i){ return (DATA.rationale[b]&&DATA.rationale[b][i])||''; }
 function retTrail(b,i){ return DATA.ret[b]?trail(DATA.ret[b],i):null; }
 function viol(b,i){ const a=(DATA.violence_fwd&&DATA.violence_fwd[b])||(DATA.violence&&DATA.violence[b]); const v=a?a[i]:null; return v==null?1:v; }  // prefer forward (expected) violence
 function violTrail(b,i){ let m=1; for(let k=Math.max(0,i-win+1);k<=i;k++){const v=viol(b,k); if(v>m)m=v;} return m; }
-const TAGCOL={MEASURED:"#46c8ff", FLOW:"#6f8cff", VOLUME:"#2bd4b0", CONTEXT:"#caa14a", IMPLIED:"#7a8197"};
+const TAGCOL={MEASURED:"#46c8ff", FLOW:"#6f8cff", VOLUME:"#2bd4b0", CONTEXT:"#caa14a", IMPLIED:"#7a8197", STALE:"#c8624a"};
+
+// --- HONEST ROTATION AXIS (research-validated) -------------------------------------------------
+// Cross-region equity DIRECTION is an efficient-market null (markets co-move = same leg of a trade, not
+// A->B flow; v2 session re-ID confirmed). The directional flow that IS real on a co-move day is the
+// risk-on/off rotation: money between the SAFE complex (USD/bonds/gold) and the RISK complex
+// (equities/crypto/oil/silver). So we route the outflow->inflow transport ACROSS that divide and penalise
+// same-axis pairings (e.g. one equity -> another equity = the fake geographic arrow). Nodes whose inflow is
+// measurement-VALIDATED against real foreign-flow data carry a ✓ (India FII +0.38, Gold tonnage z+10; Taiwan
+// TWSE +0.74 validated in research, support-tier).
+const SAFE=new Set(["US Dollar","Bonds","Gold"]);
+const sameAxis=(x,y)=>SAFE.has(x)===SAFE.has(y);
+const AXIS_PENALTY=0.5;                          // added to OT cost for same-axis pairs (kills fake geo arrows)
+const VALIDATED=new Set(["India","Gold"]);       // inflow proven vs measured foreign/physical flow
 
 const BIDX={};   // populated in bootData()
 function sinkhorn(u,v,C,eps,iters){ const n=u.length,m=v.length,K=[];
@@ -145,7 +160,7 @@ function flowsAt(i){ const net={}, inflow=[], outflow=[]; let tin=0,tout=0;
   const links=[];
   if(tin>0&&tout>0&&DATA.cost){ const srcs=outflow.map(x=>x[0]), snks=inflow.map(x=>x[0]);
     const u=outflow.map(x=>x[1]/tout), v=inflow.map(x=>x[1]/tin);
-    const C=srcs.map(s=>snks.map(d=>DATA.cost[BIDX[s]][BIDX[d]]));
+    const C=srcs.map(s=>snks.map(d=>DATA.cost[BIDX[s]][BIDX[d]] + (sameAxis(s,d)?AXIS_PENALTY:0)));
     const P=sinkhorn(u,v,C,0.05,60), scale=Math.min(tin,tout);
     for(let a=0;a<srcs.length;a++) for(let b=0;b<snks.length;b++){ const w=P[a][b]*scale;
       if(w>0.012) links.push({src:srcs[a],dst:snks[b],w,conf:(conf(srcs[a],cur)+conf(snks[b],cur))/2}); } }
@@ -181,7 +196,14 @@ function rebuild(){ curFlows=flowsAt(cur);
   if(ins.length&&outs.length){ const movers=DATA.buckets.filter(b=>curFlows.net[b]!=null).sort((a,b)=>conf(b,cur)-conf(a,cur));
     const star=movers[0], tg=tagOf(star,cur);
     const chip = star&&tg ? ` <span style="font-size:11px;padding:1px 7px;border-radius:5px;background:${TAGCOL[tg]}22;border:1px solid ${TAGCOL[tg]}66;color:${TAGCOL[tg]}">${star}: ${tg} (${Math.round(conf(star,cur)*100)}%)</span>` : '';
-    head.innerHTML = `Money rotating INTO ${ins.slice(0,2).join(', ')} — OUT OF ${outs.slice(0,2).join(', ')}`+chip;
+    // is this a RISK-ON / RISK-OFF rotation? (inflow vs outflow weight on the safe side)
+    const safeShare=(arr)=>{let s=0,t=0; for(const[b,w]of arr){t+=w; if(SAFE.has(b))s+=w;} return t?s/t:0;};
+    const inSafe=safeShare(curFlows.inflow), outSafe=safeShare(curFlows.outflow);
+    let lead;
+    if(inSafe>0.6 && outSafe<0.4) lead='<b style="color:#46c8ff">RISK-OFF</b> — money fleeing risk into havens (USD/Bonds/Gold)';
+    else if(outSafe>0.6 && inSafe<0.4) lead='<b style="color:#2bd4b0">RISK-ON</b> — money leaving havens into risk assets';
+    else lead=`Money rotating INTO ${ins.slice(0,2).join(', ')} — OUT OF ${outs.slice(0,2).join(', ')}`;
+    head.innerHTML = lead+chip;
   } else head.textContent='Quiet — assets moving together with the market tide';
   document.getElementById('date').textContent=DATA.dates[cur];
   document.getElementById('slider').value=cur;
@@ -265,16 +287,17 @@ function draw(){
     const lw=1.3+3.4*c, ra=(0.30+0.70*c)*vis, fa=(0.30+0.65*Math.max(0,Math.min(1,(c-0.5)/0.45)))*vis;
     const rt=curFlows?retTrail(b,cur):null, lbl=(rt!=null?`  ${rt>=0?'+':''}${rt.toFixed(1)}%`:'');
     const tagDot=(x,y)=>{ if(!tg||vis<0.35)return; ctx.beginPath(); ctx.roundRect(x,y,7,7,2); ctx.fillStyle=tcol; ctx.globalAlpha=.95*vis; ctx.fill(); ctx.globalAlpha=1; };
+    const valTick=(x,y)=>{ if(!VALIDATED.has(b)||vis<0.4)return; ctx.fillStyle="#46e08a"; ctx.font="bold "+(FS+1)+"px Inter,Arial"; ctx.textAlign="left"; ctx.globalAlpha=vis; ctx.fillText("✓",x,y); ctx.globalAlpha=1; };
     if(NODES[b].vault){ const s=TRAY.s;
       ctx.beginPath(); ctx.roundRect(n.x-s,n.y-s,2*s,2*s,5); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
       ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
       ctx.beginPath(); ctx.arc(n.x,n.y,s*0.42,0,6.283); ctx.strokeStyle="rgba(15,18,30,0.55)"; ctx.lineWidth=2; ctx.stroke();
-      tagDot(n.x+s-3,n.y-s-3);
+      tagDot(n.x+s-3,n.y-s-3); valTick(n.x-s-9,n.y-s+1);
       ctx.fillStyle="#dfe6f2"; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
       ctx.fillText(NODES[b].short+lbl, n.x, n.y-s-8); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
     ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
     ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
-    tagDot(n.x+r*0.72,n.y-r*0.72-3);
+    tagDot(n.x+r*0.72,n.y-r*0.72-3); valTick(n.x-r*0.72-7,n.y-r*0.72+3);
     if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
       ctx.fillText(NODES[b].short+(MOBILE?'':lbl), n.x, n.y-r-7); }
     if(vis>0.30) hitNodes.push({b,x:n.x,y:n.y,r:r+6}); }
