@@ -87,8 +87,8 @@ let DATA;                         // set by bootData(): inlined (local file) or 
 const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
 const SHOCK = {
   "schema": 1,
-  "as_of_utc": "2026-06-24T16:20:00Z",
-  "level": 176.0,
+  "as_of_utc": "2026-06-24T16:40:00Z",
+  "level": 178.0,
   "drivers": [
     {
       "name": "Territorial disputes",
@@ -112,112 +112,112 @@ const SHOCK = {
       "name": "Iran",
       "lat": 32.4,
       "lon": 53.7,
-      "count": 74,
+      "count": 85,
       "share": 21
     },
     {
       "name": "Russia",
       "lat": 57.0,
       "lon": 45.0,
-      "count": 71,
+      "count": 80,
       "share": 20
     },
     {
       "name": "Israel",
       "lat": 31.4,
       "lon": 35.0,
-      "count": 41,
+      "count": 48,
       "share": 12
     },
     {
       "name": "Ukraine",
       "lat": 48.4,
       "lon": 31.2,
-      "count": 32,
+      "count": 37,
       "share": 9
     },
     {
       "name": "Sudan",
       "lat": 15.5,
       "lon": 32.5,
-      "count": 25,
+      "count": 30,
       "share": 7
     },
     {
       "name": "China",
       "lat": 35.9,
       "lon": 104.2,
-      "count": 19,
-      "share": 5
+      "count": 23,
+      "share": 6
     },
     {
       "name": "Gaza",
       "lat": 31.4,
       "lon": 34.4,
-      "count": 16,
-      "share": 5
+      "count": 18,
+      "share": 4
     },
     {
       "name": "Strait of Hormuz",
       "lat": 26.6,
       "lon": 56.4,
-      "count": 15,
+      "count": 17,
       "share": 4
     },
     {
       "name": "Lebanon",
       "lat": 33.9,
       "lon": 35.5,
-      "count": 12,
+      "count": 13,
       "share": 3
     },
     {
       "name": "Nigeria",
       "lat": 9.1,
       "lon": 8.7,
-      "count": 6,
+      "count": 8,
       "share": 2
     },
     {
       "name": "India",
       "lat": 22.6,
       "lon": 79.0,
-      "count": 6,
+      "count": 8,
       "share": 2
     },
     {
       "name": "Philippines",
       "lat": 12.9,
       "lon": 121.8,
-      "count": 5,
+      "count": 6,
       "share": 1
     },
     {
       "name": "Afghanistan",
       "lat": 33.9,
       "lon": 67.7,
-      "count": 5,
+      "count": 6,
       "share": 1
     },
     {
       "name": "Pakistan",
       "lat": 30.4,
       "lon": 69.3,
-      "count": 5,
-      "share": 1
-    },
-    {
-      "name": "Egypt",
-      "lat": 26.8,
-      "lon": 30.8,
-      "count": 3,
+      "count": 6,
       "share": 1
     },
     {
       "name": "Belarus",
       "lat": 53.7,
       "lon": 27.9,
-      "count": 3,
+      "count": 4,
+      "share": 1
+    },
+    {
+      "name": "Niger",
+      "lat": 17.6,
+      "lon": 8.1,
+      "count": 4,
       "share": 1
     }
   ],
@@ -512,18 +512,24 @@ function setupProj(){
     if(SAT){ const cl=HORIZON()*180/Math.PI-1e-3;
       projection=d3.geoSatellite().distance(DIST).tilt(0).scale(curScale||R0).translate([W/2,H*0.46]).rotate(curRot).clipAngle(cl).precision(0.3); }
     else { projection=d3.geoOrthographic().scale((curScale||R0)/Math.sqrt(DIST*DIST-1)).translate([W/2,H*0.46]).rotate(curRot).clipAngle(90); } }
-  else if(PHOTOREAL){                                       // 2D photoreal: cover-fill equirectangular
-    const C=360*H/(LAT_SPAN*W);                             // latitude stretch so the band fills the height
+  else if(PHOTOREAL){                                       // 2D photoreal: fill width, capped vertical stretch
+    const s=W/(2*Math.PI), C=Math.min(360*H/(LAT_SPAN*W), STRETCH_CAP);   // C === vertical:horizontal stretch
+    band2H=W*C*LAT_SPAN/360;                                // band screen height at k2=1
     const raw=function(l,p){ return [l, p*C]; }; raw.invert=function(x,y){ return [x, y/C]; };
-    projection=d3.geoProjection(raw).scale(W/(2*Math.PI)).translate([W/2, H*LAT_N/LAT_SPAN]);
+    const t1=(H-band2H)/2 + s*C*(LAT_N*Math.PI/180);        // centre the band vertically
+    projection=d3.geoProjection(raw).scale(s).translate([W/2, t1]);
     B2=[projection.scale(), projection.translate()[0], projection.translate()[1]]; apply2(); }
   else { projection=d3.geoNaturalEarth1().fitExtent([[44,96],[W-44,H-150]], {type:"Sphere"});
     B2=[projection.scale(), projection.translate()[0], projection.translate()[1]]; apply2(); }
   path=d3.geoPath(projection, ctx);
 }
 function apply2(){ if(mode!=='2d')return;                  // post-fit affine = zoom k2 about pan offset
-  if(PHOTOREAL){                                          // clamp so the map always covers the viewport (no wrap-around / 2nd world)
-    pan2[0]=Math.max(W*(1-k2),Math.min(0,pan2[0])); pan2[1]=Math.max(H*(1-k2),Math.min(0,pan2[1])); }
+  if(PHOTOREAL){                                          // clamp pan: no wrap-around horizontally; centre/cover vertically
+    pan2[0]=Math.max(W*(1-k2),Math.min(0,pan2[0]));
+    const bh=band2H*k2;
+    if(bh>=H) pan2[1]=Math.max(H-k2*(H+band2H)/2, Math.min(-k2*(H-band2H)/2, pan2[1]));  // band taller than view -> pan within
+    else pan2[1]=H*(1-k2)/2;                                                              // shorter -> lock centred (dark bands)
+  }
   projection.scale(B2[0]*k2).translate([B2[1]*k2+pan2[0], B2[2]*k2+pan2[1]]); }
 function defScale(){ return R0*Math.sqrt(DIST*DIST-1); }   // makes the globe radius ~ R0 on screen
 function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
@@ -873,8 +879,10 @@ const TEX_BASE = (typeof TEXTURE_BASE!=='undefined') ? TEXTURE_BASE : 'textures/
 let PHOTOREAL=false, glReady=false, glr=null, glscene=null, glcam=null, gEarth=null, gClouds=null, gAtmo=null, gCloudDrift=0;
 let showClouds=true;
 const d2r=Math.PI/180;
-// 2D flat-map (cover-fill equirectangular): crop polar bands, fill the viewport
+// 2D flat-map (equirectangular): crop polar bands; fill width, cap vertical stretch (portrait-safe)
 const LAT_N=74, LAT_S=-56, LAT_SPAN=LAT_N-LAT_S;
+const STRETCH_CAP=1.6;          // max vertical:horizontal stretch (≈ desktop look); centers + dark-bands on tall screens
+let band2H=0;                   // 2D map band screen height at zoom k2=1 (set in setupProj)
 let cloud2dX=0;
 // 2D map-style options — each is a texture + a colour treatment. Cycle with the "Map" button.
 const MAP_STYLES=[
