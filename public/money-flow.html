@@ -107,20 +107,20 @@ let DATA;                         // set by bootData(): inlined (local file) or 
 const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
 const SHOCK = {
   "schema": 1,
-  "as_of_utc": "2026-06-24T16:50:00Z",
+  "as_of_utc": "2026-06-24T17:00:00Z",
   "level": 178.0,
   "drivers": [
     {
       "name": "Territorial disputes",
-      "share": 45
+      "share": 46
     },
     {
       "name": "Escalation",
-      "share": 23
+      "share": 24
     },
     {
       "name": "Sanctions",
-      "share": 21
+      "share": 19
     },
     {
       "name": "Active conflict",
@@ -132,7 +132,7 @@ const SHOCK = {
       "name": "Iran",
       "lat": 32.4,
       "lon": 53.7,
-      "count": 85,
+      "count": 84,
       "share": 21
     },
     {
@@ -532,8 +532,9 @@ function setupProj(){
     if(SAT){ const cl=HORIZON()*180/Math.PI-1e-3;
       projection=d3.geoSatellite().distance(DIST).tilt(0).scale(curScale||R0).translate([W/2,H*0.46]).rotate(curRot).clipAngle(cl).precision(0.3); }
     else { projection=d3.geoOrthographic().scale((curScale||R0)/Math.sqrt(DIST*DIST-1)).translate([W/2,H*0.46]).rotate(curRot).clipAngle(90); } }
-  else if(PHOTOREAL){                                       // 2D photoreal: fill width, capped vertical stretch
-    const s=W/(2*Math.PI), C=Math.min(360*H/(LAT_SPAN*W), STRETCH_CAP);   // C === vertical:horizontal stretch
+  else if(PHOTOREAL){                                       // 2D photoreal: fill width, stretch clamped to [1, CAP]
+    // C === vertical:horizontal px scale. <1 = countries squashed WIDE ("fat", wide screens); >CAP = too tall (portrait).
+    const s=W/(2*Math.PI), C=Math.max(1.0, Math.min(360*H/(LAT_SPAN*W), STRETCH_CAP));
     band2H=W*C*LAT_SPAN/360;                                // band screen height at k2=1
     const raw=function(l,p){ return [l, p*C]; }; raw.invert=function(x,y){ return [x, y/C]; };
     const t1=(H-band2H)/2 + s*C*(LAT_N*Math.PI/180);        // centre the band vertically
