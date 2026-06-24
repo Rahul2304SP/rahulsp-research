@@ -5,14 +5,18 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <style>
   html,body{margin:0;height:100%;background:#06080f;color:#eef;font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden;-webkit-text-size-adjust:100%}
   #wrap{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}      /* dvh = real visible height on iOS */
   canvas{position:absolute;top:0;left:0;touch-action:none}                  /* we handle all touch gestures */
+  #glcv{z-index:0;pointer-events:none}                                      /* photoreal earth, behind the flow */
+  #cv{z-index:1;background:transparent}                                     /* flow layer, transparent so earth shows */
   #hud{position:absolute;top:max(12px,env(safe-area-inset-top));left:18px;right:18px;pointer-events:none}
   #title{font-size:22px;font-weight:700;text-shadow:0 1px 8px #000}
   #head{font-size:16px;color:#9fe;margin-top:6px;min-height:22px;text-shadow:0 1px 8px #000}
   #sub{font-size:11px;color:#7a8197;margin-top:2px;max-width:680px}
+  #shockbar{display:none;font-size:12px;margin-top:6px;max-width:680px;line-height:1.5;background:rgba(40,10,8,.5);border:1px solid #5a2a26;border-radius:8px;padding:6px 10px;text-shadow:0 1px 6px #000}
   #legend{position:absolute;top:max(12px,env(safe-area-inset-top));right:18px;font-size:11px;color:#9aa3b8;text-align:right;line-height:1.7;background:rgba(6,8,15,.4);border-radius:8px;padding:5px 8px}
   #legend b{color:#cfe;font-weight:600}
   .tagdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-left:7px;vertical-align:middle}
@@ -22,7 +26,7 @@
   #tip .ttag{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
   #tip .trat{margin-top:5px;color:#aeb6c8;line-height:1.45}
   #tip .tconf{margin-top:4px;color:#8fa}
-  #ctl{position:absolute;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #ctl{position:absolute;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:5}
   #ctl button{background:#1b2233;color:#cfe;border:1px solid #34405a;border-radius:8px;padding:8px 13px;cursor:pointer;font-size:14px;-webkit-tap-highlight-color:transparent}
   #ctl button:hover{background:#243049}
   #ctl button.on{background:#2b6;color:#041;border-color:#2b6}
@@ -40,11 +44,13 @@
   }
 </style></head><body>
 <div id="wrap">
+  <canvas id="glcv"></canvas>
   <canvas id="cv"></canvas>
   <div id="hud">
     <div id="title">World Money-Flow Map</div>
     <div id="head"></div>
     <div id="sub">DESCRIPTIVE — fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto sit in the vault tray below.</div>
+    <div id="shockbar"></div>
   </div>
   <div id="legend">
     <div><b>Evidence</b></div>
@@ -56,6 +62,8 @@
     <div style="margin-top:5px"><span style="color:#46e08a;font-weight:700">✓</span> validated vs real foreign/physical flow</div>
     <div style="margin-top:5px;color:#6f778c">ring = confidence · stream = expected violence</div>
     <div style="margin-top:3px;color:#6f778c">arrows = risk-on/off rotation (havens ⇄ risk)</div>
+    <div style="margin-top:5px"><span style="color:#ff6a55;font-weight:700">⚠</span> geopolitical shock (GPR)</div>
+    <div style="color:#6f778c"><span style="color:#46e08a">→</span> shock response: equities → USD (validated)</div>
   </div>
   <div id="tip"></div>
   <div id="hint"></div>
@@ -67,6 +75,9 @@
       <button data-w="5" class="win on">Week</button>
       <button data-w="21" class="win">Month</button>
     </div>
+    <button id="shockToggle" class="on">⚠ Shocks</button>
+    <button id="wxToggle" class="on">☁ Clouds</button>
+    <button id="mapBtn">Map: Satellite</button>
     <input id="slider" type="range" min="0" max="0" value="0">
     <div id="date"></div>
   </div>
@@ -74,8 +85,420 @@
 <script>
 let DATA;                         // set by bootData(): inlined (local file) or fetched (web build)
 const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
+const SHOCK = {
+  "schema": 1,
+  "as_of_utc": "2026-06-24T16:20:00Z",
+  "level": 176.0,
+  "drivers": [
+    {
+      "name": "Territorial disputes",
+      "share": 45
+    },
+    {
+      "name": "Escalation",
+      "share": 24
+    },
+    {
+      "name": "Sanctions",
+      "share": 20
+    },
+    {
+      "name": "Active conflict",
+      "share": 4
+    }
+  ],
+  "geography": [
+    {
+      "name": "Iran",
+      "lat": 32.4,
+      "lon": 53.7,
+      "count": 74,
+      "share": 21
+    },
+    {
+      "name": "Russia",
+      "lat": 57.0,
+      "lon": 45.0,
+      "count": 71,
+      "share": 20
+    },
+    {
+      "name": "Israel",
+      "lat": 31.4,
+      "lon": 35.0,
+      "count": 41,
+      "share": 12
+    },
+    {
+      "name": "Ukraine",
+      "lat": 48.4,
+      "lon": 31.2,
+      "count": 32,
+      "share": 9
+    },
+    {
+      "name": "Sudan",
+      "lat": 15.5,
+      "lon": 32.5,
+      "count": 25,
+      "share": 7
+    },
+    {
+      "name": "China",
+      "lat": 35.9,
+      "lon": 104.2,
+      "count": 19,
+      "share": 5
+    },
+    {
+      "name": "Gaza",
+      "lat": 31.4,
+      "lon": 34.4,
+      "count": 16,
+      "share": 5
+    },
+    {
+      "name": "Strait of Hormuz",
+      "lat": 26.6,
+      "lon": 56.4,
+      "count": 15,
+      "share": 4
+    },
+    {
+      "name": "Lebanon",
+      "lat": 33.9,
+      "lon": 35.5,
+      "count": 12,
+      "share": 3
+    },
+    {
+      "name": "Nigeria",
+      "lat": 9.1,
+      "lon": 8.7,
+      "count": 6,
+      "share": 2
+    },
+    {
+      "name": "India",
+      "lat": 22.6,
+      "lon": 79.0,
+      "count": 6,
+      "share": 2
+    },
+    {
+      "name": "Philippines",
+      "lat": 12.9,
+      "lon": 121.8,
+      "count": 5,
+      "share": 1
+    },
+    {
+      "name": "Afghanistan",
+      "lat": 33.9,
+      "lon": 67.7,
+      "count": 5,
+      "share": 1
+    },
+    {
+      "name": "Pakistan",
+      "lat": 30.4,
+      "lon": 69.3,
+      "count": 5,
+      "share": 1
+    },
+    {
+      "name": "Egypt",
+      "lat": 26.8,
+      "lon": 30.8,
+      "count": 3,
+      "share": 1
+    },
+    {
+      "name": "Belarus",
+      "lat": 53.7,
+      "lon": 27.9,
+      "count": 3,
+      "share": 1
+    }
+  ],
+  "feeds_ok": 223,
+  "feeds_total": 223,
+  "calibration": "preliminary",
+  "percentile_90d": 27,
+  "trend_30d": [
+    201.6,
+    198.9,
+    191.4,
+    186.3,
+    190.2,
+    199.6,
+    207.0,
+    195.5,
+    187.4,
+    196.1,
+    195.7,
+    199.0,
+    183.7,
+    175.1,
+    175.1,
+    193.6,
+    193.4,
+    186.5,
+    176.6,
+    185.7,
+    194.3,
+    211.4,
+    204.6,
+    215.2,
+    220.8,
+    234.1,
+    245.5,
+    248.3,
+    225.3,
+    215.0
+  ],
+  "context_median": 92.0,
+  "peak_value": 1046.0,
+  "peak_label": "September 2001",
+  "label": "Severe"
+};           // geopolitical-risk snapshot (gpr_snapshot.json / /api/gpr); null if none
+let showShocks = true;
+const WEATHER = {
+  "as_of_utc": "2026-06-24T14:00:00Z",
+  "cities": [
+    {
+      "city": "Frankfurt",
+      "lat": 50.1109,
+      "lon": 8.6821,
+      "temp": 35.8,
+      "cloud": 0,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 14.0,
+      "wind": 6.9,
+      "temp_pctl": 0.997,
+      "condition": "clear",
+      "freak": true,
+      "freak_type": "heatwave"
+    },
+    {
+      "city": "London",
+      "lat": 51.5074,
+      "lon": -0.1278,
+      "temp": 35.4,
+      "cloud": 0,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 21.2,
+      "wind": 7.6,
+      "temp_pctl": 1.0,
+      "condition": "clear",
+      "freak": true,
+      "freak_type": "heatwave"
+    },
+    {
+      "city": "Zurich",
+      "lat": 47.3769,
+      "lon": 8.5417,
+      "temp": 34.3,
+      "cloud": 0,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 24.8,
+      "wind": 10.2,
+      "temp_pctl": 0.999,
+      "condition": "clear",
+      "freak": true,
+      "freak_type": "heatwave"
+    },
+    {
+      "city": "Chicago",
+      "lat": 41.8781,
+      "lon": -87.6298,
+      "temp": 18.4,
+      "cloud": 100,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 28.1,
+      "wind": 9.9,
+      "temp_pctl": 0.342,
+      "condition": "cloudy",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Dubai",
+      "lat": 25.2048,
+      "lon": 55.2708,
+      "temp": 36.2,
+      "cloud": 4,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 27.4,
+      "wind": 9.5,
+      "temp_pctl": 0.746,
+      "condition": "clear",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Hong Kong",
+      "lat": 22.3193,
+      "lon": 114.1694,
+      "temp": 28.3,
+      "cloud": 96,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 18.7,
+      "wind": 8.7,
+      "temp_pctl": 0.822,
+      "condition": "cloudy",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Johannesburg",
+      "lat": -26.2041,
+      "lon": 28.0473,
+      "temp": 18.4,
+      "cloud": 20,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 18.7,
+      "wind": 6.5,
+      "temp_pctl": 0.951,
+      "condition": "clear",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Mumbai",
+      "lat": 19.076,
+      "lon": 72.8777,
+      "temp": 26.4,
+      "cloud": 100,
+      "precip": 0.1,
+      "snow": 0.0,
+      "wind_gust": 20.9,
+      "wind": 9.5,
+      "temp_pctl": 0.194,
+      "condition": "drizzle",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "New York",
+      "lat": 40.7128,
+      "lon": -74.006,
+      "temp": 22.6,
+      "cloud": 3,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 21.6,
+      "wind": 13.0,
+      "temp_pctl": 0.596,
+      "condition": "clear",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Sao Paulo",
+      "lat": -23.5505,
+      "lon": -46.6333,
+      "temp": 12.9,
+      "cloud": 100,
+      "precip": 2.0,
+      "snow": 0.0,
+      "wind_gust": 24.1,
+      "wind": 5.4,
+      "temp_pctl": 0.157,
+      "condition": "rain",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Shanghai",
+      "lat": 31.2304,
+      "lon": 121.4737,
+      "temp": 21.7,
+      "cloud": 100,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 18.0,
+      "wind": 8.3,
+      "temp_pctl": 0.231,
+      "condition": "cloudy",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Singapore",
+      "lat": 1.3521,
+      "lon": 103.8198,
+      "temp": 24.4,
+      "cloud": 100,
+      "precip": 0.1,
+      "snow": 0.0,
+      "wind_gust": 12.6,
+      "wind": 7.5,
+      "temp_pctl": 0.054,
+      "condition": "drizzle",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Sydney",
+      "lat": -33.8688,
+      "lon": 151.2093,
+      "temp": 13.0,
+      "cloud": 59,
+      "precip": 0.4,
+      "snow": 0.0,
+      "wind_gust": 26.3,
+      "wind": 14.7,
+      "temp_pctl": 0.585,
+      "condition": "rain",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Tokyo",
+      "lat": 35.6762,
+      "lon": 139.6503,
+      "temp": 21.4,
+      "cloud": 71,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 9.0,
+      "wind": 3.6,
+      "temp_pctl": 0.443,
+      "condition": "partly",
+      "freak": false,
+      "freak_type": null
+    },
+    {
+      "city": "Toronto",
+      "lat": 43.6532,
+      "lon": -79.3832,
+      "temp": 20.0,
+      "cloud": 100,
+      "precip": 0.0,
+      "snow": 0.0,
+      "wind_gust": 14.4,
+      "wind": 12.6,
+      "temp_pctl": 0.601,
+      "condition": "cloudy",
+      "freak": false,
+      "freak_type": null
+    }
+  ],
+  "freak_count": 3
+};       // current conditions at financial hubs (weather_snapshot.json); ambient layer
+let showWeather = true;
+const TEXTURE_BASE = "/textures/";  // where the earth textures live (same-origin; http/https only, not file://)
+const PUBLIC = true;          // true on the deployed site: hide the dev-only Clouds + Map-style buttons
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-let W,H, projection, path, graticule=d3.geoGraticule10(), world=null;
+let W,H, projection, path, graticule=d3.geoGraticule10(), world=null, worldMesh=null;
 let cur=0, win=5, playing=false, R0=1, dragging=false, idle=0;
 let mode='3d', curRot=[40,-40], curScale=0;     // default view centred on the North Atlantic (US<->EU flat in the middle)
 let DIST=1.8, SAT=true;                          // satellite camera distance (radii): lower = wider FOV / less "round"
@@ -85,21 +508,29 @@ let B2=[1,0,0], k2=1, pan2=[0,0];                // 2D zoom: base [scale,tx,ty],
 let FS=11, MOBILE=false;                          // node-label font size; phone layout flag
 
 function setupProj(){
-  if(mode==='3d'){ SAT=(typeof d3.geoSatellite==='function');     // d3-geo-projection loaded?
+  if(mode==='3d'){ SAT=(typeof d3.geoSatellite==='function') && !PHOTOREAL;  // ortho when photoreal (matches WebGL cam)
     if(SAT){ const cl=HORIZON()*180/Math.PI-1e-3;
       projection=d3.geoSatellite().distance(DIST).tilt(0).scale(curScale||R0).translate([W/2,H*0.46]).rotate(curRot).clipAngle(cl).precision(0.3); }
     else { projection=d3.geoOrthographic().scale((curScale||R0)/Math.sqrt(DIST*DIST-1)).translate([W/2,H*0.46]).rotate(curRot).clipAngle(90); } }
+  else if(PHOTOREAL){                                       // 2D photoreal: cover-fill equirectangular
+    const C=360*H/(LAT_SPAN*W);                             // latitude stretch so the band fills the height
+    const raw=function(l,p){ return [l, p*C]; }; raw.invert=function(x,y){ return [x, y/C]; };
+    projection=d3.geoProjection(raw).scale(W/(2*Math.PI)).translate([W/2, H*LAT_N/LAT_SPAN]);
+    B2=[projection.scale(), projection.translate()[0], projection.translate()[1]]; apply2(); }
   else { projection=d3.geoNaturalEarth1().fitExtent([[44,96],[W-44,H-150]], {type:"Sphere"});
     B2=[projection.scale(), projection.translate()[0], projection.translate()[1]]; apply2(); }
   path=d3.geoPath(projection, ctx);
 }
 function apply2(){ if(mode!=='2d')return;                  // post-fit affine = zoom k2 about pan offset
+  if(PHOTOREAL){                                          // clamp so the map always covers the viewport (no wrap-around / 2nd world)
+    pan2[0]=Math.max(W*(1-k2),Math.min(0,pan2[0])); pan2[1]=Math.max(H*(1-k2),Math.min(0,pan2[1])); }
   projection.scale(B2[0]*k2).translate([B2[1]*k2+pan2[0], B2[2]*k2+pan2[1]]); }
 function defScale(){ return R0*Math.sqrt(DIST*DIST-1); }   // makes the globe radius ~ R0 on screen
 function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
   W=innerWidth; H=innerHeight; MOBILE=W<=640; FS=MOBILE?11.5:11;
   cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);                       // draw in CSS px, crisp on high-DPR phones
+  if(glReady){ glr.setSize(W,H); }                         // photoreal earth canvas tracks the viewport
   R0=Math.min(W,H)*0.42; if(!curScale) curScale=defScale();
   TRAY.s=Math.max(14,Math.min(22,W*0.02));
   TRAY.dx=Math.min(150,W*0.21); TRAY.x0=W/2-TRAY.dx;
@@ -210,17 +641,70 @@ function rebuild(){ curFlows=flowsAt(cur);
 }
 function nodeRadius(b){ const v=curFlows?curFlows.net[b]:null; const a=v==null?0.3:Math.min(2.2,Math.abs(v)); return (MOBILE?0.66:1)*(6+7*Math.sqrt(a)); }
 
+function drawFlatEarth(){                              // 2D base: styled equirectangular, tiled E-W (seamless wrap)
+  ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
+  ensureMapImg(mapStyle);
+  const S=MAP_STYLES[mapStyle], img=mapImgs[mapStyle];
+  if(!img.complete || !img.naturalWidth) return;
+  const tl=projection([-180,LAT_N]), br=projection([180,LAT_S]);
+  const x0=tl[0], dy=tl[1], tw=br[0]-tl[0], dh=br[1]-tl[1];
+  if(tw<=0 || dh<=0) return;
+  const sCrop=(im)=>[0,(90-LAT_N)/180*im.naturalHeight, im.naturalWidth,(LAT_N-LAT_S)/180*im.naturalHeight];
+  const kS=Math.floor((0-x0)/tw)-1, kE=Math.ceil((W-x0)/tw)+1;
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
+  const dc=sCrop(img);
+  ctx.filter=S.filt||'none';
+  for(let k=kS;k<=kE;k++) ctx.drawImage(img, ...dc, x0+k*tw, dy, tw, dh);
+  ctx.filter='none';
+  if(S.mult){                                          // cool multiply tames warm bright land (satellite styles)
+    ctx.globalCompositeOperation='multiply';
+    const g=ctx.createLinearGradient(0,Math.max(0,dy),0,Math.min(H,dy+dh));
+    g.addColorStop(0,S.mult[0]); g.addColorStop(0.55,S.mult[1]); g.addColorStop(1,S.mult[2]);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation='source-over'; }
+  const vr=Math.hypot(W,H)/2, vig=ctx.createRadialGradient(W/2,H/2,vr*0.45,W/2,H/2,vr);
+  vig.addColorStop(0,'rgba(5,8,16,0)'); vig.addColorStop(1,`rgba(3,5,12,${S.vig||0.28})`);
+  ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+// node faces: country FLAGS (geographic markets) + small ICONS (commodities/stores) so the blobs read at a glance
+const FLAG={"US Indices":"us","UK":"gb","Eurozone":"eu","France":"fr","Germany":"de","Spain":"es",
+  "Japan":"jp","China":"cn","Hong Kong":"hk","Australia":"au","India":"in","Russia":"ru"};
+const ICON={"Oil":"🛢️","US Dollar":"💵","Bonds":"📜","Gold":"🥇","Silver":"🥈","Crypto":"₿"};
+const flagImgs={};
+for(const b in FLAG){ const im=new Image(); im.crossOrigin='anonymous'; im.src=`https://flagcdn.com/w80/${FLAG[b]}.png`; flagImgs[b]=im; }
+function drawFlag(b,x,y,r,alpha){ const im=flagImgs[b]; if(!im||!im.complete||!im.naturalWidth) return false;
+  ctx.save(); ctx.globalAlpha=alpha; ctx.beginPath(); ctx.arc(x,y,r,0,6.283); ctx.clip();
+  const sc=Math.max(2*r/im.naturalWidth, 2*r/im.naturalHeight), dw=im.naturalWidth*sc, dh=im.naturalHeight*sc;
+  ctx.drawImage(im, x-dw/2, y-dh/2, dw, dh); ctx.restore(); return true; }
+function drawIcon(b,x,y,r,alpha){ const ic=ICON[b]; if(!ic) return false;
+  ctx.save(); ctx.globalAlpha=alpha; ctx.font=`${(r*1.5).toFixed(0)}px "Segoe UI Emoji",Inter,Arial`;
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff"; ctx.fillText(ic, x, y+1);
+  ctx.restore(); return true; }
+function labelTxt(t,x,y,fill){                         // text with a dark halo so it reads on bright OR dark map
+  ctx.lineJoin='round'; ctx.lineWidth=3.4; ctx.strokeStyle='rgba(3,6,12,0.85)'; ctx.strokeText(t,x,y);
+  ctx.fillStyle=fill; ctx.fillText(t,x,y);
+}
+function drawBorders(){                                // country outlines over the photoreal earth
+  if(!worldMesh) return;
+  ctx.beginPath(); path(worldMesh);
+  ctx.strokeStyle="rgba(200,220,250,0.42)"; ctx.lineWidth=(mode==='3d')?0.6:0.7; ctx.stroke();
+}
 function draw(){
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
-  // base map / sphere
-  ctx.beginPath(); path({type:"Sphere"});
-  if(mode==='3d'){ const gr=curScale/Math.sqrt(DIST*DIST-1); const g=ctx.createRadialGradient(W/2,H*0.40,gr*0.2,W/2,H*0.46,gr*1.05);
-    g.addColorStop(0,"#13203a"); g.addColorStop(1,"#0a1020"); ctx.fillStyle=g; } else ctx.fillStyle="#0d1320";
-  ctx.fill();
-  ctx.beginPath(); path(graticule); ctx.strokeStyle="rgba(70,90,130,0.10)"; ctx.lineWidth=0.5; ctx.stroke();
-  if(world){ ctx.beginPath(); path(world); ctx.fillStyle="#1b2740"; ctx.fill();
-    ctx.lineWidth=0.5; ctx.strokeStyle="#2c3c5c"; ctx.stroke(); }
-  if(mode==='3d'){ ctx.beginPath(); path({type:"Sphere"}); ctx.strokeStyle="rgba(120,160,220,0.25)"; ctx.lineWidth=1; ctx.stroke(); }
+  const P3D = (mode==='3d' && PHOTOREAL);            // photoreal earth rendered on the WebGL canvas behind
+  const P2D = (mode==='2d' && PHOTOREAL);
+  ctx.clearRect(0,0,W,H);
+  if(P2D){ drawFlatEarth(); }
+  else if(!P3D){ ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
+    // base map / sphere (vector — only when not photoreal)
+    ctx.beginPath(); path({type:"Sphere"});
+    if(mode==='3d'){ const gr=curScale/Math.sqrt(DIST*DIST-1); const g=ctx.createRadialGradient(W/2,H*0.40,gr*0.2,W/2,H*0.46,gr*1.05);
+      g.addColorStop(0,"#13203a"); g.addColorStop(1,"#0a1020"); ctx.fillStyle=g; } else ctx.fillStyle="#0d1320";
+    ctx.fill();
+    ctx.beginPath(); path(graticule); ctx.strokeStyle="rgba(70,90,130,0.10)"; ctx.lineWidth=0.5; ctx.stroke();
+    if(world){ ctx.beginPath(); path(world); ctx.fillStyle="#1b2740"; ctx.fill();
+      ctx.lineWidth=0.5; ctx.strokeStyle="#2c3c5c"; ctx.stroke(); }
+    if(mode==='3d'){ ctx.beginPath(); path({type:"Sphere"}); ctx.strokeStyle="rgba(120,160,220,0.25)"; ctx.lineWidth=1; ctx.stroke(); }
+  }
 
   // tray shelf
   ctx.strokeStyle="rgba(120,130,150,0.22)"; ctx.lineWidth=1; ctx.setLineDash([5,6]);
@@ -291,20 +775,24 @@ function draw(){
     if(NODES[b].vault){ const s=TRAY.s;
       ctx.beginPath(); ctx.roundRect(n.x-s,n.y-s,2*s,2*s,5); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
       ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
-      ctx.beginPath(); ctx.arc(n.x,n.y,s*0.42,0,6.283); ctx.strokeStyle="rgba(15,18,30,0.55)"; ctx.lineWidth=2; ctx.stroke();
+      drawIcon(b,n.x,n.y,s*0.95,1);                          // commodity icon (Gold/Silver/Crypto)
       tagDot(n.x+s-3,n.y-s-3); valTick(n.x-s-9,n.y-s+1);
-      ctx.fillStyle="#dfe6f2"; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
-      ctx.fillText(NODES[b].short+lbl, n.x, n.y-s-8); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
+      ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
+      labelTxt(NODES[b].short+lbl, n.x, n.y-s-8, "#eef2fa"); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
     ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
+    if(FLAG[b]) drawFlag(b,n.x,n.y,r,vis);                   // country flag face
+    else if(ICON[b]) drawIcon(b,n.x,n.y,r,vis);              // commodity icon (Oil/Dollar/Bonds)
     ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
     tagDot(n.x+r*0.72,n.y-r*0.72-3); valTick(n.x-r*0.72-7,n.y-r*0.72+3);
-    if(vis>0.30){ ctx.fillStyle=`rgba(223,230,242,${vis.toFixed(2)})`; ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
-      ctx.fillText(NODES[b].short+(MOBILE?'':lbl), n.x, n.y-r-7); }
+    if(vis>0.30){ ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
+      labelTxt(NODES[b].short+(MOBILE?'':lbl), n.x, n.y-r-7, `rgba(236,241,250,${vis.toFixed(2)})`); }
     if(vis>0.30) hitNodes.push({b,x:n.x,y:n.y,r:r+6}); }
+
+  drawShocks();                            // news-shock overlay on top of the flow layer
 }
 
 function loop(){ if(mode==='3d' && !dragging){ idle++; if(idle>90){ curRot=[curRot[0]+0.06, curRot[1]]; projection.rotate(curRot); } }
-  draw(); requestAnimationFrame(loop); }
+  cloud2dX+=0.25; syncGL(); draw(); requestAnimationFrame(loop); }
 
 // ---- interaction: pointer events unify mouse + touch (1 ptr = spin/pan, 2 ptrs = pinch-zoom) ----
 let r0,m0,p0, pinching=false, pdist=0, pmid=[0,0];
@@ -366,13 +854,193 @@ function setPlay(on){ playing=on; playBtn.textContent=on?'⏸ Pause':'▶ Play';
 playBtn.addEventListener('click',()=>setPlay(!playing));
 document.querySelectorAll('.win').forEach(btn=>btn.addEventListener('click',()=>{
   document.querySelectorAll('.win').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); win=+btn.dataset.w; rebuild(); }));
+const shockBtn=document.getElementById('shockToggle');
+if(shockBtn){ if(!SHOCK) shockBtn.style.display='none';
+  shockBtn.addEventListener('click',()=>{ showShocks=!showShocks; shockBtn.classList.toggle('on',showShocks); setShockBar(); }); }
+const wxBtn=document.getElementById('wxToggle');
+if(wxBtn){ wxBtn.addEventListener('click',()=>{ showClouds=!showClouds; wxBtn.classList.toggle('on',showClouds); }); }
+const mapBtn=document.getElementById('mapBtn');
+if(mapBtn){ mapBtn.addEventListener('click',()=>{ mapStyle=(mapStyle+1)%MAP_STYLES.length; ensureMapImg(mapStyle); mapBtn.textContent='Map: '+MAP_STYLES[mapStyle].name; }); }
+if(PUBLIC){ if(wxBtn) wxBtn.remove(); if(mapBtn) mapBtn.remove(); }   // dev-only controls, not on the public site
+
+// --- PHOTOREAL EARTH (WebGL, behind the flow layer) --------------------------------------------
+// A textured Three.js globe + drifting cloud layer + atmosphere rim sits on #glcv, BEHIND the d3
+// flow canvas (#cv, transparent). In 3D the d3 projection is forced ORTHOGRAPHIC so it aligns
+// pixel-for-pixel with an orthographic WebGL camera; we derive the earth's orientation from d3's
+// rotate triple so every flow node/arc lands exactly on the right country. Textures are same-origin
+// (served over http/https); over file:// they silently fail (CORS) -> black sphere, so view via a server.
+const TEX_BASE = (typeof TEXTURE_BASE!=='undefined') ? TEXTURE_BASE : 'textures/';
+let PHOTOREAL=false, glReady=false, glr=null, glscene=null, glcam=null, gEarth=null, gClouds=null, gAtmo=null, gCloudDrift=0;
+let showClouds=true;
+const d2r=Math.PI/180;
+// 2D flat-map (cover-fill equirectangular): crop polar bands, fill the viewport
+const LAT_N=74, LAT_S=-56, LAT_SPAN=LAT_N-LAT_S;
+let cloud2dX=0;
+// 2D map-style options — each is a texture + a colour treatment. Cycle with the "Map" button.
+const MAP_STYLES=[
+  {name:'Satellite',   src:'earth_atmos_2048.jpg',  filt:'contrast(1.16) saturate(1.0) brightness(0.98)', mult:['#aebbd8','#9aa9cc','#8496bd'], vig:0.28},
+  {name:'Night',       src:'earth-night.jpg',        filt:'brightness(1.12) saturate(1.15)',               mult:null,                            vig:0.34},
+  {name:'Dark',        src:'earth-dark.jpg',         filt:'brightness(1.05) saturate(1.1)',                mult:null,                            vig:0.24},
+  {name:'Blue Marble', src:'earth-blue-marble.jpg',  filt:'contrast(1.12) saturate(1.05) brightness(0.95)',mult:['#aebbd8','#9aa9cc','#8496bd'], vig:0.28},
+  {name:'Balanced',    src:'earth_balanced.png',     filt:'none',                                          mult:null,                            vig:0.24},
+];
+let mapStyle=0;
+const mapImgs=MAP_STYLES.map(()=>new Image());   // lazy: only fetch a style's texture when it's actually used
+function ensureMapImg(i){ const im=mapImgs[i]; if(!im.src && typeof TEXTURE_BASE!=='undefined') im.src=TEXTURE_BASE+MAP_STYLES[i].src; }
+ensureMapImg(0);
+function latLonToVec3(lat,lon){ const ph=(90-lat)*d2r, th=(lon+180)*d2r;
+  return new THREE.Vector3(-(Math.sin(ph)*Math.cos(th)), Math.cos(ph), Math.sin(ph)*Math.sin(th)); }
+function initGL(){
+  if(glReady || typeof THREE==='undefined') return;
+  const glcv=document.getElementById('glcv');
+  try{ glr=new THREE.WebGLRenderer({canvas:glcv, antialias:true, alpha:true}); }
+  catch(e){ PHOTOREAL=false; return; }
+  glr.setPixelRatio(Math.min(2,devicePixelRatio||1));
+  glscene=new THREE.Scene();
+  glcam=new THREE.OrthographicCamera(-1,1,1,-1,-100,100); glcam.position.set(0,0,10); glcam.lookAt(0,0,0);
+  const L=new THREE.TextureLoader(), T=f=>{ const t=L.load(TEX_BASE+f); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; };
+  gEarth=new THREE.Mesh(new THREE.SphereGeometry(1,96,96),
+    new THREE.MeshPhongMaterial({map:T('earth_atmos_2048.jpg'), specularMap:T('earth_specular_2048.jpg'),
+      normalMap:T('earth_normal_2048.jpg'), normalScale:new THREE.Vector2(0.6,0.6),
+      specular:new THREE.Color(0x335577), shininess:13}));
+  glscene.add(gEarth);
+  gClouds=new THREE.Mesh(new THREE.SphereGeometry(1.012,96,96),
+    new THREE.MeshLambertMaterial({map:T('earth_clouds.png'), transparent:true, opacity:0.85, depthWrite:false}));
+  glscene.add(gClouds);
+  gAtmo=new THREE.Mesh(new THREE.SphereGeometry(1.045,64,64),
+    new THREE.ShaderMaterial({transparent:true, side:THREE.BackSide, blending:THREE.AdditiveBlending, depthWrite:false,
+      uniforms:{c:{value:new THREE.Color(0x4a86d8)}},
+      vertexShader:'varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'varying vec3 vN; uniform vec3 c; void main(){ float i=pow(clamp(0.5-dot(vN,vec3(0,0,1.0)),0.0,1.0),3.2)*0.9; gl_FragColor=vec4(c,1.0)*i; }'}));
+  glscene.add(gAtmo);
+  glscene.add(new THREE.AmbientLight(0xffffff,0.85));
+  const sun=new THREE.DirectionalLight(0xfff4e0,0.9); sun.position.set(2,1.2,2.5); glscene.add(sun);
+  glReady=true; PHOTOREAL=true;
+}
+// orientation matching d3.geoOrthographic.rotate([λ,φ,0]): centre=(-λ,-φ) faces camera, north is up
+function earthQuatFromRot(rot){ const lonc=-rot[0], latc=-rot[1];
+  const f=latLonToVec3(latc,lonc), n=latLonToVec3(latc+0.5,lonc);
+  const t=n.clone().sub(f.clone().multiplyScalar(f.dot(n))).normalize();   // north tangent at centre
+  const x=new THREE.Vector3().crossVectors(t,f).normalize();
+  const m=new THREE.Matrix4().makeBasis(x,t,f);
+  return new THREE.Quaternion().setFromRotationMatrix(m).invert();
+}
+function syncGL(){
+  const glcv=document.getElementById('glcv');
+  if(!(mode==='3d' && PHOTOREAL && glReady)){ if(glcv) glcv.style.display='none'; return; }
+  glcv.style.display='block';
+  const S=projection.scale(), tr=projection.translate(), cx=tr[0], cy=tr[1];
+  // ortho frustum so 1 world unit = S px and world origin lands at (cx,cy)
+  glcam.left=-cx/S; glcam.right=(W-cx)/S; glcam.top=cy/S; glcam.bottom=-(H-cy)/S; glcam.updateProjectionMatrix();
+  const q=earthQuatFromRot(curRot); gEarth.quaternion.copy(q);
+  gCloudDrift+=0.0003; gClouds.quaternion.copy(q); gClouds.rotateY(gCloudDrift); gClouds.visible=showClouds;
+  gAtmo.quaternion.copy(q);
+  glr.render(glscene,glcam);
+}
+
+// --- NEWS-SHOCK OVERLAY (research-validated) ---------------------------------------------------
+// The geopolitical-risk feed (GPR) localises a shock to a region (lat/lon, share). The map then
+// draws ONLY the response that survived a permutation test: in the same minute, global equities
+// rotate INTO the US Dollar (corr -0.25, z -80, strengthening to -0.30 on shock days). The
+// theatrical cross-region arrows ("US down -> London up") were empirically FALSE — developed
+// markets co-move (and co-move HARDER) during shocks; daily see-saws were sum-to-zero artifacts.
+// Gold is an intraday risk asset, so there is no honest shock->gold arrow either. See News Shock/FINDINGS.md.
+function projLL(lat,lon){
+  if(mode==='2d'){ const p=projection([lon,lat]); return p?{x:p[0],y:p[1],vis:1}:null; }
+  const c=projection.rotate(), center=[-c[0],-c[1]], ll=[lon,lat];
+  const d=d3.geoDistance(ll,center), hz=HORIZON();
+  if(d > hz-0.02) return null;                                   // behind the globe -> don't draw
+  const p=projection(ll); if(!p) return null;
+  return {x:p[0], y:p[1], vis:Math.max(0.12, Math.min(1, 1.12-(d/hz)))};
+}
+function shockElevated(){ return showShocks && SHOCK && SHOCK.level!=null &&
+  (SHOCK.level > (SHOCK.context_median||0)*1.3 || /elevated|high|severe/i.test(SHOCK.label||'')); }
+function setShockBar(){ const el=document.getElementById('shockbar'); if(!el) return;
+  if(!shockElevated()){ el.style.display='none'; return; }
+  const top=(SHOCK.geography||[]).filter(g=>g.share>=3).slice(0,3).map(g=>g.name).join(', ');
+  el.style.display='block';
+  el.innerHTML=`<span style="color:#ff6a55;font-weight:700">⚠ Geopolitical shock</span> `
+    +`<span style="color:#cfd6e6">GPR ${Math.round(SHOCK.level)} · ${SHOCK.label||''}</span>`
+    +(top?` <span style="color:#8b93a7">— hotspots: ${top}</span>`:'')+`<br>`
+    +`<span style="color:#46e08a">→ validated response: equities rotating into the US Dollar</span> `
+    +`<span style="color:#6f778c">— the one same-minute redistribution that survives a permutation test (stronger on shock days)</span>`;
+}
+function drawRotationArc(t){               // equities (US Indices) -> US Dollar, the validated flight-to-cash
+  const a=NODES["US Indices"], b=NODES["US Dollar"]; if(!a||!b) return;
+  const A=[a.lon,a.lat], B=[b.lon,b.lat], gc=greatCircle(A,B,40);
+  ctx.beginPath(); path({type:"LineString", coordinates:gc});
+  ctx.strokeStyle="rgba(70,210,130,0.40)"; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.globalCompositeOperation="lighter";
+  const center=(mode==='3d'&&projection.rotate)?[-projection.rotate()[0],-projection.rotate()[1]]:null;
+  for(let k=0;k<16;k++){ const tt=((t*0.22)+k/16)%1, gp=d3.geoInterpolate(A,B)(tt);
+    if(center && d3.geoDistance(gp,center) > HORIZON()-0.012) continue;     // behind the globe
+    const pt=projection(gp); if(!pt) continue;
+    ctx.beginPath(); ctx.arc(pt[0],pt[1],2.4,0,6.283); ctx.fillStyle="#46e08a"; ctx.shadowColor="#46e08a"; ctx.shadowBlur=9; ctx.fill(); }
+  ctx.shadowBlur=0; ctx.globalCompositeOperation="source-over";
+}
+function drawShocks(){
+  if(!shockElevated()) return;
+  const t=performance.now()/1000, pulse=0.5+0.5*Math.sin(t*2.2);
+  for(const g of (SHOCK.geography||[]).filter(g=>g.share>=4).slice(0,6)){
+    const p=projLL(g.lat,g.lon); if(!p) continue; const r=6+g.share*0.45;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r+pulse*9,0,6.283);
+    ctx.strokeStyle=`rgba(232,72,60,${(0.32*p.vis*(1-pulse)).toFixed(3)})`; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*0.42,0,6.283); ctx.fillStyle=`rgba(255,92,72,${(0.85*p.vis).toFixed(2)})`;
+    ctx.shadowColor="#ff5a46"; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+    if(p.vis>0.45){ ctx.font="bold "+FS+"px Inter,Arial"; ctx.textAlign="center";
+      labelTxt("⚠ "+g.name, p.x, p.y+r+13, `rgba(255,190,180,${p.vis.toFixed(2)})`); } }
+  drawRotationArc(t);
+}
+
+// --- AMBIENT WEATHER LAYER (accurate, decorative) ----------------------------------------------
+// Real current conditions at the 15 financial-hub cities (weather_snapshot.json). Purely aesthetic
+// — it makes the globe feel alive — and makes NO market claim (weather->flow is a research null).
+// Every glyph reflects the actual latest reading; "freak" = genuinely unusual for THAT city's own
+// history (same-month temperature tail / full-history wind/precip tail), so the emphasis is earned.
+function tempColor(t){
+  if(t==null) return "#bcd";
+  const c=[[-10,[120,190,255]],[10,[200,225,180]],[25,[250,225,150]],[35,[255,150,80]],[42,[255,80,60]]];
+  for(let i=0;i<c.length-1;i++){ if(t<=c[i+1][0]){ const a=c[i][0],A=c[i][1],b=c[i+1][0],B=c[i+1][1];
+    const f=Math.max(0,Math.min(1,(t-a)/(b-a))); return `rgb(${A.map((v,k)=>Math.round(v+(B[k]-v)*f)).join(',')})`; } }
+  return "rgb(255,80,60)";
+}
+function softCloud(x,y,s,alpha,col){ ctx.save(); ctx.globalAlpha=Math.max(0,alpha); ctx.fillStyle=col||"#c2cad8";
+  for(const d of [[-s*0.7,0,s*0.7],[0,-s*0.35,s*0.85],[s*0.7,0,s*0.7],[0,s*0.12,s*0.6]]){
+    ctx.beginPath(); ctx.arc(x+d[0],y+d[1],d[2],0,6.283); ctx.fill(); } ctx.restore(); }
+function drawWeather(){
+  if(!showWeather || !WEATHER || !WEATHER.cities) return;
+  const t=performance.now()/1000;
+  for(const w of WEATHER.cities){ const p=projLL(w.lat,w.lon); if(!p) continue;
+    const a=p.vis, s=5.5, x=p.x, y=p.y, cond=w.condition;
+    if(cond==='clear'){ const col=tempColor(w.temp), g=ctx.createRadialGradient(x,y,1,x,y,s*1.7);
+      g.addColorStop(0,col); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.globalAlpha=0.55*a; ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(x,y,s*1.7,0,6.283); ctx.fill(); ctx.globalAlpha=1; }
+    else { softCloud(x,y-1,s,(0.28+0.5*w.cloud/100)*a, cond==='storm'?'#8b93b0':'#c2cad8');
+      if(cond==='rain'||cond==='drizzle'){ ctx.strokeStyle=`rgba(120,170,235,${(0.7*a).toFixed(2)})`; ctx.lineWidth=1.3;
+        const n=cond==='rain'?4:2; for(let k=0;k<n;k++){ const off=((t*1.6+k*0.31)%1), rx=x-s*0.6+k*s*0.45, ry=y+s*0.4+off*s*1.2;
+          ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-1.2,ry+3.4); ctx.stroke(); } }
+      else if(cond==='snow'){ ctx.fillStyle=`rgba(235,242,255,${(0.85*a).toFixed(2)})`;
+        for(let k=0;k<4;k++){ const off=((t*0.7+k*0.27)%1), sx=x-s*0.6+k*s*0.4+Math.sin((off+k)*6)*1.5, sy=y+s*0.4+off*s*1.3;
+          ctx.beginPath(); ctx.arc(sx,sy,1.3,0,6.283); ctx.fill(); } }
+      else if(cond==='storm'){ if(Math.sin(t*7+w.lon)>0.93){ ctx.strokeStyle="rgba(255,240,150,0.9)"; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.moveTo(x,y+s*0.4); ctx.lineTo(x-2,y+s*1.1); ctx.lineTo(x+1.5,y+s*1.1); ctx.lineTo(x-1,y+s*1.9); ctx.stroke(); } } }
+    if(w.freak && a>0.4){ const pulse=0.5+0.5*Math.sin(t*2.0+w.lon);
+      const fc = w.freak_type==='freak cold' ? '120,190,255' : (w.freak_type==='storm'?'190,150,255':'255,150,70');
+      ctx.beginPath(); ctx.arc(x,y,s*1.7+pulse*5,0,6.283); ctx.strokeStyle=`rgba(${fc},${(0.5*a*(1-pulse)).toFixed(2)})`; ctx.lineWidth=2; ctx.stroke();
+      const emo = w.freak_type==='heatwave'?'🔥':(w.freak_type==='freak cold'?'❄':(w.freak_type==='storm'?'🌀':(w.freak_type==='heavy snow'?'❄':'🌧')));
+      ctx.fillStyle=`rgba(${fc},${a.toFixed(2)})`; ctx.font="bold "+(FS-0.5)+"px Inter,Arial"; ctx.textAlign="center";
+      ctx.fillText(`${emo} ${w.city} ${Math.round(w.temp)}°`, x, y-s*1.9-3); } }
+}
 
 function bootData(d){
   DATA=d; DATA.buckets.forEach((b,k)=>BIDX[b]=k); cur=DATA.dates.length-1;
-  resize(); applyMode(); slider.max=DATA.dates.length-1; slider.value=cur;
+  initGL();                                                // photoreal earth (sets PHOTOREAL before first proj)
+  resize(); applyMode(); slider.max=DATA.dates.length-1; slider.value=cur; setShockBar();
   setTimeout(resize, 60);                                   // re-measure once the control bar's wrapped height settles
   d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(topo=>{
-    world=topojson.feature(topo, topo.objects.countries); rebuild(); requestAnimationFrame(loop);
+    world=topojson.feature(topo, topo.objects.countries);
+    worldMesh=topojson.mesh(topo, topo.objects.countries);   // all borders+coastlines, single stroke
+    rebuild(); requestAnimationFrame(loop);
   }).catch(()=>{ rebuild(); requestAnimationFrame(loop); });
   rebuild();
 }
