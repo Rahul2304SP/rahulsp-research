@@ -12,7 +12,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>Phase 1</td><td>Literature Review</td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
-    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed — see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
+    <tr><td>Phase 2</td><td>Data Collection &amp; Feature Engineering<br/><small>7 gap studies completed; see Section 6 for full results.</small></td><td style="color: #059669; font-weight: 600;">Complete</td></tr>
     <tr><td>Phase 3</td><td>Model Development &amp; Backtesting<br/><small>Dual-system: Short specialist +&dollar;127,633 (PF 1.90, Run 3L). Dip-buy long model +&dollar;4,683 (PF 1.16, Run 3N, first profitable longs). 13 runs documented. See Sections 7.5-7.14.</small></td><td style="color: #2563eb; font-weight: 600;">In Progress</td></tr>
     <tr><td>Phase 4</td><td>Walk-Forward Validation</td><td style="color: #6b7280;">Planned</td></tr>
   </tbody>
@@ -2347,7 +2347,7 @@ export const content = `
 <p class="text-sm" style="color: #dc2626; font-weight: 600; margin-top: 0.5rem;">Note: US500 and NAS100 results are invalidated by the barrier calibration flaw discovered in Section 7.11. Their barriers (US500 &dollar;90, NAS100 &dollar;200) were 27-29x the median hourly move, producing 0% real barrier hits. 100% of training labels were fallback close-to-close direction, not barrier-based signal. US30 (&dollar;100 barrier, 3.7x ratio, 21% hit rate) was partially valid but suboptimal. Retraining with corrected barriers is required.</p>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
-<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 1 &amp; Run 2 Detail</summary>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
 <h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 1 (Diagnostic)</h4>
@@ -2540,7 +2540,7 @@ export const content = `
 </details>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
-<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US500 — Run 1 &amp; Run 2 Detail</summary>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US500: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
 <h4 style="margin-top: 0.5rem; font-size: 1.05em;">US500 &mdash; Run 1 (Diagnostic)</h4>
@@ -2867,7 +2867,7 @@ export const content = `
 </details>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
-<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100 — Run 1 &amp; Run 2 Detail</summary>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
 <h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
@@ -3243,7 +3243,7 @@ export const content = `
 </table>
 
 <details style="margin: 1.5rem 0; border: 1px solid #e5e7eb; border-radius: 0.5rem;" open>
-<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0fdf4; border-left: 4px solid #059669; border-radius: 0.5rem 0.5rem 0 0;">US30 — Run 2 (Latest)</summary>
+<summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0fdf4; border-left: 4px solid #059669; border-radius: 0.5rem 0.5rem 0 0;">US30: Run 2 (Latest)</summary>
 <div style="padding: 1rem;">
 
 <h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 2</h4>

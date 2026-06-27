@@ -104,7 +104,7 @@ body {
 }
 .paper-content a { color: #1e40af; text-decoration: underline; text-underline-offset: 2px; }
 
-/* Tables — clean academic style */
+/* Tables: clean academic style */
 .paper-content table {
   width: 100%;
   border-collapse: collapse;
@@ -128,7 +128,7 @@ body {
 }
 .paper-content tr:hover td { background: #f8f9fa; }
 
-/* Key finding callout — academic blue accent */
+/* Key finding callout: academic blue accent */
 .finding-box {
   background: #f0f4ff;
   border: 1px solid #dbeafe;
@@ -159,7 +159,7 @@ body {
   text-align: center;
 }
 
-/* Scrollbar — subtle */
+/* Scrollbar: subtle */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #ffffff; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }

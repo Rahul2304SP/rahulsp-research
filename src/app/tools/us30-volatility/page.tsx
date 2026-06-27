@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * US30 Volatility Dial — a live window into the US30 LGB forward-60-minute volatility model
+ * US30 Volatility Dial: a live window into the US30 LGB forward-60-minute volatility model
  * (the IC-0.70 forecast from "How Much, Not Which Way"). Polls /api/us30vol, which a local
  * emitter beside the daemon publishes each minute. Informational only; see disclaimer.
  */

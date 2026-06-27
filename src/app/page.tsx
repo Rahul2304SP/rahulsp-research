@@ -54,7 +54,7 @@ export default function HomePage() {
                   World Money-Flow Map
                 </h2>
                 <p className="text-sm sm:text-[15px] text-[#94a3b8] leading-relaxed max-w-md">
-                  Watch where capital is rotating right now — gold, crypto, bonds, the dollar and
+                  Watch where capital is rotating right now: gold, crypto, bonds, the dollar and
                   equity indices across the US, Europe and Asia. Rebuilt every minute from measured
                   fund flows, order-flow and price rotation.
                 </p>
@@ -86,7 +86,7 @@ export default function HomePage() {
               <p className="text-sm text-[#374151] leading-relaxed mb-4 line-clamp-3">
                 A multi-scale selective state space model combining Variable Selection Networks,
                 Mamba SSM encoders, and temporal attention pooling. 2.0M parameters with O(T)
-                complexity — 6x lighter than equivalent Transformer architectures. Drop-in
+                complexity, 6x lighter than equivalent Transformer architectures. Drop-in
                 replacement with identical forward signatures.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#6b7280]">

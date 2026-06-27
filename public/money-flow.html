@@ -68,7 +68,7 @@
   <div id="hud">
     <div id="title">World Money-Flow Map</div>
     <div id="head"></div>
-    <div id="sub">DESCRIPTIVE — fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto sit in the vault tray below.</div>
+    <div id="sub">DESCRIPTIVE: fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto sit in the vault tray below.</div>
     <div id="shockbar"></div>
   </div>
   <div id="legend">
@@ -658,11 +658,11 @@ function rebuild(){ curFlows=flowsAt(cur);
     const safeShare=(arr)=>{let s=0,t=0; for(const[b,w]of arr){t+=w; if(SAFE.has(b))s+=w;} return t?s/t:0;};
     const inSafe=safeShare(curFlows.inflow), outSafe=safeShare(curFlows.outflow);
     let lead;
-    if(inSafe>0.6 && outSafe<0.4) lead='<b style="color:#46c8ff">RISK-OFF</b> — money fleeing risk into havens (USD/Bonds/Gold)';
-    else if(outSafe>0.6 && inSafe<0.4) lead='<b style="color:#2bd4b0">RISK-ON</b> — money leaving havens into risk assets';
-    else lead=`Money rotating INTO ${ins.slice(0,2).join(', ')} — OUT OF ${outs.slice(0,2).join(', ')}`;
+    if(inSafe>0.6 && outSafe<0.4) lead='<b style="color:#46c8ff">RISK-OFF</b>: money fleeing risk into havens (USD/Bonds/Gold)';
+    else if(outSafe>0.6 && inSafe<0.4) lead='<b style="color:#2bd4b0">RISK-ON</b>: money leaving havens into risk assets';
+    else lead=`Money rotating INTO ${ins.slice(0,2).join(', ')} and OUT OF ${outs.slice(0,2).join(', ')}`;
     head.innerHTML = lead+chip;
-  } else head.textContent='Quiet — assets moving together with the market tide';
+  } else head.textContent='Quiet: assets moving together with the market tide';
   document.getElementById('date').textContent=DATA.dates[cur];
   document.getElementById('slider').value=cur;
 }
@@ -722,7 +722,7 @@ function draw(){
   ctx.clearRect(0,0,W,H);
   if(P2D){ drawFlatEarth(); }
   else if(!P3D){ ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
-    // base map / sphere (vector — only when not photoreal)
+    // base map / sphere (vector, only when not photoreal)
     ctx.beginPath(); path({type:"Sphere"});
     if(mode==='3d'){ const gr=curScale/Math.sqrt(DIST*DIST-1); const g=ctx.createRadialGradient(W/2,H*0.40,gr*0.2,W/2,H*0.46,gr*1.05);
       g.addColorStop(0,"#13203a"); g.addColorStop(1,"#0a1020"); ctx.fillStyle=g; } else ctx.fillStyle="#0d1320";
@@ -776,7 +776,7 @@ function draw(){
     else { const va=mode==='3d'?Math.max(0.5,P.vis):1; ctx.beginPath(); ctx.moveTo(P.a.x,P.a.y); ctx.quadraticCurveTo(P.c.x,P.c.y,P.b.x,P.b.y);
       ctx.strokeStyle=`rgba(90,160,255,${((0.05+0.16*cf)*va).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); } }
 
-  // particles — on great-circle flows they sink behind the globe and reappear on the near side
+  // particles: on great-circle flows they sink behind the globe and reappear on the near side
   ctx.globalCompositeOperation="lighter";
   for(const p of particles){ const P=plans[p.li]; if(!P) continue; p.t+=p.sp; if(p.t>=1)p.t-=1;
     let x,y;
@@ -790,7 +790,7 @@ function draw(){
     ctx.beginPath(); ctx.arc(x,y,2.1,0,6.283); ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8; ctx.fill(); }
   ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.globalCompositeOperation="source-over";
 
-  // nodes — fade gradually by visibility (never hard-disappear)
+  // nodes: fade gradually by visibility (never hard-disappear)
   hitNodes=[];
   for(const b in NODES){ const n=Ppos[b]; if(!n) continue; const vis=n.vis, r=nodeRadius(b);
     const v=curFlows?curFlows.net[b]:null, ring=v==null?"#888":(v>0?"#46e08a":"#e85a5a");
@@ -859,9 +859,9 @@ cv.addEventListener('mousemove', e=>{ if(dragging){ tip.style.display='none'; re
   let hit=null,best=1e9; for(const h of hitNodes){ const d=Math.hypot(e.clientX-h.x,e.clientY-h.y); if(d<h.r&&d<best){best=d;hit=h;} }
   if(!hit){ tip.style.display='none'; return; }
   const b=hit.b, f=curFlows?curFlows.net[b]:null, c=conf(b,cur), tg=tagOf(b,cur), rat=ratOf(b,cur);
-  const tcol=TAGCOL[tg]||"#7a8197", dir=f==null?'—':(f>0?'INFLOW':'OUTFLOW'), dcol=f==null?'#888':(f>0?'#46e08a':'#e85a5a');
+  const tcol=TAGCOL[tg]||"#7a8197", dir=f==null?'n/a':(f>0?'INFLOW':'OUTFLOW'), dcol=f==null?'#888':(f>0?'#46e08a':'#e85a5a');
   tip.innerHTML=`<span class="tname">${b}</span>`+(tg?`<span class="ttag" style="background:${tcol}22;border:1px solid ${tcol}66;color:${tcol}">${tg}</span>`:'')
-    +`<div style="margin-top:3px;color:${dcol}">${dir} &nbsp;flow ${f==null?'—':(f>0?'+':'')+f.toFixed(2)}</div>`
+    +`<div style="margin-top:3px;color:${dcol}">${dir} &nbsp;flow ${f==null?'n/a':(f>0?'+':'')+f.toFixed(2)}</div>`
     +`<div class="tconf">confidence ${Math.round(c*100)}%</div>`+(rat?`<div class="trat">${rat}</div>`:'');
   tip.style.display='block'; const tw=tip.offsetWidth,th=tip.offsetHeight;
   tip.style.left=Math.min(e.clientX+14,innerWidth-tw-8)+'px'; tip.style.top=Math.min(e.clientY+14,innerHeight-th-8)+'px'; });
@@ -908,7 +908,7 @@ const LAT_N=74, LAT_S=-56, LAT_SPAN=LAT_N-LAT_S;
 const STRETCH_CAP=1.6;          // max vertical:horizontal stretch (≈ desktop look); centers + dark-bands on tall screens
 let band2H=0;                   // 2D map band screen height at zoom k2=1 (set in setupProj)
 let cloud2dX=0;
-// 2D map-style options — each is a texture + a colour treatment. Cycle with the "Map" button.
+// 2D map-style options: each is a texture + a colour treatment. Cycle with the "Map" button.
 const MAP_STYLES=[
   {name:'Satellite',   src:'earth_atmos_2048.jpg',  filt:'contrast(1.16) saturate(1.0) brightness(0.98)', mult:['#aebbd8','#9aa9cc','#8496bd'], vig:0.28},
   {name:'Night',       src:'earth-night.jpg',        filt:'brightness(1.12) saturate(1.15)',               mult:null,                            vig:0.34},
@@ -974,7 +974,7 @@ function syncGL(){
 // The geopolitical-risk feed (GPR) localises a shock to a region (lat/lon, share). The map then
 // draws ONLY the response that survived a permutation test: in the same minute, global equities
 // rotate INTO the US Dollar (corr -0.25, z -80, strengthening to -0.30 on shock days). The
-// theatrical cross-region arrows ("US down -> London up") were empirically FALSE — developed
+// theatrical cross-region arrows ("US down -> London up") were empirically FALSE; developed
 // markets co-move (and co-move HARDER) during shocks; daily see-saws were sum-to-zero artifacts.
 // Gold is an intraday risk asset, so there is no honest shock->gold arrow either. See News Shock/FINDINGS.md.
 function projLL(lat,lon){
@@ -993,9 +993,9 @@ function setShockBar(){ const el=document.getElementById('shockbar'); if(!el) re
   el.style.display='block';
   el.innerHTML=`<span style="color:#ff6a55;font-weight:700">⚠ Geopolitical shock</span> `
     +`<span style="color:#cfd6e6">GPR ${Math.round(SHOCK.level)} · ${SHOCK.label||''}</span>`
-    +(top?` <span style="color:#8b93a7">— hotspots: ${top}</span>`:'')+`<br>`
+    +(top?` <span style="color:#8b93a7">· hotspots: ${top}</span>`:'')+`<br>`
     +`<span style="color:#46e08a">→ validated response: equities rotating into the US Dollar</span> `
-    +`<span style="color:#6f778c">— the one same-minute redistribution that survives a permutation test (stronger on shock days)</span>`;
+    +`<span style="color:#6f778c">· the one same-minute redistribution that survives a permutation test (stronger on shock days)</span>`;
 }
 function drawRotationArc(t){               // equities (US Indices) -> US Dollar, the validated flight-to-cash
   const a=NODES["US Indices"], b=NODES["US Dollar"]; if(!a||!b) return;
@@ -1026,7 +1026,7 @@ function drawShocks(){
 
 // --- AMBIENT WEATHER LAYER (accurate, decorative) ----------------------------------------------
 // Real current conditions at the 15 financial-hub cities (weather_snapshot.json). Purely aesthetic
-// — it makes the globe feel alive — and makes NO market claim (weather->flow is a research null).
+// it makes the globe feel alive and makes NO market claim (weather->flow is a research null).
 // Every glyph reflects the actual latest reading; "freak" = genuinely unusual for THAT city's own
 // history (same-month temperature tail / full-history wind/precip tail), so the emphasis is earned.
 function tempColor(t){
@@ -1096,7 +1096,7 @@ function bootData(d){
   }
   function poll(){ fetch(API).then(r=>r.json()).then(L=>{ if(L&&!L.error) mergeLive(L); }).catch(()=>{}); }
   fetch(API+"?k=history").then(r=>r.json()).then(h=>{
-    if(h.error){ head.textContent='live data warming up — check back shortly'; return; }
+    if(h.error){ head.textContent='live data warming up, check back shortly'; return; }
     bootData(h); poll(); setInterval(poll, 60000);
     const sl=document.getElementById('slider');
     sl.addEventListener('input', ()=>{ followLive = (+sl.value >= DATA.dates.length-1); });
