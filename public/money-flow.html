@@ -590,6 +590,37 @@ function ratOf(b,i){ return (DATA.rationale[b]&&DATA.rationale[b][i])||''; }
 function retTrail(b,i){ return DATA.ret[b]?trail(DATA.ret[b],i):null; }
 function viol(b,i){ const a=(DATA.violence_fwd&&DATA.violence_fwd[b])||(DATA.violence&&DATA.violence[b]); const v=a?a[i]:null; return v==null?1:v; }  // prefer forward (expected) violence
 function violTrail(b,i){ let m=1; for(let k=Math.max(0,i-win+1);k<=i;k++){const v=viol(b,k); if(v>m)m=v;} return m; }
+function eff(b,i){ const a=DATA.efficiency&&DATA.efficiency[b]; if(!a)return 0.3; for(let k=Math.min(i,a.length-1);k>=0;k--){ if(a[k]!=null) return a[k]; } return 0.3; }  // Kaufman ER (0=chop/turbulent..1=trend/surge), carry-forward for live day
+// node turbulence(red,chaotic) vs surge(blue,directional): vol*(1-ER) storms, vol*ER surges
+const FX={};
+function storm(b,x,y,r,vis){
+  const v=viol(b,cur), er=eff(b,cur), energy=Math.max(0,v-1);
+  const turb=energy*(1-er), surge=energy*er;
+  const fx=FX[b]||(FX[b]={rings:[],streaks:[]});
+  if(surge>0.3){                                   // SURGE — clean directional rays + smooth blue glow
+    if(Math.random()<0.4*Math.min(2,surge)) fx.streaks.push({t:0,a:Math.random()*6.283});
+    for(const s of fx.streaks){ s.t+=0.05+0.03*surge; const al=Math.max(0,1-s.t)*Math.min(1,surge)*vis;
+      const ax=Math.cos(s.a),ay=Math.sin(s.a), r0=r+2, r1=r+8+34*s.t;
+      const g=ctx.createLinearGradient(x+ax*r0,y+ay*r0,x+ax*r1,y+ay*r1);
+      g.addColorStop(0,`rgba(150,210,255,${(al*0.8).toFixed(3)})`); g.addColorStop(1,'rgba(150,210,255,0)');
+      ctx.strokeStyle=g; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+ax*r0,y+ay*r0); ctx.lineTo(x+ax*r1,y+ay*r1); ctx.stroke(); }
+    fx.streaks=fx.streaks.filter(s=>s.t<1);
+    const gg=ctx.createRadialGradient(x,y,r*0.5,x,y,r+surge*16);
+    gg.addColorStop(0,`rgba(120,200,255,${((0.05+0.05*surge)*vis).toFixed(3)})`); gg.addColorStop(1,'rgba(120,200,255,0)');
+    ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(x,y,r+surge*16,0,6.283); ctx.fill();
+  }
+  if(turb>0.3){                                    // STORM — chaotic expanding rings + sparks + hot halo
+    const halo=ctx.createRadialGradient(x,y,r*0.5,x,y,r+8+turb*11);
+    halo.addColorStop(0,'rgba(255,140,90,0)'); halo.addColorStop(0.7,`rgba(255,130,80,${((0.04+0.05*turb)*vis).toFixed(3)})`); halo.addColorStop(1,'rgba(255,140,90,0)');
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(x,y,r+8+turb*11,0,6.283); ctx.fill();
+    if(Math.random()<0.05*turb) fx.rings.push({r:r,a:0.5});
+    for(const rg of fx.rings){ rg.r+=0.9+turb*0.6; rg.a*=0.96;
+      ctx.beginPath(); ctx.arc(x,y,rg.r,0,6.283); ctx.strokeStyle=`rgba(255,${Math.round(120+60*Math.random())},80,${(rg.a*Math.min(1,turb)*vis).toFixed(3)})`; ctx.lineWidth=1.5; ctx.stroke(); }
+    fx.rings=fx.rings.filter(rg=>rg.a>0.04);
+    if(turb>1&&Math.random()<0.05*turb){ const a=Math.random()*6.283; ctx.strokeStyle=`rgba(255,245,170,${(0.5*vis).toFixed(2)})`; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(x,y); for(let i=1;i<=4;i++){const ff=i/4; ctx.lineTo(x+Math.cos(a)*(r+8+turb*12)*ff+(Math.random()-0.5)*8, y+Math.sin(a)*(r+8+turb*12)*ff+(Math.random()-0.5)*8);} ctx.stroke(); }
+  }
+}
 const TAGCOL={MEASURED:"#46c8ff", FLOW:"#6f8cff", VOLUME:"#2bd4b0", CONTEXT:"#caa14a", IMPLIED:"#7a8197", STALE:"#c8624a"};
 
 // --- HONEST ROTATION AXIS (research-validated) -------------------------------------------------
@@ -666,7 +697,7 @@ function rebuild(){ curFlows=flowsAt(cur);
   document.getElementById('date').textContent=DATA.dates[cur];
   document.getElementById('slider').value=cur;
 }
-function nodeRadius(b){ const v=curFlows?curFlows.net[b]:null; const a=v==null?0.3:Math.min(2.2,Math.abs(v)); return (MOBILE?0.66:1)*(6+7*Math.sqrt(a)); }
+function nodeRadius(b){ const m=(DATA.mass&&DATA.mass[b])?DATA.mass[b][cur]:null; const a=(m==null)?1:Math.max(0.15,Math.min(3.2,m)); return (MOBILE?0.66:1)*(7+15*Math.sqrt(a/1.4)); }  // size = accumulated capital MASS (swell/deflate)
 
 function drawFlatEarth(){                              // 2D base: styled equirectangular, tiled E-W (seamless wrap)
   ctx.fillStyle="#06080f"; ctx.fillRect(0,0,W,H);
@@ -799,13 +830,17 @@ function draw(){
     const rt=curFlows?retTrail(b,cur):null, lbl=(rt!=null?`  ${rt>=0?'+':''}${rt.toFixed(1)}%`:'');
     const tagDot=(x,y)=>{ if(!tg||vis<0.35)return; ctx.beginPath(); ctx.roundRect(x,y,7,7,2); ctx.fillStyle=tcol; ctx.globalAlpha=.95*vis; ctx.fill(); ctx.globalAlpha=1; };
     const valTick=(x,y)=>{ if(!VALIDATED.has(b)||vis<0.4)return; ctx.fillStyle="#46e08a"; ctx.font="bold "+(FS+1)+"px Inter,Arial"; ctx.textAlign="left"; ctx.globalAlpha=vis; ctx.fillText("✓",x,y); ctx.globalAlpha=1; };
-    if(NODES[b].vault){ const s=TRAY.s;
+    if(NODES[b].vault){
+      const mm=(DATA.mass&&DATA.mass[b])?Math.max(0.15,Math.min(3.2,DATA.mass[b][cur])):1;
+      const s=TRAY.s*Math.max(0.72,Math.min(1.35,Math.sqrt(mm/1.4)));   // vault square swells/deflates with mass too
+      storm(b,n.x,n.y,s,vis);                                 // turbulence/surge overlay for vault nodes (Gold/Silver/Crypto)
       ctx.beginPath(); ctx.roundRect(n.x-s,n.y-s,2*s,2*s,5); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
       ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.globalAlpha=ra; ctx.stroke(); ctx.globalAlpha=1;
       drawIcon(b,n.x,n.y,s*0.95,1);                          // commodity icon (Gold/Silver/Crypto)
       tagDot(n.x+s-3,n.y-s-3); valTick(n.x-s-9,n.y-s+1);
       ctx.font=FS+"px Inter,Arial"; ctx.textAlign="center";
       labelTxt(NODES[b].short+lbl, n.x, n.y-s-8, "#eef2fa"); hitNodes.push({b,x:n.x,y:n.y,r:s+6}); continue; }
+    storm(b,n.x,n.y,r,vis);                                  // turbulence(red)/surge(blue) overlay (vol x ER)
     ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fillStyle=NODES[b].color; ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
     if(FLAG[b]) drawFlag(b,n.x,n.y,r,vis);                   // country flag face
     else if(ICON[b]) drawIcon(b,n.x,n.y,r,vis);              // commodity icon (Oil/Dollar/Bonds)
@@ -1064,8 +1099,13 @@ function drawWeather(){
       ctx.fillText(`${emo} ${w.city} ${Math.round(w.temp)}°`, x, y-s*1.9-3); } }
 }
 
+// accumulated capital MASS per bucket: decaying integral of net flow (swells on inflow, deflates on outflow)
+function computeMass(){ if(!DATA||!DATA.buckets)return; DATA.mass={};
+  for(const b of DATA.buckets){ const f=DATA.flow[b]||[], n=DATA.dates.length, m=new Array(n); let acc=1.0;
+    for(let i=0;i<n;i++){ const fv=(f[i]==null)?0:f[i]; acc=Math.max(0.15,Math.min(3.2,acc*0.96+fv*0.10)); m[i]=acc; } DATA.mass[b]=m; } }
 function bootData(d){
   DATA=d; DATA.buckets=DATA.buckets.filter(b=>NODES[b]); DATA.buckets.forEach((b,k)=>BIDX[b]=k); cur=DATA.dates.length-1;
+  computeMass();
   initGL();                                                // photoreal earth (sets PHOTOREAL before first proj)
   resize(); applyMode(); slider.max=DATA.dates.length-1; slider.value=cur; setShockBar();
   setTimeout(resize, 60);                                   // re-measure once the control bar's wrapped height settles
@@ -1092,6 +1132,7 @@ function bootData(d){
       else if(isNew){ S('flow',null);S('confidence',null);S('tag',null);S('rationale',null);S('violence',null);S('violence_fwd',null);S('ret',null); } }
     const sl=document.getElementById('slider');
     if(isNew){ sl.max=DATA.dates.length-1; if(followLive){ cur=DATA.dates.length-1; sl.value=cur; } }
+    computeMass();                                                  // keep mass current as live days arrive
     if(followLive && DATA.cost) rebuild();
   }
   function poll(){ fetch(API).then(r=>r.json()).then(L=>{ if(L&&!L.error) mergeLive(L); }).catch(()=>{}); }
