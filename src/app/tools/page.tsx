@@ -6,7 +6,10 @@ export const metadata: Metadata = {
     "Interactive tools built from the research: a live US30 forward-60-minute volatility dial, and more.",
 };
 
-const tools = [
+const tools: {
+  href: string; badge: string; badgeColor: string; title: string;
+  desc: string; note?: string; cta?: string;
+}[] = [
   {
     href: "/money-flow",
     badge: "Live",
@@ -27,6 +30,15 @@ const tools = [
     badgeColor: "#1e40af",
     title: "US30 Volatility Dial",
     desc: "A live forecast of how far the Dow is likely to travel over the next 60 minutes, produced by the same LightGBM model documented in the volatility paper. Magnitude only, never direction.",
+  },
+  {
+    href: "/homefinder",
+    badge: "Private",
+    badgeColor: "#6b7280",
+    title: "Property Valuation Report",
+    desc: "A private valuation report for a personal shortlist of properties, combining HM Land Registry sold prices (time-adjusted to today), EPC floor areas, a LightGBM automated valuation model, and per-property sale history and area context. Each property gets a fair-value estimate, a price-position verdict, and a suggested offer.",
+    note: "🔒 Passkey required — not public.",
+    cta: "Enter passkey",
   },
 ];
 
@@ -54,8 +66,11 @@ export default function ToolsPage() {
                 </h2>
               </div>
               <p className="text-sm text-[#374151] leading-relaxed">{t.desc}</p>
+              {t.note && (
+                <p className="mt-2 text-xs text-[#6b7280] italic">{t.note}</p>
+              )}
               <span className="inline-block mt-3 text-sm text-[#1e40af] group-hover:underline">
-                Open tool &rarr;
+                {t.cta ?? "Open tool"} &rarr;
               </span>
             </div>
           </a>

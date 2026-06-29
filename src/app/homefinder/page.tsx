@@ -19,7 +19,16 @@ type Prop = {
   area?: { ward?: string; crime_count?: number; crime_month?: string;
            crime_top?: [string, number][]; lat?: number; lng?: number; lsoa?: string };
 };
-type Report = { generated?: string; criteria?: string; properties?: Prop[] };
+type MarketRow = {
+  address: string; beds?: number; portal?: string; url?: string; type?: string;
+  asking?: number; verdict?: string; verdict_color?: string; fair_value?: number;
+  ratio?: number; suggested_offer?: number; confidence?: string;
+};
+type Report = {
+  generated?: string; criteria?: string; properties?: Prop[];
+  market?: MarketRow[];
+  market_summary?: { total?: number; good?: number; fair?: number; over?: number };
+};
 
 const gbp = (n?: number) => (n || n === 0 ? "£" + n.toLocaleString("en-GB") : "—");
 
@@ -78,9 +87,14 @@ export default function HomeFinder() {
                 style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13 }}>Lock</button>
       </div>
       <p style={{ color: "#778", fontSize: 13 }}>
-        {props.length} propert{props.length === 1 ? "y" : "ies"} · {report.criteria || ""} ·
-        updated {report.generated ? new Date(report.generated).toLocaleString("en-GB") : ""}
+        {report.criteria || ""} · updated {report.generated ? new Date(report.generated).toLocaleString("en-GB") : ""}
       </p>
+
+      {report.market && report.market.length > 0 && <Market report={report} />}
+
+      <h2 style={{ fontSize: 18, margin: "26px 0 2px" }}>Your shortlist</h2>
+      <p style={{ color: "#889", fontSize: 12.5, marginTop: 0 }}>Detailed valuation, sale history &amp; area for the properties you're tracking.</p>
+      {props.length === 0 && <p style={{ color: "#889", fontSize: 13 }}>No shortlisted properties yet.</p>}
       {props.map((p, i) => <Card key={i} p={p} />)}
       <p style={{ color: "#9aa", fontSize: 11, marginTop: 24 }}>
         HM Land Registry sold prices (time-adjusted via UKHPI), EPC floor areas, a LightGBM AVM,
@@ -89,6 +103,96 @@ export default function HomeFinder() {
     </main>
   );
 }
+
+function Market({ report }: { report: Report }) {
+  const rows = report.market || [];
+  const s = report.market_summary || {};
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? rows : rows.slice(0, 40);
+  return (
+    <div style={card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ fontSize: 18, margin: 0 }}>Swindon market — {s.total ?? rows.length} current listings</h2>
+        <div style={{ fontSize: 12.5 }}>
+          <span style={{ color: "#0a7d28", fontWeight: 600 }}>{s.good ?? 0} good value</span> ·{" "}
+          <span style={{ color: "#b06b00" }}>{s.fair ?? 0} fair</span> ·{" "}
+          <span style={{ color: "#c01616" }}>{s.over ?? 0} overpriced</span>
+        </div>
+      </div>
+      <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
+        Every listing valued against time-adjusted sold comps. Below the diagonal = asking under fair value. Ranked best-value first.
+      </p>
+      <Scatter rows={rows} />
+      <div style={{ overflowX: "auto", marginTop: 12 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #333" }}>
+            <th style={th}>verdict</th><th style={thR}>asking</th><th style={thR}>fair</th>
+            <th style={thR}>Δ</th><th style={thR}>offer</th><th style={th}>property</th>
+          </tr></thead>
+          <tbody>
+            {shown.map((m, i) => {
+              const d = m.ratio != null ? Math.round((m.ratio - 1) * 100) : null;
+              return (
+                <tr key={i} style={{ borderBottom: "1px solid #eef" }}>
+                  <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
+                  <td style={tdR}>{gbp(m.asking)}</td>
+                  <td style={tdR}>{gbp(m.fair_value)}</td>
+                  <td style={{ ...tdR, color: m.verdict_color }}>{d != null ? `${d > 0 ? "+" : ""}${d}%` : ""}</td>
+                  <td style={tdR}>{gbp(m.suggested_offer)}</td>
+                  <td style={td}>{m.url
+                    ? <a href={m.url} target="_blank" rel="noreferrer">{m.address}</a>
+                    : m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > 40 && (
+        <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
+          {showAll ? "Show top 40" : `Show all ${rows.length}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Scatter({ rows }: { rows: MarketRow[] }) {
+  const pts = rows.filter((r) => r.asking && r.fair_value);
+  if (pts.length < 2) return null;
+  const W = 640, H = 360, padL = 56, padB = 40, padT = 12, padR = 12;
+  const vals = pts.flatMap((p) => [p.asking!, p.fair_value!]);
+  const lo = Math.min(...vals) * 0.96, hi = Math.max(...vals) * 1.04;
+  const sx = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
+  const sy = (v: number) => H - padB - ((v - lo) / (hi - lo)) * (H - padB - padT);
+  const ticks = 4;
+  const tickVals = Array.from({ length: ticks + 1 }, (_, i) => lo + ((hi - lo) * i) / ticks);
+  const k = (v: number) => `£${Math.round(v / 1000)}k`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", background: "#fcfdfe", borderRadius: 8, border: "1px solid #eef" }}>
+      {tickVals.map((tv, i) => (
+        <g key={i}>
+          <line x1={sx(tv)} y1={padT} x2={sx(tv)} y2={H - padB} stroke="#f0f3f7" />
+          <line x1={padL} y1={sy(tv)} x2={W - padR} y2={sy(tv)} stroke="#f0f3f7" />
+          <text x={sx(tv)} y={H - padB + 16} fontSize="10" fill="#889" textAnchor="middle">{k(tv)}</text>
+          <text x={padL - 8} y={sy(tv) + 3} fontSize="10" fill="#889" textAnchor="end">{k(tv)}</text>
+        </g>
+      ))}
+      <line x1={sx(lo)} y1={sy(lo)} x2={sx(hi)} y2={sy(hi)} stroke="#888" strokeDasharray="4 4" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={sx(p.asking!)} cy={sy(p.fair_value!)} r="4.5"
+          fill={p.verdict_color || "#888"} fillOpacity="0.7" stroke="#fff" strokeWidth="0.8" />
+      ))}
+      <text x={(W) / 2} y={H - 4} fontSize="11" fill="#667" textAnchor="middle">asking price →</text>
+      <text x={-H / 2} y={14} fontSize="11" fill="#667" textAnchor="middle" transform="rotate(-90)">estimated fair value →</text>
+    </svg>
+  );
+}
+
+const th: React.CSSProperties = { padding: "7px 8px" };
+const thR: React.CSSProperties = { padding: "7px 8px", textAlign: "right" };
+const td: React.CSSProperties = { padding: "6px 8px" };
+const tdR: React.CSSProperties = { padding: "6px 8px", textAlign: "right" };
 
 function Card({ p }: { p: Prop }) {
   const col = p.verdict_color || "#334";
