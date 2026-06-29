@@ -25,3 +25,13 @@ id = "85bd59695b30431589b0dce215f3da0f"
 [[r2_buckets]]
 binding = "MONEYFLOW"
 bucket_name = "moneyflow"
+
+# Private property valuation report (GET/POST /api/homefinder). Reuses the SAME KV
+# namespace under its own key ("homefinder_report") — the report updates infrequently
+# (manual/weekly), well under KV's 1,000/day cap. Two secrets gate it and are NOT
+# declared here (set via `wrangler pages secret put`, never committed):
+#   HOMEFINDER_KEY        — the passkey users type (gates the GET)
+#   HOMEFINDER_WRITE_KEY  — random; the local emitter sends it to publish (POST)
+[[kv_namespaces]]
+binding = "HOMEFINDER"
+id = "85bd59695b30431589b0dce215f3da0f"
