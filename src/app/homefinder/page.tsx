@@ -17,6 +17,7 @@ type Prop = {
   url?: string; notes?: string[];
   ratio?: number; portal?: string; uid?: string;
   crime_grade?: string; crime_count?: number; crime_penalty_pct?: number; crime_adj_offer?: number;
+  negotiation?: string[]; opening_offer?: number; epc_rating?: string; listing_update?: string;
   floor_area_source?: string; full_postcode?: string;
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
@@ -330,6 +331,19 @@ function Card({ p }: { p: Prop }) {
               {p.notes.map((n, i) => <li key={i}>{n}</li>)}
             </ul>
           )}
+        </div>
+      )}
+
+      {p.negotiation && p.negotiation.length > 0 && (
+        <div style={{ ...panel, borderLeft: "3px solid #1455c0", background: "#eef4ff" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
+            <b style={{ fontSize: 13.5 }}>💬 Reasons to negotiate the price down</b>
+            {p.opening_offer ? <span style={{ fontSize: 12.5, color: "#556" }}>suggested opening offer <b style={{ color: "#0a7d28" }}>{gbp(p.opening_offer)}</b></span> : null}
+          </div>
+          <ul style={{ fontSize: 12.5, color: "#334", margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.5 }}>
+            {p.negotiation.map((n, i) => <li key={i} style={{ marginBottom: 3 }}>{n}</li>)}
+          </ul>
+          {p.listing_update ? <div style={{ fontSize: 11.5, color: "#889", marginTop: 4 }}>Listing status: {p.listing_update}</div> : null}
         </div>
       )}
 
