@@ -10,6 +10,7 @@ type Prop = {
   address: string; postcode?: string; type?: string; beds?: number; asking?: number;
   floor_area_m2?: number; verdict?: string; verdict_color?: string;
   fair_value?: number; fair_low?: number; fair_high?: number;
+  fair_ref?: number; ref_basis?: string; median_comp_area?: number; ppm2_basis?: string;
   avm_value?: number; avm_low?: number; avm_high?: number;
   ppm2_local?: number; fair_by_area?: number; suggested_offer?: number;
   asking_pct?: number; n_comps?: number; geo_label?: string; confidence?: string;
@@ -156,7 +157,8 @@ function Market({ report }: { report: Report }) {
 
   const val = (m: Prop, k: SortKey): number => {
     if (k === "delta" || k === "ratio") return m.ratio ?? 9;
-    return (m[k as "asking" | "fair_value" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
+    if (k === "fair_value") return (m.fair_ref ?? m.fair_value ?? (sortDir === 1 ? Infinity : -Infinity));
+    return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
   const sorted = [...rows].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
   const shown = showAll ? sorted : sorted.slice(0, 40);
@@ -200,7 +202,7 @@ function Market({ report }: { report: Report }) {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                   <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
                   <td style={tdR}>{gbp(m.asking)}</td>
-                  <td style={tdR}>{gbp(m.fair_value)}</td>
+                  <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
                   <td style={{ ...tdR, color: m.verdict_color }}>{d != null ? `${d > 0 ? "+" : ""}${d}%` : ""}</td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
                   <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
@@ -274,7 +276,7 @@ const tdR: React.CSSProperties = { padding: "6px 8px", textAlign: "right" };
 
 function Card({ p }: { p: Prop }) {
   const col = p.verdict_color || "#334";
-  const ref = p.avm_value || p.fair_by_area || p.fair_value;
+  const ref = p.fair_ref ?? (p.avm_value || p.fair_by_area || p.fair_value);
   const delta = p.asking && ref ? Math.round((p.asking / ref - 1) * 100) : null;
   return (
     <div style={{ ...card, borderLeft: `5px solid ${col}` }}>
@@ -301,12 +303,12 @@ function Card({ p }: { p: Prop }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
-        <Mini title="Comparable sales" big={gbp(p.fair_value)}
+        {p.fair_by_area ? <Mini title="Similar-size comps" big={gbp(p.fair_by_area)} accent="#0a7d28"
+              sub={p.ppm2_basis || (p.ppm2_local ? `≈ £${p.ppm2_local.toLocaleString()}/m²` : "")} /> : null}
+        <Mini title="Type median (all sizes)" big={gbp(p.fair_value)}
               sub={`${gbp(p.fair_low)}–${gbp(p.fair_high)} · ${p.n_comps || 0} comps`} />
         {p.avm_value ? <Mini title="AVM (model)" big={gbp(p.avm_value)} accent="#5a3fb8"
               sub={`typical ${gbp(p.avm_low)}–${gbp(p.avm_high)}`} /> : null}
-        {p.fair_by_area ? <Mini title="£ / m²" big={gbp(p.fair_by_area)} accent="#0a7d28"
-              sub={p.ppm2_local ? `local £${p.ppm2_local.toLocaleString()}/m²` : ""} /> : null}
       </div>
 
       {(p.notes?.length || p.n_comps || p.confidence) && (
