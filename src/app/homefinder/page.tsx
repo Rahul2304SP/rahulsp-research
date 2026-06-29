@@ -16,11 +16,13 @@ type Prop = {
   asking_pct?: number; n_comps?: number; geo_label?: string; confidence?: string;
   url?: string; notes?: string[];
   ratio?: number; portal?: string; uid?: string;
+  crime_grade?: string; crime_count?: number; crime_penalty_pct?: number; crime_adj_offer?: number;
   floor_area_source?: string; full_postcode?: string;
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
   amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
-                schools?: { primary?: School; secondary?: School }; schools_link?: string };
+                schools?: { primary?: School; secondary?: School }; schools_link?: string;
+                crime?: { crime_count?: number; crime_month?: string; crime_top?: [string, number][] } };
   photos?: string[]; floorplan?: string[]; key_features?: string[];
   nearest_stations?: { name?: string; miles?: number }[];
   tenure?: string; council_tax_band?: string; epc_graph?: string; description?: string;
@@ -145,7 +147,7 @@ export default function HomeFinder() {
   );
 }
 
-type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer";
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime";
 
 function Market({ report }: { report: Report }) {
   const rows = report.market || [];
@@ -158,6 +160,7 @@ function Market({ report }: { report: Report }) {
   const val = (m: Prop, k: SortKey): number => {
     if (k === "delta" || k === "ratio") return m.ratio ?? 9;
     if (k === "fair_value") return (m.fair_ref ?? m.fair_value ?? (sortDir === 1 ? Infinity : -Infinity));
+    if (k === "crime") return m.crime_count ?? (sortDir === 1 ? Infinity : -Infinity);
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
   const sorted = [...rows].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
@@ -190,6 +193,7 @@ function Market({ report }: { report: Report }) {
             <th style={thSort} onClick={() => setSort("fair_value")}>fair{arrow("fair_value")}</th>
             <th style={thSort} onClick={() => setSort("delta")}>Δ{arrow("delta")}</th>
             <th style={thSort} onClick={() => setSort("suggested_offer")}>offer{arrow("suggested_offer")}</th>
+            <th style={thSort} onClick={() => setSort("crime")} title="Crime level vs the rest of the Swindon market (police.uk)">crime{arrow("crime")}</th>
             <th style={th}>property</th>
           </tr></thead>
           <tbody>
@@ -205,6 +209,7 @@ function Market({ report }: { report: Report }) {
                   <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
                   <td style={{ ...tdR, color: m.verdict_color }}>{d != null ? `${d > 0 ? "+" : ""}${d}%` : ""}</td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
+                  <td style={td}>{m.crime_grade ? <span style={{ color: crimeColor(m.crime_grade), fontWeight: 700, fontSize: 12 }}>{m.crime_grade}</span> : <span style={{ color: "#bbc" }}>—</span>}</td>
                   <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
                 </tr>
               );
@@ -374,6 +379,21 @@ function Card({ p }: { p: Prop }) {
         </div>
       )}
 
+      {p.crime_grade && (
+        <div style={{ ...panel, borderLeft: `3px solid ${crimeColor(p.crime_grade)}` }}>
+          🚨 Crime: <b style={{ color: crimeColor(p.crime_grade) }}>{p.crime_grade}</b>
+          {p.crime_count != null ? <span style={{ fontSize: 12.5, color: "#556" }}> · {p.crime_count} crimes/month within ~1 mile (police.uk), vs the rest of the Swindon market</span> : null}
+          {(p.amenities?.crime?.crime_top && p.amenities.crime.crime_top.length > 0) && (
+            <div style={{ fontSize: 12, color: "#778", marginTop: 3 }}>{p.amenities.crime.crime_top.map(([c, n]) => `${c.replace(/-/g, " ")} ×${n}`).join(" · ")}</div>
+          )}
+          {p.crime_penalty_pct ? (
+            <div style={{ fontSize: 12.5, color: "#b06b00", marginTop: 3 }}>
+              ⚠ {p.crime_grade} crime knocks ~{p.crime_penalty_pct}% off what it's worth to live in — crime-adjusted offer <b>{gbp(p.crime_adj_offer)}</b> (vs {gbp(p.suggested_offer)} on price alone).
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {p.amenities && (p.amenities.flood?.flood_summary || p.amenities.schools || p.amenities.schools_link) && (
         <div style={panel}>
           {(p.amenities.schools?.primary || p.amenities.schools?.secondary) && (
@@ -451,3 +471,4 @@ const panel: React.CSSProperties = { background: "#fafbfc", borderRadius: 9, pad
 const thumb: React.CSSProperties = { height: 72, width: 96, objectFit: "cover", borderRadius: 7, border: "1px solid #e3e8ee", flex: "0 0 auto" };
 const condColor = (c?: string) => ({ new: "#0a7d28", refurbished: "#0a7d28", good: "#1455c0", dated: "#b06b00", needs_work: "#c01616" }[c || ""] || "#445");
 const ofstedColor = (g?: string) => ({ Outstanding: "#0a7d28", Good: "#1455c0", "Requires improvement": "#b06b00", Inadequate: "#c01616" }[g || ""] || "#667");
+const crimeColor = (g?: string) => ({ Low: "#0a7d28", Moderate: "#1455c0", Elevated: "#b06b00", High: "#c01616" }[g || ""] || "#889");
