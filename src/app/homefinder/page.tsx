@@ -14,6 +14,7 @@ type Prop = {
   ppm2_local?: number; fair_by_area?: number; suggested_offer?: number;
   asking_pct?: number; n_comps?: number; geo_label?: string; confidence?: string;
   url?: string; notes?: string[];
+  ratio?: number; portal?: string; uid?: string;
   floor_area_source?: string; full_postcode?: string;
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
@@ -28,15 +29,14 @@ type Prop = {
            crime_top?: [string, number][]; lat?: number; lng?: number; lsoa?: string };
 };
 type School = { name?: string; miles?: number; ofsted?: string; ofsted_date?: string; postcode?: string };
-type MarketRow = {
-  address: string; beds?: number; portal?: string; url?: string; type?: string;
-  asking?: number; verdict?: string; verdict_color?: string; fair_value?: number;
-  ratio?: number; suggested_offer?: number; confidence?: string;
-};
+// A market row now carries the full valuation basis + enrichment, so the
+// click-through detail view can render the same depth as a shortlist card.
+type MarketRow = Prop;
 type Report = {
   generated?: string; criteria?: string; properties?: Prop[];
   market?: MarketRow[];
   market_summary?: { total?: number; good?: number; fair?: number; over?: number };
+  refresh_state?: string;
 };
 
 const gbp = (n?: number) => (n || n === 0 ? "£" + n.toLocaleString("en-GB") : "—");
@@ -46,6 +46,28 @@ export default function HomeFinder() {
   const [report, setReport] = useState<Report | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState("");
+
+  async function requestRefresh() {
+    const k = sessionStorage.getItem("hf_key") || key;
+    setRefreshing(true); setRefreshMsg("");
+    try {
+      const r = await fetch("/api/homefinder", {
+        method: "POST",
+        headers: { "x-homefinder-key": k, "content-type": "application/json" },
+        body: JSON.stringify({ action: "request_refresh" }),
+      });
+      if (r.ok) {
+        setRefreshMsg("Refresh requested — your home PC will re-scrape new listings and re-publish shortly. Re-open the report in a few minutes.");
+      } else if (r.status === 401) {
+        setRefreshMsg("Passkey rejected.");
+      } else {
+        setRefreshMsg("Couldn't request a refresh (" + r.status + ").");
+      }
+    } catch { setRefreshMsg("Network error requesting refresh."); }
+    setTimeout(() => setRefreshing(false), 4000);
+  }
 
   async function load(k: string) {
     setLoading(true); setErr("");
@@ -90,14 +112,23 @@ export default function HomeFinder() {
   const props = report.properties || [];
   return (
     <main style={wrap}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
         <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>🏡 Private Valuation Report</h1>
-        <button onClick={() => { sessionStorage.removeItem("hf_key"); setReport(null); setKey(""); }}
-                style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13 }}>Lock</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={requestRefresh} disabled={refreshing}
+                  title="Re-scrape new listings, OCR floor plans and re-value (runs on the home PC; only new properties cost compute)"
+                  style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13, background: refreshing ? "#9bb" : "#0a7d28" }}>
+            {refreshing ? "Refresh requested…" : "↻ Refresh data"}
+          </button>
+          <button onClick={() => { sessionStorage.removeItem("hf_key"); setReport(null); setKey(""); }}
+                  style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13 }}>Lock</button>
+        </div>
       </div>
       <p style={{ color: "#778", fontSize: 13 }}>
         {report.criteria || ""} · updated {report.generated ? new Date(report.generated).toLocaleString("en-GB") : ""}
+        {report.refresh_state === "running" ? <span style={{ color: "#0a7d28" }}> · refresh running…</span> : null}
       </p>
+      {refreshMsg && <p style={{ color: "#0a7d28", fontSize: 12.5, marginTop: -4 }}>{refreshMsg}</p>}
 
       {report.market && report.market.length > 0 && <Market report={report} />}
 
@@ -113,11 +144,28 @@ export default function HomeFinder() {
   );
 }
 
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer";
+
 function Market({ report }: { report: Report }) {
   const rows = report.market || [];
   const s = report.market_summary || {};
   const [showAll, setShowAll] = useState(false);
-  const shown = showAll ? rows : rows.slice(0, 40);
+  const [sortKey, setSortKey] = useState<SortKey>("ratio");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+  const [sel, setSel] = useState<Prop | null>(null);
+
+  const val = (m: Prop, k: SortKey): number => {
+    if (k === "delta" || k === "ratio") return m.ratio ?? 9;
+    return (m[k as "asking" | "fair_value" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
+  };
+  const sorted = [...rows].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
+  const shown = showAll ? sorted : sorted.slice(0, 40);
+  const setSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir(sortDir === 1 ? -1 : 1);
+    else { setSortKey(k); setSortDir(k === "ratio" ? 1 : -1); }
+  };
+  const arrow = (k: SortKey) => (sortKey === k ? (sortDir === 1 ? " ▲" : " ▼") : "");
+
   return (
     <div style={card}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
@@ -129,28 +177,33 @@ function Market({ report }: { report: Report }) {
         </div>
       </div>
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
-        Every listing valued against time-adjusted sold comps. Below the diagonal = asking under fair value. Ranked best-value first.
+        Every listing valued against time-adjusted sold comps. Click a column to sort; click a row for the full valuation basis.
       </p>
       <Scatter rows={rows} />
       <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #333" }}>
-            <th style={th}>verdict</th><th style={thR}>asking</th><th style={thR}>fair</th>
-            <th style={thR}>Δ</th><th style={thR}>offer</th><th style={th}>property</th>
+            <th style={th}>verdict</th>
+            <th style={thSort} onClick={() => setSort("asking")}>asking{arrow("asking")}</th>
+            <th style={thSort} onClick={() => setSort("fair_value")}>fair{arrow("fair_value")}</th>
+            <th style={thSort} onClick={() => setSort("delta")}>Δ{arrow("delta")}</th>
+            <th style={thSort} onClick={() => setSort("suggested_offer")}>offer{arrow("suggested_offer")}</th>
+            <th style={th}>property</th>
           </tr></thead>
           <tbody>
             {shown.map((m, i) => {
               const d = m.ratio != null ? Math.round((m.ratio - 1) * 100) : null;
               return (
-                <tr key={i} style={{ borderBottom: "1px solid #eef" }}>
+                <tr key={m.uid || i} onClick={() => setSel(m)}
+                    style={{ borderBottom: "1px solid #eef", cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f7f9fc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                   <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
                   <td style={tdR}>{gbp(m.asking)}</td>
                   <td style={tdR}>{gbp(m.fair_value)}</td>
                   <td style={{ ...tdR, color: m.verdict_color }}>{d != null ? `${d > 0 ? "+" : ""}${d}%` : ""}</td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
-                  <td style={td}>{m.url
-                    ? <a href={m.url} target="_blank" rel="noreferrer">{m.address}</a>
-                    : m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
+                  <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
                 </tr>
               );
             })}
@@ -162,6 +215,21 @@ function Market({ report }: { report: Report }) {
           {showAll ? "Show top 40" : `Show all ${rows.length}`}
         </button>
       )}
+      {sel && <DetailModal p={sel} onClose={() => setSel(null)} />}
+    </div>
+  );
+}
+
+function DetailModal({ p, onClose }: { p: Prop; onClose: () => void }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,25,35,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "4vh 12px" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 720, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,.3)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid #eef" }}>
+          <b style={{ fontSize: 15 }}>Full valuation report</b>
+          <button onClick={onClose} style={{ ...btn, width: "auto", padding: "4px 12px", fontSize: 13, background: "#eef2f8", color: "#334" }}>Close ✕</button>
+        </div>
+        <div style={{ padding: "4px 16px 16px" }}><Card p={p} /></div>
+      </div>
     </div>
   );
 }
@@ -200,6 +268,7 @@ function Scatter({ rows }: { rows: MarketRow[] }) {
 
 const th: React.CSSProperties = { padding: "7px 8px" };
 const thR: React.CSSProperties = { padding: "7px 8px", textAlign: "right" };
+const thSort: React.CSSProperties = { padding: "7px 8px", textAlign: "right", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "6px 8px" };
 const tdR: React.CSSProperties = { padding: "6px 8px", textAlign: "right" };
 
@@ -239,6 +308,23 @@ function Card({ p }: { p: Prop }) {
         {p.fair_by_area ? <Mini title="£ / m²" big={gbp(p.fair_by_area)} accent="#0a7d28"
               sub={p.ppm2_local ? `local £${p.ppm2_local.toLocaleString()}/m²` : ""} /> : null}
       </div>
+
+      {(p.notes?.length || p.n_comps || p.confidence) && (
+        <div style={panel}>
+          <b style={{ fontSize: 13 }}>How this verdict was reached</b>
+          <div style={{ fontSize: 12.5, color: "#445", marginTop: 4 }}>
+            {p.n_comps ? <span>Valued against <b>{p.n_comps}</b> sold {p.type} comps in {p.geo_label || "the area"}, time-adjusted to today. </span> : null}
+            {p.asking_pct != null ? <span>Asking is pricier than <b>{Math.round(p.asking_pct)}%</b> of them. </span> : null}
+            <span>Confidence: <b style={{ color: p.confidence === "high" ? "#0a7d28" : p.confidence === "low" ? "#c01616" : "#b06b00" }}>{p.confidence || "—"}</b>
+              {p.confidence === "low" ? " (no full postcode on the listing — town-level comps only)." : "."}</span>
+          </div>
+          {p.notes && p.notes.length > 0 && (
+            <ul style={{ fontSize: 12, color: "#667", margin: "5px 0 0", paddingLeft: 18 }}>
+              {p.notes.map((n, i) => <li key={i}>{n}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
 
       {p.condition && p.condition.condition && (
         <div style={panel}>
