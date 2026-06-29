@@ -14,11 +14,20 @@ type Prop = {
   ppm2_local?: number; fair_by_area?: number; suggested_offer?: number;
   asking_pct?: number; n_comps?: number; geo_label?: string; confidence?: string;
   url?: string; notes?: string[];
+  floor_area_source?: string; full_postcode?: string;
+  condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
+                confidence?: number; issues?: string[]; highlights?: string[] };
+  amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
+                schools?: { primary?: School; secondary?: School }; schools_link?: string };
+  photos?: string[]; floorplan?: string[]; key_features?: string[];
+  nearest_stations?: { name?: string; miles?: number }[];
+  tenure?: string; council_tax_band?: string; epc_graph?: string; description?: string;
   history?: { last_date?: string; last_price?: number; years_ago?: number;
               index_implied_today?: number; index_growth_pct?: number; sales?: [string, number][] };
   area?: { ward?: string; crime_count?: number; crime_month?: string;
            crime_top?: [string, number][]; lat?: number; lng?: number; lsoa?: string };
 };
+type School = { name?: string; miles?: number; ofsted?: string; ofsted_date?: string; postcode?: string };
 type MarketRow = {
   address: string; beds?: number; portal?: string; url?: string; type?: string;
   asking?: number; verdict?: string; verdict_color?: string; fair_value?: number;
@@ -204,7 +213,10 @@ function Card({ p }: { p: Prop }) {
         <div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>{p.address}</div>
           <div style={{ color: "#778", fontSize: 13 }}>
-            {p.type}{p.beds ? ` · ${p.beds} bed` : ""}{p.floor_area_m2 ? ` · ${Math.round(p.floor_area_m2)} m²` : ""}
+            {p.type}{p.beds ? ` · ${p.beds} bed` : ""}
+            {p.floor_area_m2 ? ` · ${Math.round(p.floor_area_m2)} m² (${Math.round(p.floor_area_m2 * 10.764).toLocaleString()} sq ft${
+              p.floor_area_source === "ocr" ? ", floor-plan" : p.floor_area_source ? ", agent" : ""})` : ""}
+            {p.full_postcode ? ` · ${p.full_postcode}` : ""}
           </div>
         </div>
         <span style={{ background: col, color: "#fff", padding: "5px 11px", borderRadius: 16, fontWeight: 700, fontSize: 13, height: "fit-content" }}>
@@ -227,6 +239,78 @@ function Card({ p }: { p: Prop }) {
         {p.fair_by_area ? <Mini title="£ / m²" big={gbp(p.fair_by_area)} accent="#0a7d28"
               sub={p.ppm2_local ? `local £${p.ppm2_local.toLocaleString()}/m²` : ""} /> : null}
       </div>
+
+      {p.condition && p.condition.condition && (
+        <div style={panel}>
+          <b style={{ fontSize: 13 }}>🛠️ Condition (from photos)</b>{" "}
+          <span style={{ fontSize: 13, fontWeight: 700, color: condColor(p.condition.condition) }}>
+            {p.condition.condition_label || p.condition.condition}
+            {p.condition.value_adjustment_pct ? ` (${p.condition.value_adjustment_pct > 0 ? "+" : ""}${p.condition.value_adjustment_pct}% vs avg)` : ""}
+          </span>
+          {p.condition.highlights && p.condition.highlights.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "#0a7d28", marginTop: 4 }}>✓ {p.condition.highlights.join(" · ")}</div>
+          )}
+          {p.condition.issues && p.condition.issues.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "#b06b00", marginTop: 2 }}>⚠ {p.condition.issues.join(" · ")}</div>
+          )}
+        </div>
+      )}
+
+      {((p.photos && p.photos.length > 0) || (p.floorplan && p.floorplan.length > 0)) && (
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", margin: "10px 0 0", paddingBottom: 4 }}>
+          {(p.floorplan || []).map((u, i) => (
+            <a key={`f${i}`} href={u} target="_blank" rel="noreferrer">
+              <img src={u} alt="floor plan" style={thumb} /></a>
+          ))}
+          {(p.photos || []).map((u, i) => (
+            <a key={`p${i}`} href={u} target="_blank" rel="noreferrer">
+              <img src={u} alt="" style={thumb} /></a>
+          ))}
+        </div>
+      )}
+
+      {p.key_features && p.key_features.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "10px 0 0" }}>
+          {p.key_features.map((k, i) => (
+            <span key={i} style={{ fontSize: 11.5, background: "#eef2f8", color: "#445", padding: "3px 8px", borderRadius: 12 }}>{k}</span>
+          ))}
+        </div>
+      )}
+
+      {(p.tenure || p.council_tax_band || (p.nearest_stations && p.nearest_stations.length > 0) || p.epc_graph) && (
+        <div style={{ fontSize: 12.5, color: "#667", margin: "10px 0 0" }}>
+          {p.tenure ? <span>{p.tenure[0].toUpperCase() + p.tenure.slice(1).toLowerCase()}</span> : null}
+          {p.council_tax_band ? <span> · Council tax {p.council_tax_band}</span> : null}
+          {p.nearest_stations && p.nearest_stations[0] ? <span> · {p.nearest_stations[0].name} {p.nearest_stations[0].miles != null ? `${p.nearest_stations[0].miles.toFixed(1)} mi` : ""}</span> : null}
+          {p.epc_graph ? <span> · <a href={p.epc_graph} target="_blank" rel="noreferrer">EPC ↗</a></span> : null}
+        </div>
+      )}
+
+      {p.amenities && (p.amenities.flood?.flood_summary || p.amenities.schools || p.amenities.schools_link) && (
+        <div style={panel}>
+          {(p.amenities.schools?.primary || p.amenities.schools?.secondary) && (
+            <div style={{ fontSize: 12.5, color: "#445", marginBottom: 4 }}>
+              🏫 {(["primary", "secondary"] as const).map((ph) => {
+                const s = p.amenities!.schools![ph];
+                if (!s) return null;
+                return (
+                  <span key={ph} style={{ marginRight: 12 }}>
+                    Nearest {ph}: <b>{s.name}</b> ({s.miles} mi)
+                    {s.ofsted ? <span style={{ color: ofstedColor(s.ofsted), fontWeight: 700 }}>{" "}· Ofsted {s.ofsted}{s.ofsted_date ? ` ${s.ofsted_date.slice(0, 4)}` : ""}</span> : <span style={{ color: "#889" }}> · not graded</span>}
+                  </span>
+                );
+              })}
+              {p.amenities.schools_link && <a href={p.amenities.schools_link} target="_blank" rel="noreferrer" style={{ marginLeft: 4 }}>all ↗</a>}
+            </div>
+          )}
+          {!p.amenities.schools && p.amenities.schools_link && (
+            <div style={{ fontSize: 12.5 }}>🏫 <a href={p.amenities.schools_link} target="_blank" rel="noreferrer">Nearest schools &amp; Ofsted ratings ↗</a></div>
+          )}
+          {p.amenities.flood?.flood_summary && (
+            <div style={{ fontSize: 12.5, color: "#445" }}>🌊 {p.amenities.flood.flood_summary}</div>
+          )}
+        </div>
+      )}
 
       {p.history && p.history.sales && p.history.sales.length > 0 && (
         <div style={panel}>
@@ -276,3 +360,6 @@ const input: React.CSSProperties = { width: "100%", padding: "11px 13px", fontSi
 const btn: React.CSSProperties = { width: "100%", padding: "11px", fontSize: 15, fontWeight: 600, color: "#fff", background: "#1455c0", border: "none", borderRadius: 9, cursor: "pointer" };
 const card: React.CSSProperties = { background: "#fff", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 5px rgba(0,0,0,.07)", margin: "14px 0" };
 const panel: React.CSSProperties = { background: "#fafbfc", borderRadius: 9, padding: "10px 13px", margin: "10px 0 0" };
+const thumb: React.CSSProperties = { height: 72, width: 96, objectFit: "cover", borderRadius: 7, border: "1px solid #e3e8ee", flex: "0 0 auto" };
+const condColor = (c?: string) => ({ new: "#0a7d28", refurbished: "#0a7d28", good: "#1455c0", dated: "#b06b00", needs_work: "#c01616" }[c || ""] || "#445");
+const ofstedColor = (g?: string) => ({ Outstanding: "#0a7d28", Good: "#1455c0", "Requires improvement": "#b06b00", Inadequate: "#c01616" }[g || ""] || "#667");
