@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Private property valuation report. Gated by a passkey checked server-side by
 // /api/homefinder against the HOMEFINDER_KEY secret (never shipped to the client).
@@ -15,7 +15,7 @@ type Prop = {
   ppm2_local?: number; fair_by_area?: number; suggested_offer?: number;
   asking_pct?: number; n_comps?: number; geo_label?: string; confidence?: string;
   url?: string; notes?: string[];
-  ratio?: number; portal?: string; uid?: string;
+  ratio?: number; portal?: string; uid?: string; lat?: number; lon?: number;
   crime_grade?: string; crime_count?: number; crime_penalty_pct?: number; crime_adj_offer?: number;
   negotiation?: string[]; opening_offer?: number; epc_rating?: string; listing_update?: string;
   floor_area_source?: string; full_postcode?: string;
@@ -166,7 +166,7 @@ function Market({ report }: { report: Report }) {
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [sel, setSel] = useState<Prop | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [view, setView] = useState<"table" | "gallery">("table");
+  const [view, setView] = useState<"table" | "gallery" | "map">("table");
 
   // remember the user's must-have toggles across visits
   useEffect(() => {
@@ -232,11 +232,11 @@ function Market({ report }: { report: Report }) {
           {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
         </span>
         <span style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid #cdd6e0", borderRadius: 8, overflow: "hidden" }}>
-          {(["table", "gallery"] as const).map((mode) => (
+          {(["table", "gallery", "map"] as const).map((mode) => (
             <button key={mode} onClick={() => setView(mode)}
               style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", border: "none", cursor: "pointer",
                 background: view === mode ? "#1455c0" : "#fff", color: view === mode ? "#fff" : "#667" }}>
-              {mode === "table" ? "▦ Table" : "🖼️ Gallery"}
+              {mode === "table" ? "▦ Table" : mode === "gallery" ? "🖼️ Gallery" : "🗺️ Map"}
             </button>
           ))}
         </span>
@@ -275,12 +275,14 @@ function Market({ report }: { report: Report }) {
           </tbody>
         </table>
       </div>
-      ) : (
+      ) : view === "gallery" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 12, marginTop: 12 }}>
           {shown.map((m, i) => <GalleryTile key={m.uid || i} m={m} onClick={() => setSel(m)} />)}
         </div>
+      ) : (
+        <MapView rows={filtered} onSelect={setSel} />
       )}
-      {sorted.length > 40 && (
+      {view !== "map" && sorted.length > 40 && (
         <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
           {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
@@ -299,6 +301,73 @@ function DetailModal({ p, onClose, allAsking }: { p: Prop; onClose: () => void; 
           <button onClick={onClose} style={{ ...btn, width: "auto", padding: "4px 12px", fontSize: 13, background: "#eef2f8", color: "#334" }}>Close ✕</button>
         </div>
         <div style={{ padding: "4px 16px 16px" }}><Card p={p} allAsking={allAsking} /></div>
+      </div>
+    </div>
+  );
+}
+
+// Verdict-coloured pins on a Swindon map. Leaflet is loaded from CDN on demand
+// (like KaTeX) so we add no npm dependency to the static build.
+function MapView({ rows, onSelect }: { rows: Prop[]; onSelect: (p: Prop) => void }) {
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapObj = useRef<unknown>(null);
+  const layer = useRef<unknown>(null);
+  const fitted = useRef(false);
+  const [ready, setReady] = useState(false);
+  const rowKey = rows.map((r) => r.uid || "").join("|");
+
+  useEffect(() => {
+    const w = window as unknown as { L?: unknown };
+    if (w.L) { setReady(true); return; }
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css"; link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+    let s = document.getElementById("leaflet-js") as HTMLScriptElement | null;
+    if (!s) {
+      s = document.createElement("script");
+      s.id = "leaflet-js"; s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      s.onload = () => setReady(true);
+      document.body.appendChild(s);
+    } else { s.addEventListener("load", () => setReady(true)); }
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !mapRef.current || mapObj.current) return;
+    const L = (window as unknown as { L: any }).L;
+    const map = L.map(mapRef.current).setView([51.5558, -1.7797], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
+    mapObj.current = map;
+    layer.current = L.layerGroup().addTo(map);
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready || !mapObj.current || !layer.current) return;
+    const L = (window as unknown as { L: any }).L;
+    const lg = layer.current as any;
+    lg.clearLayers();
+    const pts = rows.filter((r) => r.lat && r.lon);
+    pts.forEach((r) => {
+      const d = r.ratio != null ? Math.round((r.ratio - 1) * 100) : null;
+      const mk = L.circleMarker([r.lat, r.lon], { radius: 7, color: "#fff", weight: 1.2, fillColor: r.verdict_color || "#888", fillOpacity: 0.9 });
+      mk.bindTooltip(`${gbp(r.asking)}${d != null ? ` · ${d > 0 ? "+" : ""}${d}%` : ""}`, { direction: "top" });
+      mk.on("click", () => onSelect(r));
+      mk.addTo(lg);
+    });
+    if (!fitted.current && pts.length) {
+      try { (mapObj.current as any).fitBounds(pts.map((r) => [r.lat, r.lon]), { padding: [30, 30], maxZoom: 14 }); fitted.current = true; } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, rowKey]);
+
+  const withGeo = rows.filter((r) => r.lat && r.lon).length;
+  return (
+    <div>
+      <div ref={mapRef} style={{ height: 460, borderRadius: 10, marginTop: 12, border: "1px solid #e6eaf0" }} />
+      <div style={{ fontSize: 11.5, color: "#889", marginTop: 4 }}>
+        {withGeo} of {rows.length} mapped · pin colour = verdict (green good value → red overpriced) · click a pin for the full report
       </div>
     </div>
   );
