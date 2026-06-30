@@ -68,7 +68,7 @@
   <div id="hud">
     <div id="title">World Money-Flow Map</div>
     <div id="head"></div>
-    <div id="sub">DESCRIPTIVE: fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto sit in the vault tray below.</div>
+    <div id="sub">DESCRIPTIVE: fused flow inference (measured where it exists, price + risk-off reasoning elsewhere). Not a forecast. Gold/Silver/Crypto/Copper sit in the vault tray below.</div>
     <div id="shockbar"></div>
   </div>
   <div id="legend">
@@ -79,10 +79,9 @@
     <div>Reasoned (risk-off)<span class="tagdot" style="background:#caa14a"></span></div>
     <div>Implied (price only)<span class="tagdot" style="background:#7a8197"></span></div>
     <div style="margin-top:5px"><span style="color:#46e08a;font-weight:700">✓</span> validated vs real foreign/physical flow</div>
-    <div style="margin-top:5px;color:#6f778c">ring = confidence · stream = expected violence</div>
+    <div style="margin-top:5px;color:#6f778c">ring = confidence · stream width = expected violence</div>
+    <div style="color:#6f778c">stream colour = where the flow comes from</div>
     <div style="margin-top:3px;color:#6f778c">arrows = risk-on/off rotation (havens ⇄ risk)</div>
-    <div style="margin-top:5px"><span style="color:#ff6a55;font-weight:700">⚠</span> geopolitical shock (GPR)</div>
-    <div style="color:#6f778c"><span style="color:#46e08a">→</span> shock response: equities → USD (validated)</div>
   </div>
   <div id="tip"></div>
   <div id="hint"></div>
@@ -95,7 +94,6 @@
       <button data-w="5" class="win on">Week</button>
       <button data-w="21" class="win">Month</button>
     </div>
-    <button id="shockToggle" class="on">⚠ Shocks</button>
     <button id="wxToggle" class="on">☁ Clouds</button>
     <button id="mapBtn">Map: Satellite</button>
     <input id="slider" type="range" min="0" max="0" value="0">
@@ -104,7 +102,7 @@
 </div>
 <script>
 let DATA;                         // set by bootData(): inlined (local file) or fetched (web build)
-const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 48.85, "lon": 2.35, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Taiwan": {"lat": 25.03, "lon": 121.56, "color": "#3fd6c4", "short": "Taiwan"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Brazil": {"lat": -23.55, "lon": -46.63, "color": "#5fc46a", "short": "Brazil"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}};
+const NODES = {"US Indices": {"lat": 41.0, "lon": -74.0, "color": "#ffd54a", "short": "US"}, "UK": {"lat": 51.5, "lon": -0.1, "color": "#39c8d6", "short": "UK"}, "Eurozone": {"lat": 50.1, "lon": 8.7, "color": "#7fb3ff", "short": "EZ"}, "France": {"lat": 47.0, "lon": 2.6, "color": "#6c79e0", "short": "FR"}, "Germany": {"lat": 52.5, "lon": 13.4, "color": "#4a90e2", "short": "DE"}, "Spain": {"lat": 40.4, "lon": -3.7, "color": "#46b39d", "short": "ES"}, "Japan": {"lat": 35.7, "lon": 139.7, "color": "#ff5aa6", "short": "Japan"}, "China": {"lat": 31.2, "lon": 121.5, "color": "#ee4444", "short": "China"}, "Hong Kong": {"lat": 22.3, "lon": 114.2, "color": "#ff9a7a", "short": "HK"}, "Australia": {"lat": -33.9, "lon": 151.2, "color": "#c77dd6", "short": "Australia"}, "India": {"lat": 19.08, "lon": 72.88, "color": "#f0932b", "short": "India"}, "Taiwan": {"lat": 25.03, "lon": 121.56, "color": "#3fd6c4", "short": "Taiwan"}, "Russia": {"lat": 62.0, "lon": 95.0, "color": "#b03a48", "short": "Russia"}, "Brazil": {"lat": -23.55, "lon": -46.63, "color": "#5fc46a", "short": "Brazil"}, "Oil": {"lat": 25.0, "lon": 47.0, "color": "#ff8a3d", "short": "Oil"}, "US Dollar": {"lat": 47.0, "lon": -100.0, "color": "#46c878", "short": "Dollar $"}, "Euro": {"lat": 45.5, "lon": 9.2, "color": "#3f9e7a", "short": "Euro"}, "Yen": {"lat": 34.7, "lon": 135.5, "color": "#d96f8f", "short": "Yen"}, "Pound": {"lat": 54.3, "lon": -2.3, "color": "#6f8fd6", "short": "Pound"}, "Aussie Dollar": {"lat": -31.95, "lon": 115.86, "color": "#c77dd6", "short": "AUD"}, "Bonds": {"lat": 32.0, "lon": -97.0, "color": "#9aa3b2", "short": "Bonds"}, "Gold": {"vault": true, "vaultSlot": 0, "color": "#ffb031", "short": "Gold"}, "Silver": {"vault": true, "vaultSlot": 1, "color": "#c8ccd6", "short": "Silver"}, "Crypto": {"vault": true, "vaultSlot": 2, "color": "#a07bff", "short": "Crypto"}, "Copper": {"vault": true, "vaultSlot": 3, "color": "#c87f4a", "short": "Copper"}};
 const SHOCK = {
   "schema": 1,
   "as_of_utc": "2026-06-24T17:00:00Z",
@@ -282,7 +280,7 @@ const SHOCK = {
   "peak_label": "September 2001",
   "label": "Severe"
 };           // geopolitical-risk snapshot (gpr_snapshot.json / /api/gpr); null if none
-let showShocks = true;
+let showShocks = false;   // GPR geopolitical-shock overlay (⚠ markers + equities→USD arc + shock bar) taken off the map
 const WEATHER = {
   "as_of_utc": "2026-06-24T14:00:00Z",
   "cities": [
@@ -560,7 +558,8 @@ function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
   if(glReady){ glr.setSize(W,H); }                         // photoreal earth canvas tracks the viewport
   R0=Math.min(W,H)*0.42; if(!curScale) curScale=defScale();
   TRAY.s=Math.max(14,Math.min(22,W*0.02));
-  TRAY.dx=Math.min(150,W*0.21); TRAY.x0=W/2-TRAY.dx;
+  const NV=Object.values(NODES).filter(n=>n.vault).length;   // vault item count -> keep tray centered & sized for any N
+  TRAY.dx=Math.min(150,W*0.21)*Math.min(1,3/NV); TRAY.x0=W/2-(NV-1)/2*TRAY.dx;
   const ctlEl=document.getElementById('ctl'); let ctlTop=H-(MOBILE?120:64);
   if(ctlEl){ const rc=ctlEl.getBoundingClientRect(); if(rc.height>0) ctlTop=rc.top; }
   TRAY.y=Math.round(ctlTop-(MOBILE?18:14)-TRAY.s);          // vault sits fully above the (wrapped) control bar
@@ -569,9 +568,18 @@ function resize(){ const dpr=Math.min(3, window.devicePixelRatio||1);
 window.addEventListener('resize', resize);
 
 // ---- per-node screen position + visibility (gradual edge-fade on the globe) ----
+// FAN-OUT declutter: cross-cutting asset-class nodes (currencies/credit) are anchored at their financial
+// hub but the MARKER is pushed out on a screen-space spoke (NODES[b].fan = {a:deg, r:px}); bx,by remember the
+// true hub point so the draw loop can connect a thin leader line. Keeps geography (both ends are projected).
+function _fan(b, pos){
+  const f=NODES[b].fan;
+  if(!f || !pos) return pos;
+  const a=f.a*Math.PI/180;
+  return {...pos, x:pos.x+f.r*Math.cos(a), y:pos.y+f.r*Math.sin(a), bx:pos.x, by:pos.y};
+}
 function nodePos(b){
   if(NODES[b].vault) return {x:TRAY.x0+NODES[b].vaultSlot*TRAY.dx, y:TRAY.y, vis:1};
-  if(mode==='2d'){ const p=projection([NODES[b].lon,NODES[b].lat]); return p?{x:p[0],y:p[1],vis:1}:null; }
+  if(mode==='2d'){ const p=projection([NODES[b].lon,NODES[b].lat]); return p?_fan(b,{x:p[0],y:p[1],vis:1}):null; }
   const c=projection.rotate(), center=[-c[0],-c[1]], ll=[NODES[b].lon,NODES[b].lat];
   const d=d3.geoDistance(ll, center), hz=HORIZON();
   let p, off=false;
@@ -579,7 +587,7 @@ function nodePos(b){
   else { off=true; p=projection(d3.geoInterpolate(center, ll)((hz - 0.02)/d)); }   // past horizon -> rim (flagged)
   if(!p) return null;
   const vis=Math.max(0.10, Math.min(1, 1.12 - (d/hz)));   // 1 facing us, ~0.10 at the rim
-  return {x:p[0], y:p[1], vis, off, q:d/hz};               // q = rim-distance ratio (0 facing .. >=1 over the edge)
+  return _fan(b, {x:p[0], y:p[1], vis, off, q:d/hz});      // q = rim-distance ratio (0 facing .. >=1 over the edge)
 }
 
 // ---- evidence accessors ----
@@ -674,11 +682,16 @@ function geoLL(b){ return [NODES[b].lon, NODES[b].lat]; }
 
 let particles=[], links=[], curFlows=null, hitNodes=[];
 function rebuild(){ curFlows=flowsAt(cur);
+  // preserve particle PHASE across rebuilds: rebuild() re-runs on every live poll (~60s); regenerating t with
+  // Math.random() each time teleported all particles at once -> a periodic "jerk". Carry t forward per flow
+  // (keyed by src->dst) so persistent streams keep flowing continuously; only genuinely new flows start fresh.
+  const prevT={}; for(const p of particles){ const L=links[p.li]; if(!L) continue; const k=L.src+'>'+L.dst; (prevT[k]||(prevT[k]=[])).push(p.t); }
   links=curFlows.links.map(l=>({src:l.src,dst:l.dst,w:l.w,conf:l.conf}));
   particles=[]; for(let li=0; li<links.length; li++){ const L=links[li];
     const vm=Math.min(4.5,(violTrail(L.src,cur)+violTrail(L.dst,cur))/2);
     const nP=Math.max(2, Math.round(L.w*18*vm)), spB=0.003+0.0035*Math.min(2.2,vm);
-    for(let k=0;k<nP;k++) particles.push({li, t:Math.random(), sp:spB+Math.random()*0.004}); }
+    const pool=prevT[L.src+'>'+L.dst]||[];
+    for(let k=0;k<nP;k++) particles.push({li, t:(pool.length?pool.shift():Math.random()), sp:spB+Math.random()*0.004}); }
   const ins=curFlows.inflow.sort((p,q)=>q[1]-p[1]).map(p=>p[0]);
   const outs=curFlows.outflow.sort((p,q)=>q[1]-p[1]).map(p=>p[0]);
   const head=document.getElementById('head');
@@ -726,14 +739,15 @@ function drawFlatEarth(){                              // 2D base: styled equire
 }
 // node faces: country FLAGS (geographic markets) + small ICONS (commodities/stores) so the blobs read at a glance
 const FLAG={"US Indices":"us","UK":"gb","Eurozone":"eu","France":"fr","Germany":"de","Spain":"es",
-  "Japan":"jp","China":"cn","Hong Kong":"hk","Australia":"au","India":"in","Russia":"ru"};
-const ICON={"Oil":"🛢️","US Dollar":"💵","Bonds":"📜","Gold":"🥇","Silver":"🥈","Crypto":"₿"};
+  "Japan":"jp","China":"cn","Hong Kong":"hk","Australia":"au","India":"in","Russia":"ru","Brazil":"br","Taiwan":"tw"};
+const ICON={"Oil":"🛢️","US Dollar":"💵","Bonds":"📜","Gold":"🥇","Silver":"🥈","Crypto":"₿","Euro":"€","Yen":"¥","Pound":"£","Aussie Dollar":"A$","Copper":"Cu"};
 const flagImgs={};
 for(const b in FLAG){ const im=new Image(); im.crossOrigin='anonymous'; im.src=`https://flagcdn.com/w80/${FLAG[b]}.png`; flagImgs[b]=im; }
 function drawFlag(b,x,y,r,alpha){ const im=flagImgs[b]; if(!im||!im.complete||!im.naturalWidth) return false;
   ctx.save(); ctx.globalAlpha=alpha; ctx.beginPath(); ctx.arc(x,y,r,0,6.283); ctx.clip();
   const sc=Math.max(2*r/im.naturalWidth, 2*r/im.naturalHeight), dw=im.naturalWidth*sc, dh=im.naturalHeight*sc;
   ctx.drawImage(im, x-dw/2, y-dh/2, dw, dh); ctx.restore(); return true; }
+function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }   // streams tinted by SOURCE node colour
 function drawIcon(b,x,y,r,alpha){ const ic=ICON[b]; if(!ic) return false;
   ctx.save(); ctx.globalAlpha=alpha; ctx.font=`${(r*1.5).toFixed(0)}px "Segoe UI Emoji",Inter,Arial`;
   ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff"; ctx.fillText(ic, x, y+1);
@@ -794,18 +808,19 @@ function draw(){
     if(mode==='3d' && !sV && !dV) return {kind:'arc', src:L.src, dst:L.dst, w:L.w, conf:L.conf, gc:greatCircle(geoLL(L.src),geoLL(L.dst),40)};
     if(mode==='3d'){ const vSrc=sV, vEnd=vSrc?ps:pd, mEnd=vSrc?pd:ps;   // vault end vs market end
       const f=rimF(mEnd.q!=null?mEnd.q:0);                              // tray-tray (no q) -> f=0 -> straight
-      return {kind:'vault', dst:L.dst, w:L.w, conf:L.conf, dirVtoR:vSrc, f, ...mkUnified(vEnd,mEnd)}; }
-    return {kind:'bez', a:ps, b:pd, c:ctrl(ps,pd), w:L.w, conf:L.conf, dst:L.dst, vis:Math.max(0.5,Math.min(ps.vis,pd.vis))};
+      return {kind:'vault', src:L.src, dst:L.dst, w:L.w, conf:L.conf, dirVtoR:vSrc, f, ...mkUnified(vEnd,mEnd)}; }
+    return {kind:'bez', a:ps, b:pd, c:ctrl(ps,pd), w:L.w, conf:L.conf, src:L.src, dst:L.dst, vis:Math.max(0.5,Math.min(ps.vis,pd.vis))};
   });
 
   // faint arcs (great-circle ones are clipped to the visible hemisphere by the projection)
   for(let i=0;i<plans.length;i++){ const P=plans[i]; if(!P) continue; const cf=P.conf||0, lw0=1+Math.min(6,P.w*5);
+    const scol=(P.src&&NODES[P.src])?NODES[P.src].color:"#5aa0ff";   // stream tinted by where the money COMES FROM
     if(P.kind==='arc'){ ctx.beginPath(); path({type:"LineString", coordinates:P.gc});
-      ctx.strokeStyle=`rgba(90,160,255,${(0.05+0.16*cf).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); }
+      ctx.strokeStyle=hexA(scol, +(0.07+0.22*cf).toFixed(3)); ctx.lineWidth=lw0; ctx.stroke(); }
     else if(P.kind==='vault'){ ctx.beginPath(); for(let k=0;k<=44;k++){ const q=vaultAt(P,k/44); if(k===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }
-      ctx.strokeStyle=`rgba(90,160,255,${(0.05+0.16*cf).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); }
+      ctx.strokeStyle=hexA(scol, +(0.07+0.22*cf).toFixed(3)); ctx.lineWidth=lw0; ctx.stroke(); }
     else { const va=mode==='3d'?Math.max(0.5,P.vis):1; ctx.beginPath(); ctx.moveTo(P.a.x,P.a.y); ctx.quadraticCurveTo(P.c.x,P.c.y,P.b.x,P.b.y);
-      ctx.strokeStyle=`rgba(90,160,255,${((0.05+0.16*cf)*va).toFixed(3)})`; ctx.lineWidth=lw0; ctx.stroke(); } }
+      ctx.strokeStyle=hexA(scol, +((0.07+0.22*cf)*va).toFixed(3)); ctx.lineWidth=lw0; ctx.stroke(); } }
 
   // particles: on great-circle flows they sink behind the globe and reappear on the near side
   ctx.globalCompositeOperation="lighter";
@@ -817,13 +832,19 @@ function draw(){
     else if(P.kind==='vault'){ const s=P.dirVtoR?p.t:1-p.t; const pt=vaultAt(P,s); x=pt.x; y=pt.y;
       const fade=s>0.88?Math.max(0.12,(1-s)/0.12):1; ctx.globalAlpha=1+(fade-1)*P.f; }   // fade behind the rim only when wrapping
     else { const pt=qpt(P.a,P.c,P.b,p.t); x=pt.x; y=pt.y; ctx.globalAlpha=mode==='3d'?Math.max(0.35,P.vis):1; }
-    const col=NODES[P.dst].color;
+    ctx.globalAlpha *= Math.min(1, Math.min(p.t,1-p.t)/0.05);   // fade in at source / out at destination -> the loop wrap (t:1->0) is invisible, no teleport seam
+    const col=(P.src&&NODES[P.src])?NODES[P.src].color:NODES[P.dst].color;   // particle carries its SOURCE colour
     ctx.beginPath(); ctx.arc(x,y,2.1,0,6.283); ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8; ctx.fill(); }
   ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.globalCompositeOperation="source-over";
 
   // nodes: fade gradually by visibility (never hard-disappear)
   hitNodes=[];
   for(const b in NODES){ const n=Ppos[b]; if(!n) continue; const vis=n.vis, r=nodeRadius(b);
+    if(n.bx!=null){                                          // fan-out leader: hub anchor -> displaced marker
+      ctx.save(); ctx.strokeStyle=NODES[b].color; ctx.globalAlpha=0.30*vis; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(n.bx,n.by); ctx.lineTo(n.x,n.y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.globalAlpha=0.55*vis; ctx.beginPath(); ctx.arc(n.bx,n.by,2.1,0,6.283); ctx.fillStyle=NODES[b].color; ctx.fill();
+      ctx.restore(); }
     const v=curFlows?curFlows.net[b]:null, ring=v==null?"#888":(v>0?"#46e08a":"#e85a5a");
     const c=conf(b,cur), tg=tagOf(b,cur), tcol=TAGCOL[tg]||"#7a8197";
     const lw=1.3+3.4*c, ra=(0.30+0.70*c)*vis, fa=(0.30+0.65*Math.max(0,Math.min(1,(c-0.5)/0.45)))*vis;
@@ -1135,10 +1156,11 @@ function bootData(d){
     computeMass();                                                  // keep mass current as live days arrive
     if(followLive && DATA.cost) rebuild();
   }
-  function poll(){ fetch(API).then(r=>r.json()).then(L=>{ if(L&&!L.error) mergeLive(L); }).catch(()=>{}); }
-  fetch(API+"?k=history").then(r=>r.json()).then(h=>{
+  const PREVIEW=new URLSearchParams(location.search).has('preview');   // ?preview -> local preview_data.json, no live poll
+  function poll(){ if(PREVIEW) return; fetch(API).then(r=>r.json()).then(L=>{ if(L&&!L.error) mergeLive(L); }).catch(()=>{}); }
+  fetch(PREVIEW ? './preview_data.json' : API+"?k=history").then(r=>r.json()).then(h=>{
     if(h.error){ head.textContent='live data warming up, check back shortly'; return; }
-    bootData(h); poll(); setInterval(poll, 60000);
+    bootData(h); if(!PREVIEW){ poll(); setInterval(poll, 60000); }
     const sl=document.getElementById('slider');
     sl.addEventListener('input', ()=>{ followLive = (+sl.value >= DATA.dates.length-1); });
   }).catch(()=>{ head.textContent='data unavailable'; });
