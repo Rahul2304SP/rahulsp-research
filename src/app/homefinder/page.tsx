@@ -19,11 +19,17 @@ type Prop = {
   crime_grade?: string; crime_count?: number; crime_penalty_pct?: number; crime_adj_offer?: number;
   negotiation?: string[]; opening_offer?: number; epc_rating?: string; listing_update?: string;
   floor_area_source?: string; full_postcode?: string;
+  has_garden?: boolean; has_parking?: boolean; south_garden?: boolean; busy_road?: boolean;
+  council_tax_cost?: number; epc_potential?: string;
+  own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
+                    index_implied_today?: number; index_growth_pct?: number };
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
   amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
                 schools?: { primary?: School; secondary?: School }; schools_link?: string;
-                crime?: { crime_count?: number; crime_month?: string; crime_top?: [string, number][] } };
+                crime?: { crime_count?: number; crime_month?: string; crime_top?: [string, number][] };
+                road_rail?: { busy_road?: boolean; major_road_m?: number; major_road_name?: string;
+                              railway_m?: number; road_rail_summary?: string } };
   photos?: string[]; floorplan?: string[]; key_features?: string[];
   nearest_stations?: { name?: string; miles?: number }[];
   tenure?: string; council_tax_band?: string; epc_graph?: string; description?: string;
@@ -150,13 +156,46 @@ export default function HomeFinder() {
 
 type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime";
 
+type Filters = { beds3: boolean; garden: boolean; parking: boolean; quiet: boolean };
+const DEFAULT_FILTERS: Filters = { beds3: true, garden: true, parking: true, quiet: true };
+
 function Market({ report }: { report: Report }) {
   const rows = report.market || [];
-  const s = report.market_summary || {};
   const [showAll, setShowAll] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("ratio");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [sel, setSel] = useState<Prop | null>(null);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+
+  // remember the user's must-have toggles across visits
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("hf_filters");
+      if (saved) setFilters({ ...DEFAULT_FILTERS, ...JSON.parse(saved) });
+    } catch { /* ignore */ }
+  }, []);
+  const flip = (k: keyof Filters) => setFilters((f) => {
+    const next = { ...f, [k]: !f[k] };
+    try { localStorage.setItem("hf_filters", JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
+
+  // must-have filters: only ever HIDE on a known-failing value, never on unknowns
+  const matches = (m: Prop): boolean => {
+    if (filters.beds3 && (m.beds ?? 3) < 3) return false;
+    if (filters.garden && m.has_garden === false) return false;
+    if (filters.parking && m.has_parking === false) return false;
+    if (filters.quiet && m.busy_road === true) return false;
+    return true;
+  };
+  const filtered = rows.filter(matches);
+  const hidden = rows.length - filtered.length;
+  const s = {
+    total: filtered.length,
+    good: filtered.filter((m) => m.ratio && m.ratio < 0.97).length,
+    fair: filtered.filter((m) => m.ratio && m.ratio >= 0.97 && m.ratio < 1.03).length,
+    over: filtered.filter((m) => m.ratio && m.ratio >= 1.03).length,
+  };
 
   const val = (m: Prop, k: SortKey): number => {
     if (k === "delta" || k === "ratio") return m.ratio ?? 9;
@@ -164,7 +203,7 @@ function Market({ report }: { report: Report }) {
     if (k === "crime") return m.crime_count ?? (sortDir === 1 ? Infinity : -Infinity);
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
-  const sorted = [...rows].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
+  const sorted = [...filtered].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
   const shown = showAll ? sorted : sorted.slice(0, 40);
   const setSort = (k: SortKey) => {
     if (k === sortKey) setSortDir(sortDir === 1 ? -1 : 1);
@@ -175,17 +214,27 @@ function Market({ report }: { report: Report }) {
   return (
     <div style={card}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ fontSize: 18, margin: 0 }}>Swindon market — {s.total ?? rows.length} current listings</h2>
+        <h2 style={{ fontSize: 18, margin: 0 }}>Swindon market — {s.total} of {rows.length} listings</h2>
         <div style={{ fontSize: 12.5 }}>
-          <span style={{ color: "#0a7d28", fontWeight: 600 }}>{s.good ?? 0} good value</span> ·{" "}
-          <span style={{ color: "#b06b00" }}>{s.fair ?? 0} fair</span> ·{" "}
-          <span style={{ color: "#c01616" }}>{s.over ?? 0} overpriced</span>
+          <span style={{ color: "#0a7d28", fontWeight: 600 }}>{s.good} good value</span> ·{" "}
+          <span style={{ color: "#b06b00" }}>{s.fair} fair</span> ·{" "}
+          <span style={{ color: "#c01616" }}>{s.over} overpriced</span>
         </div>
+      </div>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", margin: "8px 0 2px" }}>
+        <span style={{ fontSize: 12, color: "#778", fontWeight: 600 }}>Must-haves:</span>
+        <FilterPill on={filters.beds3} onClick={() => flip("beds3")} label="3+ beds" />
+        <FilterPill on={filters.garden} onClick={() => flip("garden")} label="🌳 Garden" />
+        <FilterPill on={filters.parking} onClick={() => flip("parking")} label="🅿️ Parking" />
+        <FilterPill on={filters.quiet} onClick={() => flip("quiet")} label="🔇 Quiet road" />
+        <span style={{ fontSize: 11.5, color: "#aab" }}>
+          {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
+        </span>
       </div>
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
         Every listing valued against time-adjusted sold comps. Click a column to sort; click a row for the full valuation basis.
       </p>
-      <Scatter rows={rows} />
+      <Scatter rows={filtered} />
       <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #333" }}>
@@ -218,9 +267,9 @@ function Market({ report }: { report: Report }) {
           </tbody>
         </table>
       </div>
-      {rows.length > 40 && (
+      {sorted.length > 40 && (
         <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
-          {showAll ? "Show top 40" : `Show all ${rows.length}`}
+          {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
       )}
       {sel && <DetailModal p={sel} onClose={() => setSel(null)} />}
@@ -393,6 +442,41 @@ function Card({ p }: { p: Prop }) {
         </div>
       )}
 
+      {(p.has_garden != null || p.council_tax_cost || p.amenities?.road_rail?.road_rail_summary) && (
+        <div style={panel}>
+          <b style={{ fontSize: 13 }}>🏡 Living here</b>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "5px 0" }}>
+            {p.has_garden ? <Tag c="#0a7d28">🌳 Garden{p.south_garden ? " · S-facing" : ""}</Tag>
+              : p.has_garden === false ? <Tag c="#b06b00">No garden mentioned</Tag> : null}
+            {p.has_parking ? <Tag c="#0a7d28">🅿️ Parking / garage</Tag>
+              : p.has_parking === false ? <Tag c="#b06b00">No parking mentioned</Tag> : null}
+            {p.busy_road === true ? <Tag c="#c01616">🔊 On a busy road / railway</Tag>
+              : p.busy_road === false ? <Tag c="#1455c0">🔇 Quiet for routes</Tag> : null}
+          </div>
+          {p.council_tax_cost ? (
+            <div style={{ fontSize: 12.5, color: "#445" }}>Council tax ≈ <b>£{p.council_tax_cost.toLocaleString()}/yr</b>
+              {p.council_tax_band ? ` (band ${p.council_tax_band})` : ""}</div>
+          ) : null}
+          {p.amenities?.road_rail?.road_rail_summary ? (
+            <div style={{ fontSize: 12.5, color: "#556", marginTop: 2 }}>🛣️ {p.amenities.road_rail.road_rail_summary}</div>
+          ) : null}
+        </div>
+      )}
+
+      {p.own_last_sale?.last_price && (
+        <div style={panel}>
+          <b style={{ fontSize: 13 }}>What the seller paid</b>
+          <div style={{ fontSize: 12.5, color: "#445", marginTop: 4 }}>
+            Last sold {p.own_last_sale.last_date} for <b>{gbp(p.own_last_sale.last_price)}</b>
+            {p.own_last_sale.years_ago != null ? ` (${p.own_last_sale.years_ago} yr ago)` : ""}.
+            {p.own_last_sale.index_implied_today ? (
+              <> Local index implies <b>{gbp(p.own_last_sale.index_implied_today)}</b> today
+                {p.own_last_sale.index_growth_pct != null ? ` (${p.own_last_sale.index_growth_pct > 0 ? "+" : ""}${p.own_last_sale.index_growth_pct}%)` : ""}.</>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {p.crime_grade && (
         <div style={{ ...panel, borderLeft: `3px solid ${crimeColor(p.crime_grade)}` }}>
           🚨 Crime: <b style={{ color: crimeColor(p.crime_grade) }}>{p.crime_grade}</b>
@@ -465,6 +549,20 @@ function Card({ p }: { p: Prop }) {
   );
 }
 
+const FilterPill = ({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) => (
+  <button onClick={onClick} title={on ? "On — hiding non-matches. Click to show all." : "Off — not filtering. Click to require it."}
+    style={{
+      fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 14, cursor: "pointer",
+      border: on ? "1px solid #0a7d28" : "1px solid #cdd6e0",
+      background: on ? "#e7f6ec" : "#fff", color: on ? "#0a7d28" : "#99a3b0",
+      textDecoration: on ? "none" : "line-through",
+    }}>
+    {on ? "✓ " : ""}{label}
+  </button>
+);
+const Tag = ({ c, children }: { c: string; children: React.ReactNode }) => (
+  <span style={{ fontSize: 11.5, fontWeight: 600, color: c, background: c + "14", border: `1px solid ${c}40`, padding: "2px 8px", borderRadius: 11 }}>{children}</span>
+);
 const Kpi = ({ label, value, color }: { label: string; value: string; color?: string }) => (
   <div><div style={{ fontSize: 12, color: "#889" }}>{label}</div>
     <div style={{ fontSize: 20, fontWeight: 700, color: color || "#1a1f29" }}>{value}</div></div>
