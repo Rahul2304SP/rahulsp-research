@@ -166,6 +166,7 @@ function Market({ report }: { report: Report }) {
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [sel, setSel] = useState<Prop | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [view, setView] = useState<"table" | "gallery">("table");
 
   // remember the user's must-have toggles across visits
   useEffect(() => {
@@ -230,26 +231,34 @@ function Market({ report }: { report: Report }) {
         <span style={{ fontSize: 11.5, color: "#aab" }}>
           {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
         </span>
+        <span style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid #cdd6e0", borderRadius: 8, overflow: "hidden" }}>
+          {(["table", "gallery"] as const).map((mode) => (
+            <button key={mode} onClick={() => setView(mode)}
+              style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", border: "none", cursor: "pointer",
+                background: view === mode ? "#1455c0" : "#fff", color: view === mode ? "#fff" : "#667" }}>
+              {mode === "table" ? "▦ Table" : "🖼️ Gallery"}
+            </button>
+          ))}
+        </span>
       </div>
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
-        Every listing valued against time-adjusted sold comps. Click a column to sort; click a row for the full valuation basis.
+        Every listing valued against time-adjusted sold comps. Click a column to sort; click a card for the full valuation basis.
       </p>
       <Scatter rows={filtered} />
+      {view === "table" ? (
       <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #333" }}>
             <th style={th}>verdict</th>
             <th style={thSort} onClick={() => setSort("asking")}>asking{arrow("asking")}</th>
             <th style={thSort} onClick={() => setSort("fair_value")}>fair{arrow("fair_value")}</th>
-            <th style={thSort} onClick={() => setSort("delta")}>Δ{arrow("delta")}</th>
+            <th style={thSort} onClick={() => setSort("delta")}>vs fair{arrow("delta")}</th>
             <th style={thSort} onClick={() => setSort("suggested_offer")}>offer{arrow("suggested_offer")}</th>
-            <th style={thSort} onClick={() => setSort("crime")} title="Crime level vs the rest of the Swindon market (police.uk)">crime{arrow("crime")}</th>
+            <th style={th}>features</th>
             <th style={th}>property</th>
           </tr></thead>
           <tbody>
-            {shown.map((m, i) => {
-              const d = m.ratio != null ? Math.round((m.ratio - 1) * 100) : null;
-              return (
+            {shown.map((m, i) => (
                 <tr key={m.uid || i} onClick={() => setSel(m)}
                     style={{ borderBottom: "1px solid #eef", cursor: "pointer" }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#f7f9fc")}
@@ -257,27 +266,31 @@ function Market({ report }: { report: Report }) {
                   <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
                   <td style={tdR}>{gbp(m.asking)}</td>
                   <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
-                  <td style={{ ...tdR, color: m.verdict_color }}>{d != null ? `${d > 0 ? "+" : ""}${d}%` : ""}</td>
+                  <td style={td}><ValueBar ratio={m.ratio} color={m.verdict_color} /></td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
-                  <td style={td}>{m.crime_grade ? <span style={{ color: crimeColor(m.crime_grade), fontWeight: 700, fontSize: 12 }}>{m.crime_grade}</span> : <span style={{ color: "#bbc" }}>—</span>}</td>
+                  <td style={td}><AtAGlance p={m} /></td>
                   <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
                 </tr>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 12, marginTop: 12 }}>
+          {shown.map((m, i) => <GalleryTile key={m.uid || i} m={m} onClick={() => setSel(m)} />)}
+        </div>
+      )}
       {sorted.length > 40 && (
         <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
           {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
       )}
-      {sel && <DetailModal p={sel} onClose={() => setSel(null)} />}
+      {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} />}
     </div>
   );
 }
 
-function DetailModal({ p, onClose }: { p: Prop; onClose: () => void }) {
+function DetailModal({ p, onClose, allAsking }: { p: Prop; onClose: () => void; allAsking?: number[] }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,25,35,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "4vh 12px" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 720, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,.3)" }}>
@@ -285,7 +298,7 @@ function DetailModal({ p, onClose }: { p: Prop; onClose: () => void }) {
           <b style={{ fontSize: 15 }}>Full valuation report</b>
           <button onClick={onClose} style={{ ...btn, width: "auto", padding: "4px 12px", fontSize: 13, background: "#eef2f8", color: "#334" }}>Close ✕</button>
         </div>
-        <div style={{ padding: "4px 16px 16px" }}><Card p={p} /></div>
+        <div style={{ padding: "4px 16px 16px" }}><Card p={p} allAsking={allAsking} /></div>
       </div>
     </div>
   );
@@ -329,10 +342,11 @@ const thSort: React.CSSProperties = { padding: "7px 8px", textAlign: "right", cu
 const td: React.CSSProperties = { padding: "6px 8px" };
 const tdR: React.CSSProperties = { padding: "6px 8px", textAlign: "right" };
 
-function Card({ p }: { p: Prop }) {
+function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
   const col = p.verdict_color || "#334";
   const ref = p.fair_ref ?? (p.avm_value || p.fair_by_area || p.fair_value);
   const delta = p.asking && ref ? Math.round((p.asking / ref - 1) * 100) : null;
+  const fit = Math.round((scoreAxes(p).reduce((s, a) => s + a.v, 0) / 6) * 100);
   return (
     <div style={{ ...card, borderLeft: `5px solid ${col}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -364,6 +378,26 @@ function Card({ p }: { p: Prop }) {
               sub={`${gbp(p.fair_low)}–${gbp(p.fair_high)} · ${p.n_comps || 0} comps`} />
         {p.avm_value ? <Mini title="AVM (model)" big={gbp(p.avm_value)} accent="#5a3fb8"
               sub={`typical ${gbp(p.avm_low)}–${gbp(p.avm_high)}`} /> : null}
+      </div>
+
+      <div style={{ ...panel, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <Radar p={p} />
+          <div style={{ fontSize: 11, color: "#889", marginTop: -6 }}>fit score</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#1455c0", lineHeight: 1 }}>{fit}<span style={{ fontSize: 12, color: "#aab" }}>/100</span></div>
+        </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <b style={{ fontSize: 13 }}>How it scores</b>
+          <div style={{ fontSize: 12, color: "#778", margin: "2px 0 6px" }}>
+            Value · Size · Condition · Quiet · Safety · Schools — bigger shape = better fit. A first cut of the Ideal-Home score.
+          </div>
+          {allAsking && allAsking.length >= 8 && (
+            <>
+              <div style={{ fontSize: 12, color: "#556", fontWeight: 600 }}>Where its asking price sits in the market</div>
+              <PriceHistogram all={allAsking} mine={p.asking} color={col} />
+            </>
+          )}
+        </div>
       </div>
 
       {(p.notes?.length || p.n_comps || p.confidence) && (
@@ -545,6 +579,135 @@ function Card({ p }: { p: Prop }) {
       )}
 
       {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#1455c0" }}>View listing ↗</a>}
+    </div>
+  );
+}
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+// compact at-a-glance feature icons for a listing (read symbols, not sentences)
+function AtAGlance({ p }: { p: Prop }) {
+  const sch = p.amenities?.schools;
+  const ofsted = sch?.primary?.ofsted || sch?.secondary?.ofsted || "";
+  const items: { t: string; title: string; c: string }[] = [];
+  if (p.has_garden) items.push({ t: "🌳", title: "Garden" + (p.south_garden ? " · south-facing" : ""), c: "#0a7d28" });
+  if (p.has_parking) items.push({ t: "🅿️", title: "Parking / garage", c: "#0a7d28" });
+  if (p.busy_road === true) items.push({ t: "🔊", title: "On/near a busy road or railway", c: "#c01616" });
+  else if (p.busy_road === false) items.push({ t: "🔇", title: "Quiet for routes", c: "#1455c0" });
+  if (p.crime_grade) items.push({ t: "🚨", title: `${p.crime_grade} crime area`, c: crimeColor(p.crime_grade) });
+  if (ofsted) items.push({ t: "🏫", title: `Nearest school Ofsted: ${ofsted}`, c: ofstedColor(ofsted) });
+  if (p.amenities?.flood?.flood_areas_nearby) items.push({ t: "💧", title: "Within a flood-warning area", c: "#b06b00" });
+  if (!items.length) return null;
+  return (
+    <span style={{ display: "inline-flex", gap: 5, alignItems: "center", verticalAlign: "middle" }}>
+      {items.map((it, i) => (
+        <span key={i} title={it.title}
+          style={{ fontSize: 12, lineHeight: 1, paddingBottom: 1, borderBottom: `2px solid ${it.c}` }}>{it.t}</span>
+      ))}
+    </span>
+  );
+}
+
+// horizontal gauge: how far asking sits above/below fair (centre = on the money)
+function ValueBar({ ratio, color }: { ratio?: number; color?: string }) {
+  if (ratio == null) return <span style={{ color: "#bbc" }}>—</span>;
+  const pct = Math.round((ratio - 1) * 100);
+  const clamped = Math.max(-25, Math.min(25, pct));
+  const half = 30, w = (Math.abs(clamped) / 25) * half;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+      <span style={{ position: "relative", width: half * 2, height: 8, background: "#eef1f5", borderRadius: 4, display: "inline-block" }}>
+        <span style={{ position: "absolute", left: half, top: -1, width: 1, height: 10, background: "#aab" }} />
+        <span style={{ position: "absolute", top: 0, height: 8, borderRadius: 4, background: color || "#888",
+          left: clamped < 0 ? half - w : half, width: w }} />
+      </span>
+      <span style={{ fontSize: 12, color: color || "#445", fontWeight: 600 }}>{pct > 0 ? "+" : ""}{pct}%</span>
+    </span>
+  );
+}
+
+// 0–1 score per axis — the visual preview of the future Ideal-Home Fit Score
+function scoreAxes(p: Prop): { label: string; v: number }[] {
+  const ratio = p.ratio ?? 1;
+  const value = clamp01(1 - (ratio - 0.85) / 0.30);              // 0.85×→1.0, 1.15×→0.0
+  const size = clamp01((p.floor_area_m2 || 0) / 130);           // 130 m² = full marks
+  const adj = p.condition?.value_adjustment_pct;
+  const condition = adj == null ? 0.5 : clamp01((adj + 12) / 18); // −12%→0, +6%→1
+  const quiet = p.busy_road === true ? 0 : p.busy_road === false ? 1 : 0.5;
+  const safety = ({ Low: 1, Moderate: 0.66, Elevated: 0.33, High: 0 } as Record<string, number>)[p.crime_grade || ""] ?? 0.5;
+  const ofsted = p.amenities?.schools?.primary?.ofsted || p.amenities?.schools?.secondary?.ofsted || "";
+  const schools = ({ Outstanding: 1, Good: 0.78, "Requires improvement": 0.4, Inadequate: 0.12 } as Record<string, number>)[ofsted] ?? 0.5;
+  return [
+    { label: "Value", v: value }, { label: "Size", v: size }, { label: "Condition", v: condition },
+    { label: "Quiet", v: quiet }, { label: "Safety", v: safety }, { label: "Schools", v: schools },
+  ];
+}
+
+function Radar({ p }: { p: Prop }) {
+  const axes = scoreAxes(p);
+  const N = axes.length, R = 50, cx = 70, cy = 66;
+  const ang = (i: number) => (Math.PI * 2 * i) / N - Math.PI / 2;
+  const pt = (i: number, r: number): [number, number] => [cx + Math.cos(ang(i)) * R * r, cy + Math.sin(ang(i)) * R * r];
+  const overall = Math.round((axes.reduce((s, a) => s + a.v, 0) / N) * 100);
+  return (
+    <svg viewBox="0 0 140 134" style={{ width: 148, height: 142, flex: "0 0 auto" }}>
+      {[0.25, 0.5, 0.75, 1].map((r, i) => (
+        <polygon key={i} points={axes.map((_, j) => pt(j, r).join(",")).join(" ")} fill="none" stroke="#e6eaf0" strokeWidth="0.7" />
+      ))}
+      {axes.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e6eaf0" strokeWidth="0.7" />; })}
+      <polygon points={axes.map((a, i) => pt(i, a.v).join(",")).join(" ")} fill="#1455c044" stroke="#1455c0" strokeWidth="1.5" />
+      {axes.map((a, i) => { const [x, y] = pt(i, 1.2); return (
+        <text key={i} x={x} y={y} fontSize="7.5" fill="#667" textAnchor="middle" dominantBaseline="middle">{a.label}</text>); })}
+    </svg>
+  );
+}
+
+function PriceHistogram({ all, mine, color }: { all: number[]; mine?: number; color?: string }) {
+  if (all.length < 8 || !mine) return null;
+  const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
+  const bins = 20, w = 260, h = 54;
+  const counts = new Array(bins).fill(0);
+  all.forEach((v) => { counts[Math.min(bins - 1, Math.floor(((v - lo) / span) * bins))]++; });
+  const max = Math.max(...counts, 1);
+  const mineBin = Math.min(bins - 1, Math.floor(((mine - lo) / span) * bins));
+  const bw = w / bins;
+  return (
+    <svg viewBox={`0 0 ${w} ${h + 15}`} style={{ width: "100%", maxWidth: 320 }}>
+      {counts.map((c, i) => (
+        <rect key={i} x={i * bw} y={h - (c / max) * h} width={bw - 1} height={(c / max) * h} rx="1"
+          fill={i === mineBin ? (color || "#1455c0") : "#dde3ec"} />
+      ))}
+      <text x={0} y={h + 12} fontSize="8" fill="#889">£{Math.round(lo / 1000)}k</text>
+      <text x={w} y={h + 12} fontSize="8" fill="#889" textAnchor="end">£{Math.round(hi / 1000)}k</text>
+      <text x={Math.max(12, Math.min(w - 12, (mineBin + 0.5) * bw))} y={h - (counts[mineBin] / max) * h - 2}
+        fontSize="8" fill={color || "#1455c0"} textAnchor="middle" fontWeight="700">this one</text>
+    </svg>
+  );
+}
+
+function GalleryTile({ m, onClick }: { m: Prop; onClick: () => void }) {
+  const col = m.verdict_color || "#888";
+  const d = m.ratio != null ? Math.round((m.ratio - 1) * 100) : null;
+  const img = (m.photos && m.photos[0]) || "";
+  return (
+    <div onClick={onClick} style={{ cursor: "pointer", border: "1px solid #e6eaf0", borderTop: `4px solid ${col}`,
+      borderRadius: 10, overflow: "hidden", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}>
+      <div style={{ height: 122, background: "#eef1f5", position: "relative" }}>
+        {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#aab", fontSize: 12 }}>no photo</div>}
+        {d != null && <span style={{ position: "absolute", top: 6, right: 6, background: col, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{d > 0 ? "+" : ""}{d}%</span>}
+      </div>
+      <div style={{ padding: "8px 10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+          <b style={{ fontSize: 14 }}>{gbp(m.asking)}</b>
+          <span style={{ fontSize: 11, color: "#889" }}>fair {gbp(m.fair_ref ?? m.fair_value)}</span>
+        </div>
+        <div style={{ fontSize: 12, color: "#445", margin: "2px 0 5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.address}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <AtAGlance p={m} />
+          <span style={{ fontSize: 10.5, color: "#aab" }}>{m.beds ? `${m.beds} bed` : ""}</span>
+        </div>
+      </div>
     </div>
   );
 }
