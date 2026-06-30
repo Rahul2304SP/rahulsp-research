@@ -454,8 +454,8 @@ function Card({ p }: { p: Prop }) {
               : p.busy_road === false ? <Tag c="#1455c0">🔇 Quiet for routes</Tag> : null}
           </div>
           {p.council_tax_cost ? (
-            <div style={{ fontSize: 12.5, color: "#445" }}>Council tax ≈ <b>£{p.council_tax_cost.toLocaleString()}/yr</b>
-              {p.council_tax_band ? ` (band ${p.council_tax_band})` : ""}</div>
+            <div style={{ fontSize: 12.5, color: "#445" }}>Council tax <b>£{p.council_tax_cost.toLocaleString()}/yr</b>
+              {" "}(≈£{Math.round(p.council_tax_cost / 12)}/mo){p.council_tax_band ? ` · band ${p.council_tax_band}` : ""}</div>
           ) : null}
           {p.amenities?.road_rail?.road_rail_summary ? (
             <div style={{ fontSize: 12.5, color: "#556", marginTop: 2 }}>🛣️ {p.amenities.road_rail.road_rail_summary}</div>
