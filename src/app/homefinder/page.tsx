@@ -160,7 +160,7 @@ export default function HomeFinder() {
   );
 }
 
-type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime";
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size";
 
 type Filters = { beds3: boolean; garden: boolean; parking: boolean; quiet: boolean };
 const DEFAULT_FILTERS: Filters = { beds3: true, garden: true, parking: true, quiet: true };
@@ -207,6 +207,7 @@ function Market({ report }: { report: Report }) {
   const val = (m: Prop, k: SortKey): number => {
     if (k === "delta" || k === "ratio") return m.ratio ?? 9;
     if (k === "fair_value") return (m.fair_ref ?? m.fair_value ?? (sortDir === 1 ? Infinity : -Infinity));
+    if (k === "size") return m.floor_area_m2 ?? (sortDir === 1 ? Infinity : -Infinity);   // unknowns always sink
     if (k === "crime") return m.crime_count ?? (sortDir === 1 ? Infinity : -Infinity);
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
@@ -260,6 +261,7 @@ function Market({ report }: { report: Report }) {
             <th style={thSort} onClick={() => setSort("fair_value")}>fair{arrow("fair_value")}</th>
             <th style={thSort} onClick={() => setSort("delta")}>vs fair{arrow("delta")}</th>
             <th style={thSort} onClick={() => setSort("suggested_offer")}>offer{arrow("suggested_offer")}</th>
+            <th style={thSort} onClick={() => setSort("size")}>sq ft{arrow("size")}</th>
             <th style={th}>features</th>
             <th style={th}>property</th>
           </tr></thead>
@@ -274,6 +276,7 @@ function Market({ report }: { report: Report }) {
                   <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
                   <td style={td}><ValueBar ratio={m.ratio} color={m.verdict_color} /></td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
+                  <td style={tdR}>{m.floor_area_m2 ? Math.round(m.floor_area_m2 * 10.764).toLocaleString() : <span style={{ color: "#c2cad3" }}>—</span>}</td>
                   <td style={td}><AtAGlance p={m} /></td>
                   <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
                 </tr>
