@@ -24,7 +24,11 @@ type Prop = {
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
                     index_implied_today?: number; index_growth_pct?: number };
   orientation?: { verdict?: string; north_method?: string; score?: number;
-                  rooms?: { type?: string; sector?: string; bearing?: number }[] };
+                  rooms?: { type?: string; sector?: string; bearing?: number }[];
+                  geom?: { A?: number | null; facing?: number | null;
+                           centres?: Record<string, [number, number]>;
+                           rooms?: { type?: string; x?: number; y?: number; floor?: number }[];
+                           entrance?: { type?: string; x?: number; y?: number; floor?: number } | null } };
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
   amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
@@ -568,7 +572,7 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
         </div>
       )}
 
-      {p.orientation?.verdict && <Orientation o={p.orientation} />}
+      {p.orientation?.verdict && <Orientation o={p.orientation} floorplan={p.floorplan?.[0]} pid={p.uid || p.address || ""} />}
 
       {p.own_last_sale?.last_price && (
         <div style={panel}>
@@ -802,9 +806,80 @@ const ORIENT_VCOL: Record<string, string> = { Good: "#2f8f5b", Mixed: "#c98a1e",
 const STCOL: Record<string, string> = { ok: "#2f8f5b", warn: "#c98a1e", bad: "#c0392b", neutral: "#98a4b0" };
 const bxy = (b: number, r: number): [number, number] => [50 + r * Math.sin(b * Math.PI / 180), 50 - r * Math.cos(b * Math.PI / 180)];
 
-function Orientation({ o }: { o: NonNullable<Prop["orientation"]> }) {
-  const rooms = (o.rooms || []).filter((r) => r.sector);
-  const verdict = o.verdict || "Can't tell";
+// --- client-side re-orientation (so a user's front-door fix recomputes instantly) ---
+const SECTORS8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const sectorOf = (b: number) => SECTORS8[Math.floor(((((b % 360) + 360) % 360) + 22.5) / 45) % 8];
+const phiOf = (x: number, y: number, c: [number, number]) =>
+  (((Math.atan2(x - c[0], -(y - c[1])) * 180) / Math.PI) % 360 + 360) % 360;
+const FACING_DEG: Record<string, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
+type RoomS = { type?: string; sector?: string; bearing?: number };
+// port of orientation.apply_rules → the same PASS/WEAK/FAIL logic, in words
+function vastuVerdict(rooms: RoomS[]): { verdict: string; score: number | null } {
+  const ws = rooms.filter((r) => r.sector);
+  if (!ws.length) return { verdict: "Can't tell", score: null };
+  const baths = ws.filter((r) => r.type === "bathroom" || r.type === "wc");
+  const kit = ws.filter((r) => r.type === "kitchen");
+  const ent = ws.filter((r) => r.type === "entrance");
+  const hardFail = baths.some((b) => b.sector === "NE");
+  const soft: boolean[] = [];
+  if (ent.length) soft.push(ent.some((e) => e.sector === "E" || e.sector === "N"));
+  if (kit.length) soft.push(kit.some((k) => k.sector === "NW"));
+  soft.push(!baths.some((b) => b.sector === "N"));
+  const score = soft.length ? Math.round((100 * soft.filter(Boolean).length) / soft.length) : 0;
+  return { verdict: hardFail ? "Avoid" : score >= 60 ? "Good" : "Mixed", score };
+}
+
+type Draft = { x: number; y: number; floor: number; facing: number };
+
+function Orientation({ o, floorplan, pid }: { o: NonNullable<Prop["orientation"]>; floorplan?: string; pid: string }) {
+  const geom = o.geom;
+  const hasGeom = !!(geom?.rooms?.length && geom.centres);
+  const lsKey = "hf_orient_" + pid;
+  const [corr, setCorr] = useState<Draft | null>(null);
+  const [edit, setEdit] = useState(false);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    try { const v = localStorage.getItem(lsKey); if (v) setCorr(JSON.parse(v)); } catch { /* ignore */ }
+  }, [lsKey]);
+
+  const centres = geom?.centres || {};
+  const cOf = (f?: number): [number, number] =>
+    centres[String(f ?? 1)] || centres["1"] || (Object.values(centres)[0] as [number, number]) || [0.5, 0.5];
+  const floorOf = (x: number): number => {
+    let best = 1, bd = Infinity;
+    for (const [f, c] of Object.entries(centres)) { const d = Math.abs(x - c[0]); if (d < bd) { bd = d; best = +f; } }
+    return best;
+  };
+  const defaultDraft = (): Draft => {
+    if (corr) return { ...corr };
+    const e = geom?.entrance;
+    return { x: e?.x ?? 0.5, y: e?.y ?? 0.9, floor: e?.floor ?? 1, facing: geom?.facing ?? 0 };
+  };
+
+  // the anchor currently in effect: the live draft while editing, else the saved fix
+  const active = edit ? draft : corr;
+
+  // --- resolve rooms + north offset A, either from the anchor or the auto value ---
+  let rooms: RoomS[] = [];
+  let A: number | null = null;
+  if (hasGeom) {
+    if (active) { A = ((phiOf(active.x, active.y, cOf(active.floor)) - active.facing) % 360 + 360) % 360; }
+    else { A = geom!.A ?? null; }
+    rooms = (geom!.rooms || []).map((r) => {
+      const phi = phiOf(r.x ?? 0.5, r.y ?? 0.5, cOf(r.floor));
+      if (A == null) return { type: r.type };
+      const b = ((phi - A) % 360 + 360) % 360;
+      return { type: r.type, sector: sectorOf(b), bearing: b };
+    });
+  } else {
+    rooms = (o.rooms || []).filter((r) => r.sector);
+  }
+  const shown = rooms.filter((r) => r.sector);
+  const vv = hasGeom ? vastuVerdict(rooms) : { verdict: o.verdict || "Can't tell", score: o.score ?? null };
+  const verdict = vv.verdict;
+  const corrected = !!corr && !edit;
+
   const roomName = (t?: string) => t === "entrance" ? "🚪 Front door" : t === "kitchen" ? "🍳 Kitchen" : t === "wc" ? "🚽 Toilet" : "🚽 Bathroom";
   const assess = (t?: string, s?: string): [keyof typeof STCOL, string] => {
     if (t === "bathroom" || t === "wc")
@@ -814,16 +889,30 @@ function Orientation({ o }: { o: NonNullable<Prop["orientation"]> }) {
     return s === "E" || s === "N" ? ["ok", "east or north, as you like"] : ["warn", "you preferred east or north"];
   };
   const method = o.north_method || "unknown";
-  const trust = method === "compass on plan"
-    ? <span style={{ color: "#2f8f5b" }}>✓ Read from the compass printed on the plan.</span>
-    : method.startsWith("satellite")
-      ? <span style={{ color: "#a56311" }}>≈ North estimated from the building outline on the map — rough, worth double-checking.</span>
-      : <span style={{ color: "#889" }}>This plan has no compass, so the directions couldn&apos;t be worked out.</span>;
+  const trust = corrected
+    ? <span style={{ color: "#1d4ed8" }}>✎ You set the front door yourself — directions worked out from that.</span>
+    : method === "compass on plan"
+      ? <span style={{ color: "#2f8f5b" }}>✓ Read from the compass printed on the plan.</span>
+      : method.startsWith("satellite")
+        ? <span style={{ color: "#a56311" }}>≈ North estimated from the building outline on the map — rough, worth double-checking.</span>
+        : <span style={{ color: "#889" }}>This plan has no compass. Tap “Set the front door” to work out the directions.</span>;
   const [wx0, wy0] = bxy(22.5, 38), [wx1, wy1] = bxy(67.5, 38);
+
+  const openEdit = () => { setDraft(defaultDraft()); setEdit(true); };
+  const save = () => { if (draft) { try { localStorage.setItem(lsKey, JSON.stringify(draft)); } catch { /* ignore */ } setCorr(draft); } setEdit(false); };
+  const reset = () => { try { localStorage.removeItem(lsKey); } catch { /* ignore */ } setCorr(null); setEdit(false); };
+  const onPlan = (e: React.MouseEvent) => {
+    const el = imgRef.current; if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    setDraft((d) => ({ ...(d as Draft), x, y, floor: floorOf(x) }));
+  };
+
   return (
     <div style={panel}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
-        <b style={{ fontSize: 13 }}>🧭 Orientation</b>
+        <b style={{ fontSize: 13 }}>🧭 Orientation{corrected && <span style={{ color: "#1d4ed8", fontWeight: 600, fontSize: 11 }}> · your fix</span>}</b>
         <span style={{ background: ORIENT_VCOL[verdict] || "#7a8794", color: "#fff", fontWeight: 700, fontSize: 12, padding: "3px 10px", borderRadius: 12 }}>{verdict}</span>
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
@@ -832,10 +921,10 @@ function Orientation({ o }: { o: NonNullable<Prop["orientation"]> }) {
           <path d={`M50 50 L${wx0.toFixed(1)} ${wy0.toFixed(1)} A38 38 0 0 1 ${wx1.toFixed(1)} ${wy1.toFixed(1)} Z`} fill="#c0392b" fillOpacity="0.12" />
           {[0, 90, 180, 270].map((b) => { const [ex, ey] = bxy(b, 38); return <line key={b} x1="50" y1="50" x2={ex.toFixed(1)} y2={ey.toFixed(1)} stroke="#eef1f4" strokeWidth="0.8" />; })}
           {([[0, "N"], [90, "E"], [180, "S"], [270, "W"]] as [number, string][]).map(([b, l]) => { const [lx, ly] = bxy(b, 46); return <text key={l} x={lx.toFixed(1)} y={ly.toFixed(1)} fontSize="6.5" fill="#5b6b7c" textAnchor="middle" dominantBaseline="central" fontWeight="700">{l}</text>; })}
-          {rooms.map((r, i) => { if (r.bearing == null) return null; const [dx, dy] = bxy(r.bearing, 23); return <circle key={i} cx={dx.toFixed(1)} cy={dy.toFixed(1)} r="3.6" fill={ORIENT_ROOM[r.type || ""] || "#64748b"} stroke="#fff" strokeWidth="1" />; })}
+          {shown.map((r, i) => { if (r.bearing == null) return null; const [dx, dy] = bxy(r.bearing, 23); return <circle key={i} cx={dx.toFixed(1)} cy={dy.toFixed(1)} r="3.6" fill={ORIENT_ROOM[r.type || ""] || "#64748b"} stroke="#fff" strokeWidth="1" />; })}
         </svg>
         <ul style={{ listStyle: "none", margin: 0, padding: 0, fontSize: 12.5, flex: 1, minWidth: 168 }}>
-          {rooms.map((r, i) => {
+          {shown.length ? shown.map((r, i) => {
             const [st, msg] = assess(r.type, r.sector);
             const mk = { ok: "✓", warn: "!", bad: "✕", neutral: "·" }[st];
             return (
@@ -844,10 +933,48 @@ function Orientation({ o }: { o: NonNullable<Prop["orientation"]> }) {
                 <span>{roomName(r.type)} is in the <b>{SECTOR_WORD[r.sector || ""] || r.sector}</b><span style={{ color: "#778" }}> — {msg}</span></span>
               </li>
             );
-          })}
+          }) : <li style={{ color: "#889", fontSize: 12.5 }}>Directions not worked out yet.</li>}
         </ul>
       </div>
-      <div style={{ fontSize: 11.5, marginTop: 8 }}>{trust}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11.5 }}>{trust}</span>
+        {hasGeom && floorplan && !edit &&
+          <button onClick={openEdit} style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 12, cursor: "pointer", border: "1px solid #c7d2e0", background: "#f3f7fc", color: "#1d4ed8", whiteSpace: "nowrap" }}>
+            {corrected ? "✎ Edit front door" : "Set the front door"}
+          </button>}
+      </div>
+      {edit && draft && floorplan &&
+        <div style={{ marginTop: 10, borderTop: "1px dashed #dbe2ea", paddingTop: 10 }}>
+          <div style={{ fontSize: 12, color: "#556", marginBottom: 6 }}>
+            <b>1.</b> Tap the real <b>front door</b> on the plan &nbsp; <b>2.</b> Pick the way it <b>faces</b> outside.
+          </div>
+          <div style={{ position: "relative", display: "inline-block", maxWidth: "100%", border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+            <img ref={imgRef} src={floorplan} alt="floor plan" onClick={onPlan}
+              style={{ display: "block", maxWidth: "100%", maxHeight: 360, cursor: "crosshair" }} />
+            {(geom!.rooms || []).map((r, i) => r.type === "entrance" ? null : (
+              <span key={i} title={r.type} style={{ position: "absolute", left: `${(r.x ?? 0.5) * 100}%`, top: `${(r.y ?? 0.5) * 100}%`,
+                transform: "translate(-50%,-50%)", width: 9, height: 9, borderRadius: "50%", border: "1.5px solid #fff",
+                background: ORIENT_ROOM[r.type || ""] || "#64748b", opacity: 0.85, pointerEvents: "none" }} />
+            ))}
+            <span style={{ position: "absolute", left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, transform: "translate(-50%,-100%)",
+              fontSize: 20, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 1px rgba(0,0,0,.4))" }}>📍</span>
+          </div>
+          <div style={{ fontSize: 12, color: "#556", margin: "10px 0 4px" }}>Front door faces:</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            {SECTORS8.map((s) => {
+              const on = sectorOf(draft.facing) === s;
+              return <button key={s} onClick={() => setDraft((d) => ({ ...(d as Draft), facing: FACING_DEG[s] }))}
+                style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 9px", borderRadius: 10, cursor: "pointer",
+                  border: on ? "1px solid #1d4ed8" : "1px solid #cdd6e0", background: on ? "#e5edfb" : "#fff", color: on ? "#1d4ed8" : "#7a8794" }}>{s}</button>;
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={save} style={{ fontSize: 12, fontWeight: 700, padding: "5px 14px", borderRadius: 10, cursor: "pointer", border: "none", background: "#1d4ed8", color: "#fff" }}>Save</button>
+            <button onClick={() => setEdit(false)} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 10, cursor: "pointer", border: "1px solid #cdd6e0", background: "#fff", color: "#556" }}>Cancel</button>
+            {corr && <button onClick={reset} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 10, cursor: "pointer", border: "1px solid #eecaca", background: "#fff", color: "#c0392b", marginLeft: "auto" }}>Reset to auto</button>}
+            <span style={{ fontSize: 11.5, color: "#889", flexBasis: "100%" }}>Preview: <b style={{ color: ORIENT_VCOL[verdict] }}>{verdict}</b> — saved only in this browser.</span>
+          </div>
+        </div>}
     </div>
   );
 }
