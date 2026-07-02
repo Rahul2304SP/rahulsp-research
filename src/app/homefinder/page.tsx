@@ -23,6 +23,8 @@ type Prop = {
   council_tax_cost?: number; epc_potential?: string;
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
                     index_implied_today?: number; index_growth_pct?: number };
+  orientation?: { verdict?: string; north_method?: string; score?: number;
+                  rooms?: { type?: string; sector?: string; bearing?: number }[] };
   condition?: { condition?: string; condition_label?: string; value_adjustment_pct?: number;
                 confidence?: number; issues?: string[]; highlights?: string[] };
   amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
@@ -566,6 +568,8 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
         </div>
       )}
 
+      {p.orientation?.verdict && <Orientation o={p.orientation} />}
+
       {p.own_last_sale?.last_price && (
         <div style={panel}>
           <b style={{ fontSize: 13 }}>What the seller paid</b>
@@ -792,6 +796,62 @@ const FilterPill = ({ on, onClick, label }: { on: boolean; onClick: () => void; 
     {on ? "✓ " : ""}{label}
   </button>
 );
+const SECTOR_WORD: Record<string, string> = { N: "North", NE: "North-east", E: "East", SE: "South-east", S: "South", SW: "South-west", W: "West", NW: "North-west" };
+const ORIENT_ROOM: Record<string, string> = { entrance: "#1d4ed8", kitchen: "#d97706", bathroom: "#dc2626", wc: "#dc2626" };
+const ORIENT_VCOL: Record<string, string> = { Good: "#2f8f5b", Mixed: "#c98a1e", Avoid: "#c0392b", "Can't tell": "#7a8794" };
+const STCOL: Record<string, string> = { ok: "#2f8f5b", warn: "#c98a1e", bad: "#c0392b", neutral: "#98a4b0" };
+const bxy = (b: number, r: number): [number, number] => [50 + r * Math.sin(b * Math.PI / 180), 50 - r * Math.cos(b * Math.PI / 180)];
+
+function Orientation({ o }: { o: NonNullable<Prop["orientation"]> }) {
+  const rooms = (o.rooms || []).filter((r) => r.sector);
+  const verdict = o.verdict || "Can't tell";
+  const roomName = (t?: string) => t === "entrance" ? "🚪 Front door" : t === "kitchen" ? "🍳 Kitchen" : t === "wc" ? "🚽 Toilet" : "🚽 Bathroom";
+  const assess = (t?: string, s?: string): [keyof typeof STCOL, string] => {
+    if (t === "bathroom" || t === "wc")
+      return s === "NE" ? ["bad", "the north-east — the corner to avoid"]
+        : s === "N" ? ["warn", "in the north — you wanted it kept clear"] : ["ok", "clear of the north-east"];
+    if (t === "kitchen") return s === "NW" ? ["ok", "your preferred spot"] : ["neutral", "you'd hoped for north-west"];
+    return s === "E" || s === "N" ? ["ok", "east or north, as you like"] : ["warn", "you preferred east or north"];
+  };
+  const method = o.north_method || "unknown";
+  const trust = method === "compass on plan"
+    ? <span style={{ color: "#2f8f5b" }}>✓ Read from the compass printed on the plan.</span>
+    : method.startsWith("satellite")
+      ? <span style={{ color: "#a56311" }}>≈ North estimated from the building outline on the map — rough, worth double-checking.</span>
+      : <span style={{ color: "#889" }}>This plan has no compass, so the directions couldn&apos;t be worked out.</span>;
+  const [wx0, wy0] = bxy(22.5, 38), [wx1, wy1] = bxy(67.5, 38);
+  return (
+    <div style={panel}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
+        <b style={{ fontSize: 13 }}>🧭 Orientation</b>
+        <span style={{ background: ORIENT_VCOL[verdict] || "#7a8794", color: "#fff", fontWeight: 700, fontSize: 12, padding: "3px 10px", borderRadius: 12 }}>{verdict}</span>
+      </div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+        <svg viewBox="0 0 100 100" style={{ width: 108, height: 108, flex: "0 0 108px" }} aria-hidden="true">
+          <circle cx="50" cy="50" r="38" fill="#fff" stroke="#d7dee6" strokeWidth="1.2" />
+          <path d={`M50 50 L${wx0.toFixed(1)} ${wy0.toFixed(1)} A38 38 0 0 1 ${wx1.toFixed(1)} ${wy1.toFixed(1)} Z`} fill="#c0392b" fillOpacity="0.12" />
+          {[0, 90, 180, 270].map((b) => { const [ex, ey] = bxy(b, 38); return <line key={b} x1="50" y1="50" x2={ex.toFixed(1)} y2={ey.toFixed(1)} stroke="#eef1f4" strokeWidth="0.8" />; })}
+          {([[0, "N"], [90, "E"], [180, "S"], [270, "W"]] as [number, string][]).map(([b, l]) => { const [lx, ly] = bxy(b, 46); return <text key={l} x={lx.toFixed(1)} y={ly.toFixed(1)} fontSize="6.5" fill="#5b6b7c" textAnchor="middle" dominantBaseline="central" fontWeight="700">{l}</text>; })}
+          {rooms.map((r, i) => { if (r.bearing == null) return null; const [dx, dy] = bxy(r.bearing, 23); return <circle key={i} cx={dx.toFixed(1)} cy={dy.toFixed(1)} r="3.6" fill={ORIENT_ROOM[r.type || ""] || "#64748b"} stroke="#fff" strokeWidth="1" />; })}
+        </svg>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, fontSize: 12.5, flex: 1, minWidth: 168 }}>
+          {rooms.map((r, i) => {
+            const [st, msg] = assess(r.type, r.sector);
+            const mk = { ok: "✓", warn: "!", bad: "✕", neutral: "·" }[st];
+            return (
+              <li key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "3px 0", lineHeight: 1.4 }}>
+                <span style={{ flex: "0 0 16px", height: 16, borderRadius: "50%", background: STCOL[st], color: "#fff", fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>{mk}</span>
+                <span>{roomName(r.type)} is in the <b>{SECTOR_WORD[r.sector || ""] || r.sector}</b><span style={{ color: "#778" }}> — {msg}</span></span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <div style={{ fontSize: 11.5, marginTop: 8 }}>{trust}</div>
+    </div>
+  );
+}
+
 const Tag = ({ c, children }: { c: string; children: React.ReactNode }) => (
   <span style={{ fontSize: 11.5, fontWeight: 600, color: c, background: c + "14", border: `1px solid ${c}40`, padding: "2px 8px", borderRadius: 11 }}>{children}</span>
 );
