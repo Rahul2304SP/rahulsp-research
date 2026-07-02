@@ -1149,7 +1149,7 @@ function bootData(d){
     let i=DATA.dates.indexOf(L.date), isNew=i<0; if(isNew){ i=DATA.dates.length; DATA.dates.push(L.date); }
     for(const b of DATA.buckets){ const lb=L.buckets[b];
       const S=(k,v)=>{ if(!DATA[k])DATA[k]={}; if(!DATA[k][b])DATA[k][b]=[]; DATA[k][b][i]=v; };
-      if(lb){ S('flow',lb.flow);S('confidence',lb.confidence);S('tag',lb.tag);S('rationale',lb.rationale);S('violence',lb.violence);S('violence_fwd',lb.violence_fwd);S('ret',lb.ret); }
+      if(lb){ S('flow',lb.flow);S('confidence',lb.confidence);S('tag',lb.tag);S('rationale',lb.rationale);S('violence',lb.violence);S('violence_fwd',lb.violence_fwd); if(lb.ret!=null)S('ret',lb.ret); }   // don't erase the day's stored return with a null (market closed / pre-open) -> Day view keeps showing it instead of going blank
       else if(isNew){ S('flow',null);S('confidence',null);S('tag',null);S('rationale',null);S('violence',null);S('violence_fwd',null);S('ret',null); } }
     const sl=document.getElementById('slider');
     if(isNew){ sl.max=DATA.dates.length-1; if(followLive){ cur=DATA.dates.length-1; sl.value=cur; } }
