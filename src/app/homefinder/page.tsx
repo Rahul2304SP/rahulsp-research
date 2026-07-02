@@ -172,7 +172,20 @@ function Market({ report }: { report: Report }) {
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [sel, setSel] = useState<Prop | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [view, setView] = useState<"table" | "gallery" | "map">("table");
+  const [view, setView] = useState<"table" | "gallery" | "map" | "saved">("table");
+  const [likes, setLikes] = useState<Set<string>>(new Set());
+
+  // saved homes persist across visits, in this browser (same store as the filters)
+  useEffect(() => {
+    try { const v = localStorage.getItem("hf_likes"); if (v) setLikes(new Set(JSON.parse(v))); } catch { /* ignore */ }
+  }, []);
+  const liked = (m: Prop) => likes.has(likeKey(m));
+  const toggleLike = (m: Prop) => setLikes((prev) => {
+    const next = new Set(prev); const k = likeKey(m);
+    next.has(k) ? next.delete(k) : next.add(k);
+    try { localStorage.setItem("hf_likes", JSON.stringify([...next])); } catch { /* ignore */ }
+    return next;
+  });
 
   // remember the user's must-have toggles across visits
   useEffect(() => {
@@ -213,6 +226,10 @@ function Market({ report }: { report: Report }) {
   };
   const sorted = [...filtered].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
   const shown = showAll ? sorted : sorted.slice(0, 40);
+  // saved homes ignore the must-have pills (you liked them on purpose) but honour the sort
+  const savedRows = [...rows].filter(liked).sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
+  const isSaved = view === "saved";
+  const tableData = isSaved ? savedRows : shown;
   const setSort = (k: SortKey) => {
     if (k === sortKey) setSortDir(sortDir === 1 ? -1 : 1);
     else { setSortKey(k); setSortDir(k === "ratio" ? 1 : -1); }
@@ -239,11 +256,11 @@ function Market({ report }: { report: Report }) {
           {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
         </span>
         <span style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid #cdd6e0", borderRadius: 8, overflow: "hidden" }}>
-          {(["table", "gallery", "map"] as const).map((mode) => (
+          {(["table", "gallery", "map", "saved"] as const).map((mode) => (
             <button key={mode} onClick={() => setView(mode)}
-              style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", border: "none", cursor: "pointer",
-                background: view === mode ? "#1455c0" : "#fff", color: view === mode ? "#fff" : "#667" }}>
-              {mode === "table" ? "▦ Table" : mode === "gallery" ? "🖼️ Gallery" : "🗺️ Map"}
+              style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", border: "none", cursor: "pointer", borderLeft: mode === "saved" ? "1px solid #cdd6e0" : "none",
+                background: view === mode ? (mode === "saved" ? "#e0245e" : "#1455c0") : "#fff", color: view === mode ? "#fff" : (mode === "saved" ? "#e0245e" : "#667") }}>
+              {mode === "table" ? "▦ Table" : mode === "gallery" ? "🖼️ Gallery" : mode === "map" ? "🗺️ Map" : `♥ Saved${likes.size ? ` (${likes.size})` : ""}`}
             </button>
           ))}
         </span>
@@ -251,11 +268,24 @@ function Market({ report }: { report: Report }) {
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
         Every listing valued against time-adjusted sold comps. Click a column to sort; click a card for the full valuation basis.
       </p>
-      <Scatter rows={filtered} />
-      {view === "table" ? (
+      <Scatter rows={isSaved ? savedRows : filtered} />
+      {isSaved && savedRows.length === 0 ? (
+        <div style={{ textAlign: "center", color: "#889", padding: "40px 16px", marginTop: 12, border: "1px dashed #d7dee6", borderRadius: 10 }}>
+          <div style={{ fontSize: 30 }}>♡</div>
+          <div style={{ fontSize: 14, fontWeight: 600, margin: "6px 0 2px", color: "#556" }}>No saved homes yet</div>
+          <div style={{ fontSize: 12.5 }}>Tap the ♡ on any listing to save it here.</div>
+        </div>
+      ) : view === "gallery" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 12, marginTop: 12 }}>
+          {shown.map((m, i) => <GalleryTile key={m.uid || i} m={m} onClick={() => setSel(m)} liked={liked(m)} onLike={() => toggleLike(m)} />)}
+        </div>
+      ) : view === "map" ? (
+        <MapView rows={filtered} onSelect={setSel} />
+      ) : (
       <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #333" }}>
+            <th style={th} aria-label="saved"></th>
             <th style={th}>verdict</th>
             <th style={thSort} onClick={() => setSort("asking")}>asking{arrow("asking")}</th>
             <th style={thSort} onClick={() => setSort("fair_value")}>fair{arrow("fair_value")}</th>
@@ -266,11 +296,12 @@ function Market({ report }: { report: Report }) {
             <th style={th}>property</th>
           </tr></thead>
           <tbody>
-            {shown.map((m, i) => (
+            {tableData.map((m, i) => (
                 <tr key={m.uid || i} onClick={() => setSel(m)}
                     style={{ borderBottom: "1px solid #eef", cursor: "pointer" }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#f7f9fc")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                  <td style={td}><LikeHeart on={liked(m)} onClick={() => toggleLike(m)} /></td>
                   <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
                   <td style={tdR}>{gbp(m.asking)}</td>
                   <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
@@ -284,29 +315,25 @@ function Market({ report }: { report: Report }) {
           </tbody>
         </table>
       </div>
-      ) : view === "gallery" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 12, marginTop: 12 }}>
-          {shown.map((m, i) => <GalleryTile key={m.uid || i} m={m} onClick={() => setSel(m)} />)}
-        </div>
-      ) : (
-        <MapView rows={filtered} onSelect={setSel} />
       )}
-      {view !== "map" && sorted.length > 40 && (
+      {view === "table" && sorted.length > 40 && (
         <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
           {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
       )}
-      {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} />}
+      {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} liked={liked(sel)} onLike={() => toggleLike(sel)} />}
     </div>
   );
 }
 
-function DetailModal({ p, onClose, allAsking }: { p: Prop; onClose: () => void; allAsking?: number[] }) {
+function DetailModal({ p, onClose, allAsking, liked, onLike }: { p: Prop; onClose: () => void; allAsking?: number[]; liked?: boolean; onLike?: () => void }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,25,35,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "4vh 12px" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 720, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,.3)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid #eef" }}>
-          <b style={{ fontSize: 15 }}>Full valuation report</b>
+          <b style={{ fontSize: 15, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            {onLike && <LikeHeart on={!!liked} onClick={onLike} size={19} />}Full valuation report
+          </b>
           <button onClick={onClose} style={{ ...btn, width: "auto", padding: "4px 12px", fontSize: 13, background: "#eef2f8", color: "#334" }}>Close ✕</button>
         </div>
         <div style={{ padding: "4px 16px 16px" }}><Card p={p} allAsking={allAsking} /></div>
@@ -765,7 +792,7 @@ function PriceHistogram({ all, mine, color }: { all: number[]; mine?: number; co
   );
 }
 
-function GalleryTile({ m, onClick }: { m: Prop; onClick: () => void }) {
+function GalleryTile({ m, onClick, liked, onLike }: { m: Prop; onClick: () => void; liked?: boolean; onLike?: () => void }) {
   const col = m.verdict_color || "#888";
   const d = m.ratio != null ? Math.round((m.ratio - 1) * 100) : null;
   const img = (m.photos && m.photos[0]) || "";
@@ -776,6 +803,7 @@ function GalleryTile({ m, onClick }: { m: Prop; onClick: () => void }) {
         {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#aab", fontSize: 12 }}>no photo</div>}
         {d != null && <span style={{ position: "absolute", top: 6, right: 6, background: col, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{d > 0 ? "+" : ""}{d}%</span>}
+        {onLike && <span style={{ position: "absolute", top: 2, left: 4, textShadow: "0 1px 3px rgba(0,0,0,.5)" }}><LikeHeart on={!!liked} onClick={onLike} size={20} /></span>}
       </div>
       <div style={{ padding: "8px 10px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
@@ -792,6 +820,14 @@ function GalleryTile({ m, onClick }: { m: Prop; onClick: () => void }) {
   );
 }
 
+const likeKey = (m: Prop): string => m.uid || m.address || "";
+const LikeHeart = ({ on, onClick, size = 17 }: { on: boolean; onClick: () => void; size?: number }) => (
+  <button onClick={(e) => { e.stopPropagation(); onClick(); }}
+    title={on ? "Saved — click to remove" : "Save this home"} aria-pressed={on}
+    style={{ border: "none", background: "none", cursor: "pointer", fontSize: size, lineHeight: 1, padding: 2, color: on ? "#e0245e" : "#c2cad3" }}>
+    {on ? "♥" : "♡"}
+  </button>
+);
 const FilterPill = ({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) => (
   <button onClick={onClick} title={on ? "On — hiding non-matches. Click to show all." : "Off — not filtering. Click to require it."}
     style={{
