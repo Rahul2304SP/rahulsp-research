@@ -146,6 +146,8 @@ export default function HomeFinder() {
       </p>
       {refreshMsg && <p style={{ color: "#0a7d28", fontSize: 12.5, marginTop: -4 }}>{refreshMsg}</p>}
 
+      <PasteBar />
+
       {report.market && report.market.length > 0 && <Market report={report} />}
 
       <h2 style={{ fontSize: 18, margin: "26px 0 2px" }}>Your shortlist</h2>
@@ -157,6 +159,71 @@ export default function HomeFinder() {
         plus police.uk crime. Guidance only, not a survey.
       </p>
     </main>
+  );
+}
+
+// Paste any supported listing link → your home PC scrapes, values and image-
+// analyses it, and the finished report opens in the same detail card. The URL is
+// queued via the relay (auth: passkey); a local worker does the work and posts
+// the result back, which we poll for here.
+function PasteBar() {
+  const [url, setUrl] = useState("");
+  const [state, setState] = useState<"idle" | "working" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  const [result, setResult] = useState<Prop | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  async function poll(id: string, k: string, tries: number) {
+    if (tries > 70) { setState("error"); setMsg("Timed out. Is your home PC on with the on-demand worker running?"); return; }
+    try {
+      const r = await fetch("/api/homefinder-value?id=" + encodeURIComponent(id), { headers: { "x-homefinder-key": k } });
+      const j = await r.json();
+      if (j.status === "done") {
+        if (j.record?.error) { setState("error"); setMsg(j.record.error); }
+        else { setState("idle"); setMsg(""); setUrl(""); setResult(j.record); }
+        return;
+      }
+    } catch { /* keep polling */ }
+    timer.current = setTimeout(() => poll(id, k, tries + 1), 2500);
+  }
+
+  async function submit() {
+    const u = url.trim();
+    if (!u) return;
+    const k = sessionStorage.getItem("hf_key") || "";
+    setState("working"); setMsg("Sending to your PC…"); setResult(null);
+    try {
+      const r = await fetch("/api/homefinder-value", {
+        method: "POST", headers: { "x-homefinder-key": k, "content-type": "application/json" },
+        body: JSON.stringify({ url: u }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.id) { setState("error"); setMsg(j.error || "Couldn't queue that link."); return; }
+      setMsg("Your PC is scraping + image-analysing this listing… (~40s)");
+      poll(j.id, k, 0);
+    } catch { setState("error"); setMsg("Network error — try again."); }
+  }
+
+  const working = state === "working";
+  return (
+    <div style={{ background: "linear-gradient(180deg,#f1f6fe,#eef3fb)", border: "1px solid #d7e3f5", borderRadius: 12, padding: "12px 14px", margin: "10px 0 16px" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 15 }}>🔗</span>
+        <input value={url} onChange={(e) => setUrl(e.target.value)} disabled={working}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder="Paste a Rightmove, Zoopla or Richard James / Charles Harding / Miles & Byron link…"
+          style={{ flex: 1, minWidth: 220, padding: "9px 12px", border: "1px solid #c7d5ea", borderRadius: 9, fontSize: 13.5 }} />
+        <button onClick={submit} disabled={working || !url.trim()}
+          style={{ padding: "9px 16px", border: "none", borderRadius: 9, background: working ? "#9bb3d6" : "#1455c0", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: working ? "wait" : "pointer" }}>
+          {working ? "Valuing…" : "Value it"}
+        </button>
+      </div>
+      <div style={{ fontSize: 11.5, color: state === "error" ? "#c0392b" : "#5a6b86", marginTop: 6 }}>
+        {msg || "Get an instant full report for any listing — valued against sold comps with floor-plan, compass & condition analysis, computed on your home PC."}
+      </div>
+      {result && <DetailModal p={result} onClose={() => setResult(null)} />}
+    </div>
   );
 }
 
