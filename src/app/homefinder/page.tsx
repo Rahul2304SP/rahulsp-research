@@ -1082,7 +1082,13 @@ function GalleryTile({ m, onClick, liked, onLike }: { m: Prop; onClick: () => vo
           <b style={{ fontSize: 14 }}>{gbp(m.asking)}</b>
           <span style={{ fontSize: 11, color: "#889" }}>fair {gbp(m.fair_ref ?? m.fair_value)}</span>
         </div>
-        <div style={{ fontSize: 12, color: "#445", margin: "2px 0 5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.address}</div>
+        <div style={{ fontSize: 12, color: "#445", margin: "2px 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.address}</div>
+        {(m.suggested_offer || m.floor_area_m2) ? (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, fontSize: 11.5, color: "#667", margin: "0 0 5px" }}>
+            <span>{m.suggested_offer ? <>offer <b style={{ color: "#0a7d28" }}>{gbp(m.suggested_offer)}</b></> : ""}</span>
+            <span>{m.floor_area_m2 ? <><b style={{ color: "#445" }}>{Math.round(m.floor_area_m2 * 10.764).toLocaleString()}</b> sq ft</> : ""}</span>
+          </div>
+        ) : null}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <AtAGlance p={m} />
           <span style={{ fontSize: 10.5, color: "#aab" }}>{m.beds ? `${m.beds} bed` : ""}</span>
