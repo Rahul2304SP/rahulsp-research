@@ -29,6 +29,15 @@ function safeEqual(a, b) {
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
 }
+
+// Accept the primary HOMEFINDER_KEY (optionally comma-separated) plus an optional
+// per-person key like HOMEFINDER_KEY_MOM. Same set the report page uses.
+function keyOk(env, supplied) {
+  const cands = [];
+  if (env.HOMEFINDER_KEY) for (const k of String(env.HOMEFINDER_KEY).split(",")) { const t = k.trim(); if (t) cands.push(t); }
+  if (env.HOMEFINDER_KEY_MOM) { const t = String(env.HOMEFINDER_KEY_MOM).trim(); if (t) cands.push(t); }
+  return cands.some((k) => safeEqual(supplied, k));
+}
 function json(body, status, extra = {}) {
   return new Response(typeof body === "string" ? body : JSON.stringify(body), {
     status,
@@ -61,7 +70,7 @@ export async function onRequestPost({ request, env }) {
   // (B) page enqueuing a URL to value — auth: passkey
   if (body.url) {
     const pass = request.headers.get("x-homefinder-key") || "";
-    if (!env.HOMEFINDER_KEY || !safeEqual(pass, env.HOMEFINDER_KEY)) {
+    if (!keyOk(env, pass)) {
       return json({ error: "unauthorized" }, 401);
     }
     const url = String(body.url).trim().slice(0, 600);
@@ -92,7 +101,7 @@ export async function onRequestGet({ request, env }) {
   const id = params.get("id");
   if (id) {
     const pass = request.headers.get("x-homefinder-key") || "";
-    if (!env.HOMEFINDER_KEY || !safeEqual(pass, env.HOMEFINDER_KEY)) {
+    if (!keyOk(env, pass)) {
       return json({ error: "unauthorized" }, 401);
     }
     const res = await env.HOMEFINDER.get(RESULT_PREFIX + String(id).slice(0, 40));

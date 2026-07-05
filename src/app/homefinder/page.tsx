@@ -369,7 +369,7 @@ function Market({ report }: { report: Report }) {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#f7f9fc")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                   <td style={td}><LikeHeart on={liked(m)} onClick={() => toggleLike(m)} /></td>
-                  <td style={td}><span style={{ color: m.verdict_color, fontWeight: 600 }}>● </span>{(m.verdict || "").replace(/^\S+\s/, "")}</td>
+                  <td style={td}><VerdictChip m={m} /></td>
                   <td style={tdR}>{gbp(m.asking)}</td>
                   <td style={tdR}>{gbp(m.fair_ref ?? m.fair_value)}</td>
                   <td style={td}><ValueBar ratio={m.ratio} color={m.verdict_color} /></td>
@@ -407,6 +407,135 @@ function DetailModal({ p, onClose, allAsking, liked, onLike }: { p: Prop; onClos
       </div>
     </div>
   );
+}
+
+// ---- Photos: prettier previews + an in-page, swipeable / zoomable lightbox ----
+// Tapping a photo used to open a raw image URL in a new browser tab. Now it opens
+// a sub-window you can swipe through and tap to zoom (pan a big floor plan), all
+// without leaving the report.
+type Shot = { u: string; kind: "photo" | "plan" };
+const planTag: React.CSSProperties = { position: "absolute", left: 10, top: 10, background: "rgba(20,85,192,.94)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 };
+const navBtn = (off: boolean): React.CSSProperties => ({ border: "none", borderRadius: 22, padding: "9px 20px", fontSize: 17, fontWeight: 700, lineHeight: 1, cursor: off ? "default" : "pointer", background: off ? "rgba(255,255,255,.07)" : "rgba(255,255,255,.18)", color: off ? "rgba(255,255,255,.35)" : "#fff" });
+
+function PhotoGallery({ photos, floorplan }: { photos?: string[]; floorplan?: string[] }) {
+  const shots: Shot[] = [
+    ...(photos || []).map((u) => ({ u, kind: "photo" as const })),
+    ...(floorplan || []).map((u) => ({ u, kind: "plan" as const })),
+  ];
+  const [open, setOpen] = useState<number | null>(null);
+  if (!shots.length) return null;
+  const nPhoto = shots.filter((s) => s.kind === "photo").length;
+  const nPlan = shots.length - nPhoto;
+  const hero = shots[0], rest = shots.slice(1);
+  const label = nPhoto ? `${nPhoto} photo${nPhoto > 1 ? "s" : ""}${nPlan ? " + floor plan" : ""}` : "Floor plan";
+  return (
+    <div style={{ margin: "12px 0 0" }}>
+      <button onClick={() => setOpen(0)} aria-label="View photos"
+        style={{ position: "relative", display: "block", width: "100%", padding: 0, border: "1px solid #e3e8ee", borderRadius: 12, overflow: "hidden", cursor: "pointer", background: "#eef1f5" }}>
+        <img src={hero.u} alt="" style={{ display: "block", width: "100%", height: 210, objectFit: "cover" }} />
+        {hero.kind === "plan" && <span style={planTag}>Floor plan</span>}
+        <span style={{ position: "absolute", right: 10, bottom: 10, background: "rgba(15,18,24,.74)", color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 20 }}>📷 {label} · tap to view</span>
+      </button>
+      {rest.length > 0 && (
+        <div style={{ display: "flex", gap: 7, overflowX: "auto", marginTop: 7, paddingBottom: 4 }}>
+          {rest.map((s, i) => (
+            <button key={i} onClick={() => setOpen(i + 1)} aria-label={s.kind === "plan" ? "View floor plan" : "View photo"}
+              style={{ position: "relative", flex: "0 0 auto", padding: 0, border: "1px solid #e3e8ee", borderRadius: 9, overflow: "hidden", cursor: "pointer", background: "#eef1f5" }}>
+              <img src={s.u} alt="" style={{ display: "block", width: 96, height: 70, objectFit: "cover" }} />
+              {s.kind === "plan" && <span style={{ position: "absolute", left: 3, top: 3, background: "rgba(20,85,192,.94)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 4 }}>Plan</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {open !== null && <Lightbox shots={shots} start={open} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+function Lightbox({ shots, start, onClose }: { shots: Shot[]; start: number; onClose: () => void }) {
+  const [i, setI] = useState(start);
+  const [zoom, setZoom] = useState(false);
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const go = (d: number) => { setZoom(false); setI((p) => Math.max(0, Math.min(shots.length - 1, p + d))); };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") { setZoom(false); setI((p) => Math.max(0, p - 1)); }
+      else if (e.key === "ArrowRight") { setZoom(false); setI((p) => Math.min(shots.length - 1, p + 1)); }
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [shots.length, onClose]);
+  const s = shots[i];
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(8,10,14,.95)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", color: "#fff", flex: "0 0 auto" }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{s.kind === "plan" ? "📐 Floor plan" : "📷 Photo"} · {i + 1} / {shots.length}</span>
+        <button onClick={onClose} style={{ border: "none", background: "rgba(255,255,255,.16)", color: "#fff", fontSize: 14, fontWeight: 700, padding: "7px 15px", borderRadius: 20, cursor: "pointer" }}>Close ✕</button>
+      </div>
+      <div
+        onClick={() => setZoom((z) => !z)}
+        onTouchStart={(e) => { if (!zoom) touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+        onTouchEnd={(e) => {
+          if (zoom || !touch.current) return;
+          const dx = e.changedTouches[0].clientX - touch.current.x, dy = e.changedTouches[0].clientY - touch.current.y;
+          if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) go(dx < 0 ? 1 : -1);
+          touch.current = null;
+        }}
+        style={{ flex: 1, minHeight: 0, overflow: zoom ? "auto" : "hidden", display: "flex", alignItems: zoom ? "flex-start" : "center", justifyContent: zoom ? "flex-start" : "center", cursor: zoom ? "zoom-out" : "zoom-in", WebkitOverflowScrolling: "touch" }}>
+        <img src={s.u} alt="" draggable={false}
+          style={zoom ? { width: s.kind === "plan" ? "185%" : "155%", maxWidth: "none", height: "auto" }
+                      : { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", margin: "auto" }} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px calc(16px + env(safe-area-inset-bottom))", flex: "0 0 auto" }}>
+        <button onClick={() => go(-1)} disabled={i === 0} style={navBtn(i === 0)} aria-label="Previous">‹</button>
+        <span style={{ color: "rgba(255,255,255,.7)", fontSize: 11.5, textAlign: "center" }}>{zoom ? "tap image to fit" : "tap to zoom · swipe to browse"}</span>
+        <button onClick={() => go(1)} disabled={i === shots.length - 1} style={navBtn(i === shots.length - 1)} aria-label="Next">›</button>
+      </div>
+    </div>
+  );
+}
+
+// A tap-to-open section — keeps the deep detail available but out of the way, so a
+// first-time reader isn't overwhelmed while nothing is actually hidden.
+function Foldable({ title, sub, children, defaultOpen = false }: { title: string; sub?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ ...panel, padding: 0, overflow: "hidden" }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "11px 13px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#334" }}>{title}{sub ? <span style={{ fontWeight: 400, color: "#889", fontSize: 12 }}> · {sub}</span> : null}</span>
+        <span style={{ color: "#1455c0", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{open ? "Hide ▴" : "Show ▾"}</span>
+      </button>
+      {open ? <div style={{ padding: "0 13px 12px" }}>{children}</div> : null}
+    </div>
+  );
+}
+
+// plain-English headline of the verdict, for a non-technical reader
+function plainVerdict(p: Prop, ref?: number, delta?: number | null) {
+  const diff = p.asking && ref ? Math.abs(p.asking - ref) : null;
+  const money = diff ? "£" + Math.round(diff).toLocaleString("en-GB") : null;
+  const d = delta ?? null;
+  if (d != null && d <= -3)
+    return { emoji: "✅", fg: "#0a7d28", bg: "#eef8f0", bd: "#cce9d4", head: "Good value for money",
+      sub: money ? `About ${money} (${Math.abs(d)}%) cheaper than similar homes that have sold nearby.` : "Priced below similar homes that have sold nearby." };
+  if (d != null && d >= 3)
+    return { emoji: "🔴", fg: "#c01616", bg: "#fdeeee", bd: "#f3d2d2", head: "Looks expensive",
+      sub: money ? `About ${money} (${d}%) dearer than similar homes that have sold nearby.` : "Priced above similar homes that have sold nearby." };
+  return { emoji: "🟠", fg: "#b06b00", bg: "#fff7ea", bd: "#f0e0c0", head: "Around the right price",
+    sub: "Priced about in line with similar homes that have sold nearby." };
+}
+
+// compact verdict pill for the market table (no more 4-line-wrapping cells)
+function VerdictChip({ m }: { m: Prop }) {
+  const r = m.ratio;
+  const [label, col]: [string, string] = r == null ? ["—", "#98a4b0"]
+    : r < 0.97 ? ["Good value", "#0a7d28"]
+    : r < 1.03 ? ["Fair", "#b06b00"]
+    : ["Overpriced", "#c01616"];
+  return <span style={{ display: "inline-block", whiteSpace: "nowrap", fontSize: 11.5, fontWeight: 700, color: col, background: col + "16", border: `1px solid ${col}38`, padding: "2px 9px", borderRadius: 11 }}>{label}</span>;
 }
 
 // Verdict-coloured pins on a Swindon map. Leaflet is loaded from CDN on demand
@@ -536,6 +665,14 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
         </span>
       </div>
 
+      {(() => { const vb = plainVerdict(p, ref, delta); return (
+        <div style={{ background: vb.bg, border: `1px solid ${vb.bd}`, borderRadius: 11, padding: "11px 14px", margin: "12px 0 0", display: "flex", gap: 11, alignItems: "center" }}>
+          <span style={{ fontSize: 25, lineHeight: 1 }}>{vb.emoji}</span>
+          <div><div style={{ fontSize: 15.5, fontWeight: 800, color: vb.fg }}>{vb.head}</div>
+            <div style={{ fontSize: 12.5, color: "#556", marginTop: 2 }}>{vb.sub}</div></div>
+        </div>
+      ); })()}
+
       <div style={{ display: "flex", gap: 22, flexWrap: "wrap", margin: "12px 0" }}>
         <Kpi label="Asking" value={gbp(p.asking)} />
         <Kpi label="Fair value" value={gbp(ref)} />
@@ -543,6 +680,9 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
         {p.suggested_offer ? <Kpi label="Suggested offer" value={gbp(p.suggested_offer)} /> : null}
       </div>
 
+      <PhotoGallery photos={p.photos} floorplan={p.floorplan} />
+
+      <Foldable title="How we worked out the value" sub="the comparables, score & confidence">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
         {p.fair_by_area ? <Mini title="Similar-size comps" big={gbp(p.fair_by_area)} accent="#0a7d28"
               sub={p.ppm2_basis || (p.ppm2_local ? `≈ £${p.ppm2_local.toLocaleString()}/m²` : "")} /> : null}
@@ -588,6 +728,7 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
           )}
         </div>
       )}
+      </Foldable>
 
       {p.negotiation && p.negotiation.length > 0 && (
         <div style={{ ...panel, borderLeft: "3px solid #1455c0", background: "#eef4ff" }}>
@@ -615,19 +756,6 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
           {p.condition.issues && p.condition.issues.length > 0 && (
             <div style={{ fontSize: 12.5, color: "#b06b00", marginTop: 2 }}>⚠ {p.condition.issues.join(" · ")}</div>
           )}
-        </div>
-      )}
-
-      {((p.photos && p.photos.length > 0) || (p.floorplan && p.floorplan.length > 0)) && (
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", margin: "10px 0 0", paddingBottom: 4 }}>
-          {(p.floorplan || []).map((u, i) => (
-            <a key={`f${i}`} href={u} target="_blank" rel="noreferrer">
-              <img src={u} alt="floor plan" style={thumb} /></a>
-          ))}
-          {(p.photos || []).map((u, i) => (
-            <a key={`p${i}`} href={u} target="_blank" rel="noreferrer">
-              <img src={u} alt="" style={thumb} /></a>
-          ))}
         </div>
       )}
 
@@ -726,6 +854,8 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
         </div>
       )}
 
+      {((p.history?.sales && p.history.sales.length > 0) || (p.area && p.area.crime_count != null)) && (
+      <Foldable title="Sale history & area detail">
       {p.history && p.history.sales && p.history.sales.length > 0 && (
         <div style={panel}>
           <b style={{ fontSize: 13 }}>Sale history</b>
@@ -750,6 +880,8 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
             {p.area.lat ? <> · <a href={`https://www.google.com/maps/search/?api=1&query=${p.area.lat},${p.area.lng}`} target="_blank" rel="noreferrer">map ↗</a></> : null}
           </div>
         </div>
+      )}
+      </Foldable>
       )}
 
       {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#1455c0" }}>View listing ↗</a>}
@@ -1105,7 +1237,6 @@ const input: React.CSSProperties = { width: "100%", padding: "11px 13px", fontSi
 const btn: React.CSSProperties = { width: "100%", padding: "11px", fontSize: 15, fontWeight: 600, color: "#fff", background: "#1455c0", border: "none", borderRadius: 9, cursor: "pointer" };
 const card: React.CSSProperties = { background: "#fff", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 5px rgba(0,0,0,.07)", margin: "14px 0" };
 const panel: React.CSSProperties = { background: "#fafbfc", borderRadius: 9, padding: "10px 13px", margin: "10px 0 0" };
-const thumb: React.CSSProperties = { height: 72, width: 96, objectFit: "cover", borderRadius: 7, border: "1px solid #e3e8ee", flex: "0 0 auto" };
 const condColor = (c?: string) => ({ new: "#0a7d28", refurbished: "#0a7d28", good: "#1455c0", dated: "#b06b00", needs_work: "#c01616" }[c || ""] || "#445");
 const ofstedColor = (g?: string) => ({ Outstanding: "#0a7d28", Good: "#1455c0", "Requires improvement": "#b06b00", Inadequate: "#c01616" }[g || ""] || "#667");
 const crimeColor = (g?: string) => ({ Low: "#0a7d28", Moderate: "#1455c0", Elevated: "#b06b00", High: "#c01616" }[g || ""] || "#889");

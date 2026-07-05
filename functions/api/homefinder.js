@@ -32,6 +32,16 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
+// Accept ANY configured passkey: the primary HOMEFINDER_KEY (which may itself be a
+// comma-separated list of allowed keys) plus an optional per-person key such as
+// HOMEFINDER_KEY_MOM. Key VALUES live ONLY in Cloudflare env — never in this repo.
+function keyOk(env, supplied) {
+  const cands = [];
+  if (env.HOMEFINDER_KEY) for (const k of String(env.HOMEFINDER_KEY).split(",")) { const t = k.trim(); if (t) cands.push(t); }
+  if (env.HOMEFINDER_KEY_MOM) { const t = String(env.HOMEFINDER_KEY_MOM).trim(); if (t) cands.push(t); }
+  return cands.some((k) => safeEqual(supplied, k));
+}
+
 function json(body, status, extraHeaders = {}) {
   return new Response(typeof body === "string" ? body : JSON.stringify(body), {
     status,
@@ -44,9 +54,9 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!env.HOMEFINDER_KEY) return json({ error: "not-configured" }, 503);
+  if (!env.HOMEFINDER_KEY && !env.HOMEFINDER_KEY_MOM) return json({ error: "not-configured" }, 503);
   const supplied = request.headers.get("x-homefinder-key") || "";
-  if (!safeEqual(supplied, env.HOMEFINDER_KEY)) {
+  if (!keyOk(env, supplied)) {
     return json({ error: "unauthorized" }, 401);
   }
   if (!env.HOMEFINDER) return json({ error: "kv-not-bound" }, 500);
@@ -78,7 +88,7 @@ export async function onRequestPost({ request, env }) {
   try { body = JSON.parse(text); } catch { /* not JSON / huge report */ }
   if (body && body.action === "request_refresh") {
     const pass = request.headers.get("x-homefinder-key") || "";
-    if (!env.HOMEFINDER_KEY || !safeEqual(pass, env.HOMEFINDER_KEY)) {
+    if (!keyOk(env, pass)) {
       return json({ error: "unauthorized" }, 401);
     }
     await env.HOMEFINDER.put(KV_REFRESH, new Date().toISOString());
