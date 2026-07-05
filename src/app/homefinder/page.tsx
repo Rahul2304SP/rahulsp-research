@@ -241,6 +241,18 @@ function Market({ report }: { report: Report }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [view, setView] = useState<"table" | "gallery" | "map" | "saved">("table");
   const [likes, setLikes] = useState<Set<string>>(new Set());
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  // On phones, swap the wide sortable table for a stacked card list so nothing runs
+  // off the right edge. Tablets / desktop keep the table.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    if (mq.addEventListener) mq.addEventListener("change", sync);
+    else mq.addListener(sync);
+    return () => { if (mq.removeEventListener) mq.removeEventListener("change", sync); else mq.removeListener(sync); };
+  }, []);
 
   // saved homes persist across visits, in this browser (same store as the filters)
   useEffect(() => {
@@ -348,6 +360,11 @@ function Market({ report }: { report: Report }) {
         </div>
       ) : view === "map" ? (
         <MapView rows={filtered} onSelect={setSel} />
+      ) : isNarrow ? (
+        <MobileList rows={tableData} onSelect={setSel} liked={liked} onLike={toggleLike}
+          sortKey={sortKey} sortDir={sortDir}
+          onSortKey={(k) => { setSortKey(k); setSortDir(k === "ratio" ? 1 : -1); }}
+          onFlip={() => setSortDir(sortDir === 1 ? -1 : 1)} />
       ) : (
       <div style={{ overflowX: "auto", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -389,6 +406,62 @@ function Market({ report }: { report: Report }) {
         </button>
       )}
       {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} liked={liked(sel)} onLike={() => toggleLike(sel)} />}
+    </div>
+  );
+}
+
+// Phone view of the market list: one stacked card per listing so nothing runs off
+// the right edge. Column headers are gone here, so a compact sort control replaces
+// them. The wide sortable table (above) is kept for tablet / desktop.
+function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey, onFlip }: {
+  rows: Prop[]; onSelect: (p: Prop) => void; liked: (m: Prop) => boolean; onLike: (m: Prop) => void;
+  sortKey: SortKey; sortDir: 1 | -1; onSortKey: (k: SortKey) => void; onFlip: () => void;
+}) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12.5, flexWrap: "wrap" }}>
+        <span style={{ color: "#778", fontWeight: 600 }}>Sort by</span>
+        <select value={sortKey === "delta" ? "ratio" : sortKey} onChange={(e) => onSortKey(e.target.value as SortKey)}
+          style={{ fontSize: 12.5, padding: "5px 8px", borderRadius: 8, border: "1px solid #cdd6e0", background: "#fff", color: "#334" }}>
+          <option value="ratio">Best value</option>
+          <option value="asking">Asking price</option>
+          <option value="fair_value">Fair value</option>
+          <option value="suggested_offer">Suggested offer</option>
+          <option value="size">Size (sq ft)</option>
+          <option value="crime">Crime level</option>
+        </select>
+        <button onClick={onFlip} title="Reverse order"
+          style={{ fontSize: 12.5, fontWeight: 700, padding: "5px 11px", borderRadius: 8, border: "1px solid #cdd6e0", background: "#fff", color: "#1455c0", cursor: "pointer" }}>
+          {sortDir === 1 ? "▲" : "▼"} Reverse
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {rows.map((m, i) => (
+          <div key={m.uid || i} onClick={() => onSelect(m)}
+            style={{ border: "1px solid #e6eaf0", borderLeft: `4px solid ${m.verdict_color || "#8a94a0"}`, borderRadius: 10, padding: "10px 12px", background: "#fff", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <LikeHeart on={liked(m)} onClick={() => onLike(m)} size={20} />
+                <VerdictChip m={m} />
+              </span>
+              <ValueBar ratio={m.ratio} color={m.verdict_color} />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1f29", margin: "8px 0 6px", lineHeight: 1.3 }}>{m.address}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 14px", fontSize: 12.5, color: "#556" }}>
+              <span>Asking <b style={{ color: "#1a1f29" }}>{gbp(m.asking)}</b></span>
+              <span>Fair <b style={{ color: "#1a1f29" }}>{gbp(m.fair_ref ?? m.fair_value)}</b></span>
+              {m.suggested_offer ? <span>Offer <b style={{ color: "#0a7d28" }}>{gbp(m.suggested_offer)}</b></span> : null}
+              {m.floor_area_m2 ? <span><b style={{ color: "#1a1f29" }}>{Math.round(m.floor_area_m2 * 10.764).toLocaleString()}</b> sq ft</span> : null}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              <AtAGlance p={m} />
+              <span style={{ fontSize: 11, color: "#aab", whiteSpace: "nowrap", marginLeft: "auto" }}>
+                {[m.beds ? `${m.beds} bed` : "", m.portal || ""].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
