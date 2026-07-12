@@ -131,6 +131,11 @@ export default function HomeFinder() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
         <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>🏡 Private Valuation Report</h1>
         <div style={{ display: "flex", gap: 8 }}>
+          <a href="/homefinder/customise"
+             title="Visualise renovations on the real listing photos (opens your PC's Flux.1 Kontext tool)"
+             style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13, background: "#7a3ea8", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+            🎨 Customise
+          </a>
           <button onClick={requestRefresh} disabled={refreshing}
                   title="Re-scrape new listings, OCR floor plans and re-value (runs on the home PC; only new properties cost compute)"
                   style={{ ...btn, width: "auto", padding: "6px 12px", fontSize: 13, background: refreshing ? "#9bb" : "#0a7d28" }}>
