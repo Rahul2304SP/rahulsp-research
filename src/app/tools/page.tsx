@@ -25,6 +25,13 @@ const tools: {
     desc: "A live read on geopolitical risk as it unfolds, rebuilt continuously from over 200 news feeds worldwide, from the major international wires to regional papers inside the active conflict zones, alongside a global monitor that scans news from nearly every country. The signal is placed on the scale of the academic Caldara-Iacoviello index, where 100 is the long-run average, and mapped to show where the tension is concentrated. The published index is monthly and lagged; this is a near-realtime proxy of the same idea.",
   },
   {
+    href: "/tools/uk-rates",
+    badge: "Live",
+    badgeColor: "#4f46e5",
+    title: "UK Rate Watch",
+    desc: "Where UK interest rates are and where the market prices them to go: the Bank Rate, the market-implied forward path read from the Bank of England's OIS (SONIA-swap) curve, daily gilt yields as the intra-month canary, the latest ONS inflation and wage prints, and the calendar of MPC decisions and data releases that move the pricing. UK fixed mortgages are priced off these same swap rates. Reads the market's forecast honestly rather than claiming to beat it.",
+  },
+  {
     href: "/tools/us30-volatility",
     badge: "Live",
     badgeColor: "#1e40af",

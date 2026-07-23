@@ -26,6 +26,13 @@ id = "85bd59695b30431589b0dce215f3da0f"
 binding = "MONEYFLOW"
 bucket_name = "moneyflow"
 
+# UK Rate Watch relay (GET/POST /api/ukrates). Reuses the SAME namespace under its own
+# key ("ukrates_latest") — the mortgage monitor posts ~4x/day, well under the KV write cap.
+# Secret UKRATES_WRITE_KEY set via `wrangler pages secret put` (never committed).
+[[kv_namespaces]]
+binding = "UKRATES"
+id = "85bd59695b30431589b0dce215f3da0f"
+
 # Private property valuation report (GET/POST /api/homefinder). Reuses the SAME KV
 # namespace under its own key ("homefinder_report") — the report updates infrequently
 # (manual/weekly), well under KV's 1,000/day cap. Two secrets gate it and are NOT
