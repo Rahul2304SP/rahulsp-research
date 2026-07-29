@@ -234,8 +234,30 @@ function PasteBar() {
 
 type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size";
 
-type Filters = { beds3: boolean; garden: boolean; parking: boolean; quiet: boolean };
-const DEFAULT_FILTERS: Filters = { beds3: true, garden: true, parking: true, quiet: true };
+type Filters = {
+  beds3: boolean; garden: boolean; parking: boolean; quiet: boolean;
+  // null = "Any". Kept separate from the boolean must-haves because these carry a
+  // value, not an on/off state.
+  minPrice: number | null; maxPrice: number | null;
+};
+const DEFAULT_FILTERS: Filters = {
+  beds3: true, garden: true, parking: true, quiet: true, minPrice: null, maxPrice: null,
+};
+
+// Budget dropdown steps. £25k granularity is how people actually think about a
+// ceiling ("under £350k"), and a native <select> gives phones a proper picker —
+// easier than dragging a slider handle, especially for non-technical users.
+const priceSteps = (rows: { asking?: number | null }[]): number[] => {
+  const vals = rows.map((r) => r.asking || 0).filter((v) => v > 0);
+  if (!vals.length) return [];
+  const lo = Math.floor(Math.min(...vals) / 25000) * 25000;
+  const hi = Math.ceil(Math.max(...vals) / 25000) * 25000;
+  const out: number[] = [];
+  for (let v = lo; v <= hi; v += 25000) out.push(v);
+  return out;
+};
+// compact form for the dropdown ("£350k"); gbp() above stays the full "£350,000"
+const gbpK = (n: number): string => "£" + n / 1000 + "k";
 
 function Market({ report }: { report: Report }) {
   const rows = report.market || [];
@@ -278,11 +300,22 @@ function Market({ report }: { report: Report }) {
       if (saved) setFilters({ ...DEFAULT_FILTERS, ...JSON.parse(saved) });
     } catch { /* ignore */ }
   }, []);
-  const flip = (k: keyof Filters) => setFilters((f) => {
-    const next = { ...f, [k]: !f[k] };
+  const persist = (next: Filters) => {
     try { localStorage.setItem("hf_filters", JSON.stringify(next)); } catch { /* ignore */ }
     return next;
-  });
+  };
+  const flip = (k: "beds3" | "garden" | "parking" | "quiet") =>
+    setFilters((f) => persist({ ...f, [k]: !f[k] }));
+  const setPrice = (k: "minPrice" | "maxPrice", v: number | null) =>
+    setFilters((f) => {
+      const next = { ...f, [k]: v };
+      // keep the range coherent if the two ends cross over
+      if (next.minPrice != null && next.maxPrice != null && next.minPrice > next.maxPrice) {
+        if (k === "minPrice") next.maxPrice = v;
+        else next.minPrice = v;
+      }
+      return persist(next);
+    });
 
   // must-have filters: only ever HIDE on a known-failing value, never on unknowns
   const matches = (m: Prop): boolean => {
@@ -290,8 +323,12 @@ function Market({ report }: { report: Report }) {
     if (filters.garden && m.has_garden === false) return false;
     if (filters.parking && m.has_parking === false) return false;
     if (filters.quiet && m.busy_road === true) return false;
+    // price: an unknown asking is never hidden (same "don't punish gaps" rule)
+    if (filters.minPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) < filters.minPrice) return false;
+    if (filters.maxPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) > filters.maxPrice) return false;
     return true;
   };
+  const steps = priceSteps(rows);
   const filtered = rows.filter(matches);
   const hidden = rows.length - filtered.length;
   const s = {
@@ -329,6 +366,39 @@ function Market({ report }: { report: Report }) {
           <span style={{ color: "#b06b00" }}>{s.fair} fair</span> ·{" "}
           <span style={{ color: "#c01616" }}>{s.over} overpriced</span>
         </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "10px 0 2px" }}>
+        <span style={{ fontSize: 12, color: "#778", fontWeight: 600 }}>Budget:</span>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "#556" }}>
+          from
+          <select value={filters.minPrice ?? ""} aria-label="Minimum price"
+            onChange={(e) => setPrice("minPrice", e.target.value ? Number(e.target.value) : null)}
+            style={priceSelect}>
+            <option value="">Any</option>
+            {steps.map((v) => <option key={v} value={v}>{gbpK(v)}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "#556" }}>
+          up to
+          <select value={filters.maxPrice ?? ""} aria-label="Maximum price"
+            onChange={(e) => setPrice("maxPrice", e.target.value ? Number(e.target.value) : null)}
+            style={priceSelect}>
+            <option value="">Any</option>
+            {steps.map((v) => <option key={v} value={v}>{gbpK(v)}</option>)}
+          </select>
+        </label>
+        {(filters.minPrice != null || filters.maxPrice != null) && (
+          <button onClick={() => { setPrice("minPrice", null); setPrice("maxPrice", null); }}
+            style={{ fontSize: 11.5, padding: "3px 9px", borderRadius: 12, cursor: "pointer",
+              border: "1px solid #cdd6e0", background: "#fff", color: "#667" }}>
+            ✕ clear
+          </button>
+        )}
+        <span style={{ fontSize: 11.5, color: "#aab" }}>
+          {filters.minPrice == null && filters.maxPrice == null
+            ? "showing every price"
+            : `showing ${filters.minPrice != null ? gbpK(filters.minPrice) : "any"} – ${filters.maxPrice != null ? gbpK(filters.maxPrice) : "any"}`}
+        </span>
       </div>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", margin: "8px 0 2px" }}>
         <span style={{ fontSize: 12, color: "#778", fontWeight: 600 }}>Must-haves:</span>
@@ -1321,6 +1391,12 @@ const input: React.CSSProperties = { width: "100%", padding: "11px 13px", fontSi
 const btn: React.CSSProperties = { width: "100%", padding: "11px", fontSize: 15, fontWeight: 600, color: "#fff", background: "#1455c0", border: "none", borderRadius: 9, cursor: "pointer" };
 const card: React.CSSProperties = { background: "#fff", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 5px rgba(0,0,0,.07)", margin: "14px 0" };
 const panel: React.CSSProperties = { background: "#fafbfc", borderRadius: 9, padding: "10px 13px", margin: "10px 0 0" };
+// 16px font stops iOS Safari zooming the page when the picker opens; 44px min-height
+// keeps it a comfortable tap target on a phone.
+const priceSelect: React.CSSProperties = {
+  fontSize: 16, fontWeight: 600, color: "#1a1f29", padding: "7px 8px", minHeight: 40,
+  border: "1px solid #cdd6e0", borderRadius: 8, background: "#fff", cursor: "pointer",
+};
 const condColor = (c?: string) => ({ new: "#0a7d28", refurbished: "#0a7d28", good: "#1455c0", dated: "#b06b00", needs_work: "#c01616" }[c || ""] || "#445");
 const ofstedColor = (g?: string) => ({ Outstanding: "#0a7d28", Good: "#1455c0", "Requires improvement": "#b06b00", Inadequate: "#c01616" }[g || ""] || "#667");
 const crimeColor = (g?: string) => ({ Low: "#0a7d28", Moderate: "#1455c0", Elevated: "#b06b00", High: "#c01616" }[g || ""] || "#889");
