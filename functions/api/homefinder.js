@@ -23,6 +23,12 @@ const CORS = {
 };
 const KV_KEY = "homefinder_report";
 const KV_REFRESH = "homefinder_refresh_req";   // ISO timestamp of the last "Refresh" button press
+// Manually MEASURED total plot areas, {uid: {plot_m2, at}}. Plot size is the single
+// most important number for this buyer and there is no free data source for it
+// (Land Registry INSPIRE is login-walled, OSM has no per-property garden polygons),
+// so it is measured by hand off aerial imagery and recorded here. Handful of writes
+// a day at most — far under KV's 1,000/day free cap.
+const KV_PLOTS = "homefinder_plots";
 
 // constant-time-ish string compare so a wrong key can't be timed out character by character
 function safeEqual(a, b) {
@@ -65,11 +71,15 @@ export async function onRequestGet({ request, env }) {
   // merge in the refresh request state so the page (and the local poller) can tell
   // whether a re-scrape was requested but not yet published.
   const refreshReq = await env.HOMEFINDER.get(KV_REFRESH);
+  const plotsRaw = await env.HOMEFINDER.get(KV_PLOTS);
   let out = data;
   try {
     const obj = JSON.parse(data);
     obj.refresh_req = refreshReq || null;
     obj.refresh_state = refreshReq && (!obj.generated || refreshReq > obj.generated) ? "running" : "idle";
+    // measured plots are served straight from KV, so a measurement shows up on the
+    // page immediately rather than waiting for the next nightly re-publish
+    try { obj.plots = plotsRaw ? JSON.parse(plotsRaw) : {}; } catch { obj.plots = {}; }
     out = JSON.stringify(obj);
   } catch { /* serve raw if it somehow isn't valid JSON */ }
   return new Response(out, {
@@ -93,6 +103,28 @@ export async function onRequestPost({ request, env }) {
     }
     await env.HOMEFINDER.put(KV_REFRESH, new Date().toISOString());
     return json({ ok: true, requested: true }, 200);
+  }
+
+  // A passkey-holder recording a plot they measured off the aerial view.
+  // {action:"set_plot", uid:"Rightmove:123", plot_m2: 134.7}  — plot_m2 null deletes.
+  if (body && body.action === "set_plot") {
+    const pass = request.headers.get("x-homefinder-key") || "";
+    if (!keyOk(env, pass)) return json({ error: "unauthorized" }, 401);
+    const uid = typeof body.uid === "string" ? body.uid.slice(0, 120) : "";
+    if (!uid) return json({ error: "bad-uid" }, 400);
+    let plots = {};
+    try { plots = JSON.parse((await env.HOMEFINDER.get(KV_PLOTS)) || "{}"); } catch { plots = {}; }
+    if (body.plot_m2 === null) {
+      delete plots[uid];
+    } else {
+      const v = Number(body.plot_m2);
+      // 20 m2 (a courtyard) .. 20,000 m2 (5 acres) — anything outside is a typo or
+      // a wrong unit, and a bad plot figure is worse than none at all here.
+      if (!isFinite(v) || v < 20 || v > 20000) return json({ error: "bad-plot_m2" }, 400);
+      plots[uid] = { plot_m2: Math.round(v * 10) / 10, at: new Date().toISOString() };
+    }
+    await env.HOMEFINDER.put(KV_PLOTS, JSON.stringify(plots));
+    return json({ ok: true, uid, plot_m2: plots[uid]?.plot_m2 ?? null, count: Object.keys(plots).length }, 200);
   }
 
   // Otherwise this is the local emitter publishing the report (auth: write key).

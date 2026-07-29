@@ -53,7 +53,37 @@ type Report = {
   market?: MarketRow[];
   market_summary?: { total?: number; good?: number; fair?: number; over?: number };
   refresh_state?: string;
+  // hand-measured total plot areas, keyed by uid — served live from KV
+  plots?: Record<string, { plot_m2?: number; at?: string }>;
 };
+
+// --------------------------------------------------------------------------- //
+// Land economics.
+//
+// fair_value / ratio price a home on £/m² of FLOOR area against sold comps. Plot
+// area is not an input anywhere in that model, so a big house crammed onto a small
+// plot scores as "good value" — Cowleaze came out 9% "below market" on a MEASURED
+// 135 m² plot, where land costs £2,394/m² against £583/m² at a 600 m² comparison.
+// These helpers put land back on the scoreboard. Plot is measured by hand off
+// aerial imagery; there is no free per-property source for it.
+// --------------------------------------------------------------------------- //
+const LAND_BENCH = 583;          // £/m² of land at the 600 m² / £350k benchmark
+
+const landStats = (asking?: number, plot?: number) => {
+  if (!asking || !plot || plot <= 0) return null;
+  return {
+    ppm2: Math.round(asking / plot),              // £ per m² of land
+    per1k: Math.round((plot / (asking / 1000)) * 100) / 100,  // m² of land per £1,000
+    vsBench: asking / plot / LAND_BENCH,          // 1.0 = as cheap as the benchmark
+  };
+};
+// Deliberately blunt bands: this is the axis that actually decides a purchase here.
+const landVerdict = (ppm2: number): { label: string; color: string } =>
+  ppm2 <= 800 ? { label: "🟢 Excellent land value", color: "#0a7d28" }
+  : ppm2 <= 1200 ? { label: "🟩 Good land value", color: "#3d8b40" }
+  : ppm2 <= 1800 ? { label: "🟨 Average land value", color: "#b06b00" }
+  : ppm2 <= 2400 ? { label: "🟧 Land-poor", color: "#d2691e" }
+  : { label: "🟥 Very land-poor", color: "#c01616" };
 
 const gbp = (n?: number) => (n || n === 0 ? "£" + n.toLocaleString("en-GB") : "—");
 
@@ -232,7 +262,7 @@ function PasteBar() {
   );
 }
 
-type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size";
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size" | "plot" | "land";
 
 type Filters = {
   beds3: boolean; garden: boolean; parking: boolean; quiet: boolean;
@@ -265,6 +295,22 @@ function Market({ report }: { report: Report }) {
   const [sortKey, setSortKey] = useState<SortKey>("ratio");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [sel, setSel] = useState<Prop | null>(null);
+  // measured plots arrive with the report (straight from KV) and are updated
+  // locally the moment one is saved, so the list re-ranks without a reload
+  const [plots, setPlots] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const src = report.plots || {};
+    const next: Record<string, number> = {};
+    for (const [uid, v] of Object.entries(src)) if (v?.plot_m2) next[uid] = v.plot_m2 as number;
+    setPlots(next);
+  }, [report.plots]);
+  const plotOf = (m: Prop): number | undefined => (m.uid ? plots[m.uid] : undefined);
+  const onPlotSaved = (uid: string, v: number | null) =>
+    setPlots((prev) => {
+      const next = { ...prev };
+      if (v == null) delete next[uid]; else next[uid] = v;
+      return next;
+    });
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [view, setView] = useState<"table" | "gallery" | "map" | "saved">("table");
   const [likes, setLikes] = useState<Set<string>>(new Set());
@@ -343,6 +389,11 @@ function Market({ report }: { report: Report }) {
     if (k === "fair_value") return (m.fair_ref ?? m.fair_value ?? (sortDir === 1 ? Infinity : -Infinity));
     if (k === "size") return m.floor_area_m2 ?? (sortDir === 1 ? Infinity : -Infinity);   // unknowns always sink
     if (k === "crime") return m.crime_count ?? (sortDir === 1 ? Infinity : -Infinity);
+    if (k === "plot") return plotOf(m) ?? (sortDir === 1 ? Infinity : -Infinity);
+    if (k === "land") {   // £/m² of land — cheapest land first when ascending
+      const pl = plotOf(m);
+      return pl && m.asking ? m.asking / pl : (sortDir === 1 ? Infinity : -Infinity);
+    }
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
   const sorted = [...filtered].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
@@ -451,6 +502,8 @@ function Market({ report }: { report: Report }) {
             <th style={thSort} onClick={() => setSort("delta")}>vs fair{arrow("delta")}</th>
             <th style={thSort} onClick={() => setSort("suggested_offer")}>offer{arrow("suggested_offer")}</th>
             <th style={thSort} onClick={() => setSort("size")}>sq ft{arrow("size")}</th>
+            <th style={thSort} onClick={() => setSort("plot")} title="Total plot, measured by hand off the aerial view">plot m²{arrow("plot")}</th>
+            <th style={thSort} onClick={() => setSort("land")} title="£ per m² of LAND — the axis the comps ignore">£/m² land{arrow("land")}</th>
             <th style={th}>features</th>
             <th style={th}>property</th>
           </tr></thead>
@@ -467,6 +520,16 @@ function Market({ report }: { report: Report }) {
                   <td style={td}><ValueBar ratio={m.ratio} color={m.verdict_color} /></td>
                   <td style={tdR}>{gbp(m.suggested_offer)}</td>
                   <td style={tdR}>{m.floor_area_m2 ? Math.round(m.floor_area_m2 * 10.764).toLocaleString() : <span style={{ color: "#c2cad3" }}>—</span>}</td>
+                  {(() => {
+                    const pl = plotOf(m); const ls = landStats(m.asking, pl);
+                    return (<>
+                      <td style={tdR}>{pl ? <b>{Math.round(pl).toLocaleString()}</b>
+                        : <span style={{ color: "#c2cad3" }} title="not measured yet — open the property and record it">—</span>}</td>
+                      <td style={tdR}>{ls
+                        ? <b style={{ color: landVerdict(ls.ppm2).color }}>{"£" + ls.ppm2.toLocaleString()}</b>
+                        : <span style={{ color: "#c2cad3" }}>—</span>}</td>
+                    </>);
+                  })()}
                   <td style={td}><AtAGlance p={m} /></td>
                   <td style={td}>{m.address}<span style={{ color: "#aab", fontSize: 11 }}>{m.beds ? ` · ${m.beds} bed` : ""}{m.portal ? ` · ${m.portal}` : ""}{m.condition?.condition ? ` · ${m.condition.condition.replace("_", " ")}` : ""}{m.confidence === "low" ? " · low-confidence" : ""}</span></td>
                 </tr>
@@ -480,7 +543,7 @@ function Market({ report }: { report: Report }) {
           {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
       )}
-      {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} liked={liked(sel)} onLike={() => toggleLike(sel)} />}
+      {sel && <DetailModal p={sel} onClose={() => setSel(null)} allAsking={filtered.map((r) => r.asking).filter((x): x is number => !!x)} liked={liked(sel)} onLike={() => toggleLike(sel)} plot={plotOf(sel)} onPlotSaved={onPlotSaved} />}
     </div>
   );
 }
@@ -503,6 +566,8 @@ function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey
           <option value="fair_value">Fair value</option>
           <option value="suggested_offer">Suggested offer</option>
           <option value="size">Size (sq ft)</option>
+          <option value="plot">Plot size (measured)</option>
+          <option value="land">Land value (£/m²)</option>
           <option value="crime">Crime level</option>
         </select>
         <button onClick={onFlip} title="Reverse order"
@@ -541,7 +606,7 @@ function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey
   );
 }
 
-function DetailModal({ p, onClose, allAsking, liked, onLike }: { p: Prop; onClose: () => void; allAsking?: number[]; liked?: boolean; onLike?: () => void }) {
+function DetailModal({ p, onClose, allAsking, liked, onLike, plot, onPlotSaved }: { p: Prop; onClose: () => void; allAsking?: number[]; liked?: boolean; onLike?: () => void; plot?: number; onPlotSaved?: (uid: string, v: number | null) => void }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,25,35,.55)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "4vh 12px" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 720, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,.3)" }}>
@@ -551,7 +616,7 @@ function DetailModal({ p, onClose, allAsking, liked, onLike }: { p: Prop; onClos
           </b>
           <button onClick={onClose} style={{ ...btn, width: "auto", padding: "4px 12px", fontSize: 13, background: "#eef2f8", color: "#334" }}>Close ✕</button>
         </div>
-        <div style={{ padding: "4px 16px 16px" }}><Card p={p} allAsking={allAsking} /></div>
+        <div style={{ padding: "4px 16px 16px" }}><Card p={p} allAsking={allAsking} plot={plot} onPlotSaved={onPlotSaved} /></div>
       </div>
     </div>
   );
@@ -791,7 +856,7 @@ const thSort: React.CSSProperties = { padding: "7px 8px", textAlign: "right", cu
 const td: React.CSSProperties = { padding: "6px 8px" };
 const tdR: React.CSSProperties = { padding: "6px 8px", textAlign: "right" };
 
-function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
+function Card({ p, allAsking, plot, onPlotSaved }: { p: Prop; allAsking?: number[]; plot?: number; onPlotSaved?: (uid: string, v: number | null) => void }) {
   const col = p.verdict_color || "#334";
   const ref = p.fair_ref ?? (p.avm_value || p.fair_by_area || p.fair_value);
   const delta = p.asking && ref ? Math.round((p.asking / ref - 1) * 100) : null;
@@ -829,6 +894,11 @@ function Card({ p, allAsking }: { p: Prop; allAsking?: number[] }) {
       </div>
 
       <PhotoGallery photos={p.photos} floorplan={p.floorplan} />
+
+      {/* Land economics sit ABOVE the comps panel on purpose: the £/m²-of-floor
+          valuation below can call a land-poor home "good value", so the plot
+          figure needs to be seen first, not buried. */}
+      {onPlotSaved ? <PlotEntry p={p} current={plot} onSaved={onPlotSaved} /> : null}
 
       <Foldable title="How we worked out the value" sub="the comparables, score & confidence">
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
@@ -1181,6 +1251,96 @@ const LikeHeart = ({ on, onClick, size = 17 }: { on: boolean; onClick: () => voi
     {on ? "♥" : "♡"}
   </button>
 );
+/**
+ * Record a hand-measured plot. Accepts m² or ft² (the Google Maps area tool gives
+ * ft² by default, which is how 1,450 ft² got measured), converts, and POSTs to the
+ * relay so it is available on every device immediately.
+ */
+function PlotEntry({ p, current, onSaved }:
+  { p: Prop; current?: number; onSaved: (uid: string, v: number | null) => void }) {
+  const [val, setVal] = useState("");
+  const [unit, setUnit] = useState<"m2" | "ft2">("ft2");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const uid = p.uid || "";
+  const aerial = p.lat && p.lon
+    ? `https://www.google.com/maps/@${p.lat},${p.lon},100m/data=!3m1!1e3` : null;
+
+  async function save(clear = false) {
+    if (!uid) { setMsg("no id for this listing"); return; }
+    let m2: number | null = null;
+    if (!clear) {
+      const n = Number(val);
+      if (!isFinite(n) || n <= 0) { setMsg("enter a number"); return; }
+      m2 = unit === "ft2" ? n / 10.7639 : n;
+      if (m2 < 20 || m2 > 20000) { setMsg("that looks out by a factor — check the unit"); return; }
+    }
+    setBusy(true); setMsg("");
+    try {
+      const k = sessionStorage.getItem("hf_key") || "";
+      const r = await fetch("/api/homefinder", {
+        method: "POST",
+        headers: { "x-homefinder-key": k, "content-type": "application/json" },
+        body: JSON.stringify({ action: "set_plot", uid, plot_m2: clear ? null : m2 }),
+      });
+      if (r.ok) {
+        onSaved(uid, clear ? null : Math.round((m2 as number) * 10) / 10);
+        setMsg(clear ? "cleared" : "saved");
+        setVal("");
+      } else setMsg("couldn't save (" + r.status + ")");
+    } catch { setMsg("network error"); }
+    setBusy(false);
+  }
+
+  const ls = landStats(p.asking, current);
+  return (
+    <div style={{ ...panel, borderLeft: "3px solid #1455c0" }}>
+      <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>📐 Total plot size</div>
+      {current && ls ? (
+        <div style={{ fontSize: 13, marginBottom: 6 }}>
+          <b>{Math.round(current).toLocaleString("en-GB")} m²</b>{" "}
+          <span style={{ color: "#889" }}>({Math.round(current * 10.7639).toLocaleString("en-GB")} ft²)</span>
+          <div style={{ marginTop: 3 }}>
+            <b style={{ color: landVerdict(ls.ppm2).color }}>{landVerdict(ls.ppm2).label}</b>
+            {" — "}£{ls.ppm2.toLocaleString("en-GB")}/m² of land · {ls.per1k} m² per £1,000
+          </div>
+          <div style={{ color: "#778", fontSize: 12, marginTop: 2 }}>
+            {ls.vsBench <= 1
+              ? `cheaper land than the 600 m² benchmark`
+              : `${ls.vsBench.toFixed(1)}× the land price of the 600 m² benchmark (£${LAND_BENCH}/m²)`}
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "#778", marginBottom: 6 }}>
+          Not measured yet. {aerial && <>Open the <a href={aerial} target="_blank" rel="noreferrer">satellite view</a>, right-click → <i>Measure distance</i>, trace the boundary back to the start, then type the area below.</>}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={val} onChange={(e) => setVal(e.target.value)} inputMode="decimal"
+          placeholder={current ? "update…" : "area"} aria-label="Measured plot area"
+          style={{ width: 96, padding: "7px 9px", fontSize: 16, border: "1px solid #cdd6e0", borderRadius: 8 }} />
+        <select value={unit} onChange={(e) => setUnit(e.target.value as "m2" | "ft2")}
+          aria-label="Unit" style={{ ...priceSelect, minHeight: 36 }}>
+          <option value="ft2">ft²</option>
+          <option value="m2">m²</option>
+        </select>
+        <button onClick={() => save(false)} disabled={busy}
+          style={{ padding: "7px 13px", fontSize: 13, fontWeight: 600, color: "#fff", background: "#1455c0",
+            border: "none", borderRadius: 8, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {busy ? "saving…" : "Save"}
+        </button>
+        {current ? (
+          <button onClick={() => save(true)} disabled={busy}
+            style={{ padding: "7px 11px", fontSize: 12.5, border: "1px solid #cdd6e0", background: "#fff",
+              color: "#667", borderRadius: 8, cursor: "pointer" }}>clear</button>
+        ) : null}
+        {aerial && <a href={aerial} target="_blank" rel="noreferrer" style={{ fontSize: 12.5 }}>🛰️ measure</a>}
+        {msg && <span style={{ fontSize: 12, color: msg === "saved" || msg === "cleared" ? "#0a7d28" : "#c01616" }}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
 const FilterPill = ({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) => (
   <button onClick={onClick} title={on ? "On — hiding non-matches. Click to show all." : "Off — not filtering. Click to require it."}
     style={{
