@@ -451,6 +451,43 @@ function Market({ report }: { report: Report }) {
   };
   const steps = priceSteps(rows);
   const filtered = rows.filter(matches);
+
+  // A keyword is a SEARCH — "BODIAM" giving zero results because the quiet-road
+  // pill silently ate the one Bodiam Drive listing is a trap. So: find rows the
+  // keyword alone matches but other filters hide, explain WHICH filter, and let
+  // one click show them (without changing the saved filter state).
+  const kwActive = filters.kw.trim().length > 0;
+  const kwHit = (m: Prop): boolean => {
+    const hay = ((m.address || "") + " " + (m.full_postcode || "") + " " +
+                 (m.description || "") + " " + (m.key_features || []).join(" ")).toLowerCase();
+    return filters.kw.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t));
+  };
+  const failWhy = (m: Prop): string[] => {
+    const why: string[] = [];
+    const minB = filters.minBeds ?? (filters.beds3 ? 3 : 0);
+    if (minB && (m.beds ?? minB) < minB) why.push(`${minB}+ beds`);
+    if (filters.garden && m.has_garden === false) why.push("Garden");
+    if (filters.parking && m.has_parking === false) why.push("Parking");
+    if (filters.quiet && m.busy_road === true) why.push("Quiet road");
+    if (filters.minPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) < filters.minPrice) why.push("min price");
+    if (filters.maxPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) > filters.maxPrice) why.push("max price");
+    if (filters.types.length) {
+      const f = formsOf(m);
+      if (f.length && !f.some((x) => filters.types.includes(x))) why.push("property type");
+    }
+    if (filters.noNewBuild && isNewBuild(m)) why.push("new-build");
+    if (filters.maxKm != null) {
+      const dd = distKm(m);
+      if (dd != null && dd > filters.maxKm) why.push(`within ${filters.maxKm} km`);
+    }
+    if (filters.reducedOnly && !/reduc/i.test(m.listing_update || "")) why.push("reduced only");
+    return why;
+  };
+  const hiddenKw = kwActive ? rows.filter((m) => kwHit(m) && !matches(m)) : [];
+  const [showHiddenKw, setShowHiddenKw] = useState(false);
+  useEffect(() => { setShowHiddenKw(false); }, [filters.kw]);
+  const hiddenWhyOf = (m: Prop): string | undefined =>
+    showHiddenKw && hiddenKw.includes(m) ? failWhy(m).join(", ") : undefined;
   const hidden = rows.length - filtered.length;
   const s = {
     total: filtered.length,
@@ -477,7 +514,8 @@ function Market({ report }: { report: Report }) {
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
   const sorted = [...filtered].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
-  const shown = showAll ? sorted : sorted.slice(0, 40);
+  const withHidden = showHiddenKw && hiddenKw.length ? [...sorted, ...hiddenKw] : sorted;
+  const shown = showAll ? withHidden : withHidden.slice(0, Math.max(40, hiddenKw.length + 8));
   // saved homes ignore the must-have pills (you liked them on purpose) but honour the sort
   const savedRows = [...rows].filter(liked).sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
   const isSaved = view === "saved";
@@ -613,6 +651,25 @@ function Market({ report }: { report: Report }) {
         </div>
       )}
 
+      {kwActive && hiddenKw.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#fff7e0",
+          border: "1px solid #eeddb0", borderRadius: 10, padding: "9px 13px", margin: "10px 0 2px", fontSize: 13 }}>
+          <span>⚠️ <b>{hiddenKw.length}</b> listing{hiddenKw.length > 1 ? "s" : ""} match{hiddenKw.length > 1 ? "" : "es"} “{filters.kw.trim()}”
+            but {hiddenKw.length > 1 ? "are" : "is"} hidden by your filters
+            ({[...new Set(hiddenKw.flatMap(failWhy))].slice(0, 3).join(", ")}).</span>
+          <button onClick={() => setShowHiddenKw(!showHiddenKw)}
+            style={{ fontSize: 12.5, fontWeight: 700, padding: "5px 12px", borderRadius: 8, cursor: "pointer",
+              border: "1px solid #b8860b", background: showHiddenKw ? "#b8860b" : "#fff", color: showHiddenKw ? "#fff" : "#8a6d00" }}>
+            {showHiddenKw ? "Hide them again" : "Show them anyway"}
+          </button>
+        </div>
+      )}
+      {kwActive && filtered.length === 0 && hiddenKw.length === 0 && (
+        <div style={{ background: "#f4f6f9", border: "1px solid #dfe5ec", borderRadius: 10,
+          padding: "9px 13px", margin: "10px 0 2px", fontSize: 13, color: "#556" }}>
+          No listing mentions “{filters.kw.trim()}” anywhere in its address, postcode, description or features.
+        </div>
+      )}
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
         Every listing valued against time-adjusted sold comps. Click a column to sort; click a card for the full valuation basis.
       </p>
@@ -625,7 +682,7 @@ function Market({ report }: { report: Report }) {
         </div>
       ) : view === "list" || (isSaved && !isNarrow) ? (
         <PortalList rows={tableData} onSelect={setSel} liked={liked} onLike={toggleLike}
-          narrow={isNarrow} plotOf={plotOf}
+          narrow={isNarrow} plotOf={plotOf} hiddenWhyOf={hiddenWhyOf}
           sortKey={sortKey} sortDir={sortDir}
           onSortKey={(k) => { setSortKey(k); setSortDir(k === "ratio" ? 1 : -1); }}
           onFlip={() => setSortDir(sortDir === 1 ? -1 : 1)} />
@@ -721,8 +778,9 @@ const _addedTag = (m: Prop): { txt: string; bg: string } | null => {
   return null;
 };
 
-function PortalCard({ m, onSelect, liked, onLike, narrow, plot }: {
+function PortalCard({ m, onSelect, liked, onLike, narrow, plot, hiddenWhy }: {
   m: Prop; onSelect: () => void; liked: boolean; onLike: () => void; narrow: boolean; plot?: number;
+  hiddenWhy?: string;
 }) {
   const photo = (m.photos || [])[0];
   const nPhotos = (m.photos || []).length;
@@ -756,6 +814,12 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot }: {
       onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(15,25,40,.06)")}>
       {img}
       <div style={{ flex: 1, padding: narrow ? "12px 14px 13px" : "13px 18px 12px", minWidth: 0 }}>
+        {hiddenWhy && (
+          <div style={{ background: "#fff7e0", border: "1px solid #eeddb0", color: "#8a6d00", fontSize: 11.5,
+            fontWeight: 600, borderRadius: 7, padding: "3px 9px", marginBottom: 7, display: "inline-block" }}>
+            shown for your search — normally hidden by: {hiddenWhy}
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 22, fontWeight: 800, color: "#1a1f29", letterSpacing: "-0.3px" }}>{gbp(m.asking)}</span>
           {delta != null && (
@@ -798,9 +862,10 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot }: {
   );
 }
 
-function PortalList({ rows, onSelect, liked, onLike, narrow, plotOf, sortKey, sortDir, onSortKey, onFlip }: {
+function PortalList({ rows, onSelect, liked, onLike, narrow, plotOf, hiddenWhyOf, sortKey, sortDir, onSortKey, onFlip }: {
   rows: Prop[]; onSelect: (p: Prop) => void; liked: (m: Prop) => boolean; onLike: (m: Prop) => void;
   narrow: boolean; plotOf: (m: Prop) => number | undefined;
+  hiddenWhyOf?: (m: Prop) => string | undefined;
   sortKey: SortKey; sortDir: 1 | -1; onSortKey: (k: SortKey) => void; onFlip: () => void;
 }) {
   return (
@@ -828,7 +893,8 @@ function PortalList({ rows, onSelect, liked, onLike, narrow, plotOf, sortKey, so
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {rows.map((m, i) => (
           <PortalCard key={m.uid || i} m={m} onSelect={() => onSelect(m)}
-            liked={liked(m)} onLike={() => onLike(m)} narrow={narrow} plot={plotOf(m)} />
+            liked={liked(m)} onLike={() => onLike(m)} narrow={narrow} plot={plotOf(m)}
+            hiddenWhy={hiddenWhyOf ? hiddenWhyOf(m) : undefined} />
         ))}
       </div>
     </div>
