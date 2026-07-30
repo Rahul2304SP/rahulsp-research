@@ -18,7 +18,7 @@ type Prop = {
   ratio?: number; portal?: string; uid?: string; lat?: number; lon?: number;
   crime_grade?: string; crime_count?: number; crime_penalty_pct?: number; crime_adj_offer?: number;
   negotiation?: string[]; opening_offer?: number; epc_rating?: string; listing_update?: string;
-  floor_area_source?: string; full_postcode?: string;
+  floor_area_source?: string; full_postcode?: string; first_seen?: string; last_seen?: string;
   has_garden?: boolean; has_parking?: boolean; south_garden?: boolean; busy_road?: boolean;
   council_tax_cost?: number; epc_potential?: string;
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
@@ -262,16 +262,61 @@ function PasteBar() {
   );
 }
 
-type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size" | "plot" | "land";
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size" | "plot" | "land" | "newest" | "dist";
 
 type Filters = {
   beds3: boolean; garden: boolean; parking: boolean; quiet: boolean;
   // null = "Any". Kept separate from the boolean must-haves because these carry a
   // value, not an on/off state.
   minPrice: number | null; maxPrice: number | null;
+  // portal-style refinements, kept behind "More filters" so the default view stays simple
+  minBeds: number | null;          // overrides the 3+ pill when set
+  types: string[];                 // built forms to KEEP; [] = all
+  noNewBuild: boolean;             // new-builds run ratio 1.2-1.5 and tiny plots
+  maxKm: number | null;            // radius from Haydon Wick
+  kw: string;                      // keyword across address + description + features
+  reducedOnly: boolean;            // sellers who have already dropped = negotiable
 };
 const DEFAULT_FILTERS: Filters = {
   beds3: true, garden: true, parking: true, quiet: true, minPrice: null, maxPrice: null,
+  minBeds: null, types: [], noNewBuild: false, maxKm: null, kw: "", reducedOnly: false,
+};
+
+// Haydon Wick (40 High Street) — the origin for the distance filter.
+const ORIGIN = { lat: 51.589567, lon: -1.804988 };
+const distKm = (p: Prop): number | null => {
+  if (p.lat == null || p.lon == null) return null;
+  return 111 * Math.hypot(p.lat - ORIGIN.lat,
+                          (p.lon - ORIGIN.lon) * Math.cos((ORIGIN.lat * Math.PI) / 180));
+};
+
+const BUILT_FORMS = [
+  { code: "detached", label: "Detached" },
+  { code: "semi", label: "Semi" },
+  { code: "terraced", label: "Terraced" },
+  { code: "bungalow", label: "Bungalow" },
+];
+// The portal `type` field is unreliable (it called a "Semi Detached Bungalow"
+// detached), so classify off the listing text too and treat either as a match.
+const formsOf = (p: Prop): string[] => {
+  const t = (p.type || "").toLowerCase();
+  const txt = ((p.description || "") + " " + (p.key_features || []).join(" ")).toLowerCase();
+  const out: string[] = [];
+  if (/bungalow/.test(txt) || /bungalow/.test(t)) out.push("bungalow");
+  if (/semi[- ]?detached/.test(txt) || t === "semi-detached") out.push("semi");
+  else if (/terrac|town ?house|maisonette/.test(txt) || t === "terraced") out.push("terraced");
+  else if (/detached/.test(txt) || t === "detached") out.push("detached");
+  return out;
+};
+// New-build tells: a plot number, developer incentives, or a house-type name
+// ("The Harper at Redlands Grove"). The house-type pattern must stay
+// case-SENSITIVE — under /i it also matches ordinary prose like "the garden at
+// the rear", which would hide perfectly good resale homes.
+const NB_ANY = /\bplot\s*\d+|new[- ]build|newly built|show home|help to buy|reservation fee|part exchange|incentives available/i;
+const NB_TYPENAME = /\bThe [A-Z][a-z]+ at [A-Z]/;
+const isNewBuild = (p: Prop): boolean => {
+  const hay = (p.address || "") + " " + (p.description || "") + " " + (p.key_features || []).join(" ");
+  return NB_ANY.test(hay) || NB_TYPENAME.test(hay);
 };
 
 // Budget dropdown steps. £25k granularity is how people actually think about a
@@ -346,10 +391,22 @@ function Market({ report }: { report: Report }) {
       if (saved) setFilters({ ...DEFAULT_FILTERS, ...JSON.parse(saved) });
     } catch { /* ignore */ }
   }, []);
+  const [moreOpen, setMoreOpen] = useState(false);
   const persist = (next: Filters) => {
     try { localStorage.setItem("hf_filters", JSON.stringify(next)); } catch { /* ignore */ }
     return next;
   };
+  const setF = <K extends keyof Filters>(k: K, v: Filters[K]) =>
+    setFilters((f) => persist({ ...f, [k]: v }));
+  const toggleType = (code: string) =>
+    setFilters((f) => persist({
+      ...f,
+      types: f.types.includes(code) ? f.types.filter((t) => t !== code) : [...f.types, code],
+    }));
+  // how many of the advanced refinements are actually doing something
+  const nMore = (filters.minBeds != null ? 1 : 0) + (filters.types.length ? 1 : 0)
+    + (filters.noNewBuild ? 1 : 0) + (filters.maxKm != null ? 1 : 0)
+    + (filters.kw.trim() ? 1 : 0) + (filters.reducedOnly ? 1 : 0);
   const flip = (k: "beds3" | "garden" | "parking" | "quiet") =>
     setFilters((f) => persist({ ...f, [k]: !f[k] }));
   const setPrice = (k: "minPrice" | "maxPrice", v: number | null) =>
@@ -365,13 +422,31 @@ function Market({ report }: { report: Report }) {
 
   // must-have filters: only ever HIDE on a known-failing value, never on unknowns
   const matches = (m: Prop): boolean => {
-    if (filters.beds3 && (m.beds ?? 3) < 3) return false;
+    const minB = filters.minBeds ?? (filters.beds3 ? 3 : 0);
+    if (minB && (m.beds ?? minB) < minB) return false;
     if (filters.garden && m.has_garden === false) return false;
     if (filters.parking && m.has_parking === false) return false;
     if (filters.quiet && m.busy_road === true) return false;
     // price: an unknown asking is never hidden (same "don't punish gaps" rule)
     if (filters.minPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) < filters.minPrice) return false;
     if (filters.maxPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) > filters.maxPrice) return false;
+    if (filters.types.length) {
+      const f = formsOf(m);
+      // no classification at all => don't hide it, same unknowns rule
+      if (f.length && !f.some((x) => filters.types.includes(x))) return false;
+    }
+    if (filters.noNewBuild && isNewBuild(m)) return false;
+    if (filters.maxKm != null) {
+      const d = distKm(m);
+      if (d != null && d > filters.maxKm) return false;
+    }
+    if (filters.reducedOnly && !/reduc/i.test(m.listing_update || "")) return false;
+    if (filters.kw.trim()) {
+      const hay = ((m.address || "") + " " + (m.full_postcode || "") + " " +
+                   (m.description || "") + " " + (m.key_features || []).join(" ")).toLowerCase();
+      // every space-separated term must appear (AND), like a portal keyword search
+      if (!filters.kw.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t))) return false;
+    }
     return true;
   };
   const steps = priceSteps(rows);
@@ -394,6 +469,11 @@ function Market({ report }: { report: Report }) {
       const pl = plotOf(m);
       return pl && m.asking ? m.asking / pl : (sortDir === 1 ? Infinity : -Infinity);
     }
+    if (k === "newest") {   // most recently first seen; descending shows newest first
+      const t = Date.parse(m.first_seen || "");
+      return isFinite(t) ? t : (sortDir === 1 ? Infinity : -Infinity);
+    }
+    if (k === "dist") return distKm(m) ?? (sortDir === 1 ? Infinity : -Infinity);
     return (m[k as "asking" | "suggested_offer"] as number) ?? (sortDir === 1 ? Infinity : -Infinity);
   };
   const sorted = [...filtered].sort((a, b) => (val(a, sortKey) - val(b, sortKey)) * sortDir);
@@ -460,6 +540,12 @@ function Market({ report }: { report: Report }) {
         <span style={{ fontSize: 11.5, color: "#aab" }}>
           {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
         </span>
+        <button onClick={() => setMoreOpen(!moreOpen)}
+          style={{ fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 14, cursor: "pointer",
+            border: nMore ? "1px solid #1455c0" : "1px solid #cdd6e0",
+            background: nMore ? "#eaf1fc" : "#fff", color: nMore ? "#1455c0" : "#667" }}>
+          {moreOpen ? "▲" : "▼"} More filters{nMore ? ` (${nMore})` : ""}
+        </button>
         <span style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid #cdd6e0", borderRadius: 8, overflow: "hidden" }}>
           {(["table", "gallery", "map", "saved"] as const).map((mode) => (
             <button key={mode} onClick={() => setView(mode)}
@@ -470,6 +556,63 @@ function Market({ report }: { report: Report }) {
           ))}
         </span>
       </div>
+
+      {moreOpen && (
+        <div style={{ ...panel, display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#778", fontWeight: 600, minWidth: 72 }}>Keyword</span>
+            <input value={filters.kw} onChange={(e) => setF("kw", e.target.value)}
+              placeholder="e.g. corner plot, annexe, south facing" aria-label="Keyword search"
+              style={{ flex: "1 1 240px", padding: "8px 10px", fontSize: 16, border: "1px solid #cdd6e0", borderRadius: 8 }} />
+            {filters.kw && <button onClick={() => setF("kw", "")}
+              style={{ fontSize: 12, padding: "4px 9px", borderRadius: 12, border: "1px solid #cdd6e0", background: "#fff", color: "#667", cursor: "pointer" }}>✕</button>}
+          </div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#778", fontWeight: 600, minWidth: 72 }}>Type</span>
+            {BUILT_FORMS.map((b) => (
+              <FilterPill key={b.code} on={filters.types.includes(b.code)}
+                onClick={() => toggleType(b.code)} label={b.label} />
+            ))}
+            <span style={{ fontSize: 11.5, color: "#aab" }}>{filters.types.length ? "" : "all types"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#778", fontWeight: 600, minWidth: 72 }}>Beds</span>
+            <select value={filters.minBeds ?? ""} aria-label="Minimum bedrooms"
+              onChange={(e) => setF("minBeds", e.target.value ? Number(e.target.value) : null)}
+              style={{ ...priceSelect, minHeight: 36 }}>
+              <option value="">3+ (default)</option>
+              {[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+ beds</option>)}
+            </select>
+            <span style={{ fontSize: 12, color: "#778", fontWeight: 600 }}>Within</span>
+            <select value={filters.maxKm ?? ""} aria-label="Maximum distance from Haydon Wick"
+              onChange={(e) => setF("maxKm", e.target.value ? Number(e.target.value) : null)}
+              style={{ ...priceSelect, minHeight: 36 }}>
+              <option value="">Any distance</option>
+              {[1, 2, 3, 5, 8].map((n) => <option key={n} value={n}>{n} km of Haydon Wick</option>)}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#778", fontWeight: 600, minWidth: 72 }}>Also</span>
+            <FilterPill on={filters.noNewBuild} onClick={() => setF("noNewBuild", !filters.noNewBuild)}
+              label="🚫 Hide new-builds" />
+            <FilterPill on={filters.reducedOnly} onClick={() => setF("reducedOnly", !filters.reducedOnly)}
+              label="📉 Reduced only" />
+            {nMore > 0 && (
+              <button onClick={() => setFilters((f) => persist({
+                ...f, minBeds: null, types: [], noNewBuild: false, maxKm: null, kw: "", reducedOnly: false }))}
+                style={{ fontSize: 11.5, padding: "4px 10px", borderRadius: 12, border: "1px solid #cdd6e0", background: "#fff", color: "#667", cursor: "pointer" }}>
+                reset these
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#889" }}>
+            New-builds typically ask 20–50% above comparable resale value on a minimal plot —
+            hiding them removes that noise. &ldquo;Reduced only&rdquo; shows sellers who have already
+            dropped their price, who tend to negotiate further.
+          </div>
+        </div>
+      )}
+
       <p style={{ color: "#889", fontSize: 12, margin: "4px 0 8px" }}>
         Every listing valued against time-adjusted sold comps. Click a column to sort; click a card for the full valuation basis.
       </p>
@@ -568,6 +711,8 @@ function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey
           <option value="size">Size (sq ft)</option>
           <option value="plot">Plot size (measured)</option>
           <option value="land">Land value (£/m²)</option>
+          <option value="newest">Newest listed</option>
+          <option value="dist">Distance from Haydon Wick</option>
           <option value="crime">Crime level</option>
         </select>
         <button onClick={onFlip} title="Reverse order"
