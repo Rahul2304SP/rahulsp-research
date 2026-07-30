@@ -357,7 +357,7 @@ function Market({ report }: { report: Report }) {
       return next;
     });
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [view, setView] = useState<"table" | "gallery" | "map" | "saved">("table");
+  const [view, setView] = useState<"list" | "table" | "gallery" | "map" | "saved">("list");
   const [likes, setLikes] = useState<Set<string>>(new Set());
   const [isNarrow, setIsNarrow] = useState(false);
 
@@ -547,11 +547,11 @@ function Market({ report }: { report: Report }) {
           {moreOpen ? "▲" : "▼"} More filters{nMore ? ` (${nMore})` : ""}
         </button>
         <span style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid #cdd6e0", borderRadius: 8, overflow: "hidden" }}>
-          {(["table", "gallery", "map", "saved"] as const).map((mode) => (
+          {(["list", "table", "gallery", "map", "saved"] as const).map((mode) => (
             <button key={mode} onClick={() => setView(mode)}
               style={{ fontSize: 12, fontWeight: 600, padding: "4px 11px", border: "none", cursor: "pointer", borderLeft: mode === "saved" ? "1px solid #cdd6e0" : "none",
                 background: view === mode ? (mode === "saved" ? "#e0245e" : "#1455c0") : "#fff", color: view === mode ? "#fff" : (mode === "saved" ? "#e0245e" : "#667") }}>
-              {mode === "table" ? "▦ Table" : mode === "gallery" ? "🖼️ Gallery" : mode === "map" ? "🗺️ Map" : `♥ Saved${likes.size ? ` (${likes.size})` : ""}`}
+              {mode === "list" ? "☰ List" : mode === "table" ? "▦ Table" : mode === "gallery" ? "🖼️ Gallery" : mode === "map" ? "🗺️ Map" : `♥ Saved${likes.size ? ` (${likes.size})` : ""}`}
             </button>
           ))}
         </span>
@@ -623,6 +623,12 @@ function Market({ report }: { report: Report }) {
           <div style={{ fontSize: 14, fontWeight: 600, margin: "6px 0 2px", color: "#556" }}>No saved homes yet</div>
           <div style={{ fontSize: 12.5 }}>Tap the ♡ on any listing to save it here.</div>
         </div>
+      ) : view === "list" || (isSaved && !isNarrow) ? (
+        <PortalList rows={tableData} onSelect={setSel} liked={liked} onLike={toggleLike}
+          narrow={isNarrow} plotOf={plotOf}
+          sortKey={sortKey} sortDir={sortDir}
+          onSortKey={(k) => { setSortKey(k); setSortDir(k === "ratio" ? 1 : -1); }}
+          onFlip={() => setSortDir(sortDir === 1 ? -1 : 1)} />
       ) : view === "gallery" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 12, marginTop: 12 }}>
           {shown.map((m, i) => <GalleryTile key={m.uid || i} m={m} onClick={() => setSel(m)} liked={liked(m)} onLike={() => toggleLike(m)} />)}
@@ -681,7 +687,7 @@ function Market({ report }: { report: Report }) {
         </table>
       </div>
       )}
-      {view === "table" && sorted.length > 40 && (
+      {(view === "table" || view === "list") && sorted.length > 40 && (
         <button onClick={() => setShowAll(!showAll)} style={{ ...btn, width: "auto", padding: "6px 14px", marginTop: 10, fontSize: 13, background: "#eef2f8", color: "#1455c0" }}>
           {showAll ? "Show top 40" : `Show all ${sorted.length}`}
         </button>
@@ -694,6 +700,141 @@ function Market({ report }: { report: Report }) {
 // Phone view of the market list: one stacked card per listing so nothing runs off
 // the right edge. Column headers are gone here, so a compact sort control replaces
 // them. The wide sortable table (above) is kept for tablet / desktop.
+// ---- Zoopla-style portal list: photo-led cards, price-first, valuation chip ----
+const _stripHtml = (h?: string) =>
+  (h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+const _typeWord = (m: Prop): string => {
+  const txt = (_stripHtml(m.description) + " " + (m.key_features || []).join(" ")).toLowerCase();
+  if (/bungalow/.test(txt)) return "bungalow";
+  const t = (m.type || "").toLowerCase();
+  return t === "semi-detached" ? "semi-detached house"
+    : t === "detached" ? "detached house"
+    : t === "terraced" ? "terraced house"
+    : t === "flat" ? "flat" : "property";
+};
+const _addedTag = (m: Prop): { txt: string; bg: string } | null => {
+  const lu = m.listing_update || "";
+  if (/reduced/i.test(lu)) return { txt: "📉 " + lu, bg: "#b3261e" };
+  const fs = Date.parse(m.first_seen || "");
+  if (isFinite(fs) && Date.now() - fs < 36 * 3600 * 1000) return { txt: "Just added", bg: "#0a7d28" };
+  if (/added/i.test(lu)) return { txt: lu, bg: "#455" };
+  return null;
+};
+
+function PortalCard({ m, onSelect, liked, onLike, narrow, plot }: {
+  m: Prop; onSelect: () => void; liked: boolean; onLike: () => void; narrow: boolean; plot?: number;
+}) {
+  const photo = (m.photos || [])[0];
+  const nPhotos = (m.photos || []).length;
+  const delta = m.ratio ? Math.round((m.ratio - 1) * 100) : null;
+  const tag = _addedTag(m);
+  const ls = landStats(m.asking, plot);
+  const d = distKm(m);
+  const img = (
+    <div style={{ position: "relative", flex: narrow ? "none" : "0 0 264px",
+      width: narrow ? "100%" : 264, height: narrow ? 200 : 198, background: "#eef1f5",
+      borderRadius: narrow ? "12px 12px 0 0" : "12px 0 0 12px", overflow: "hidden" }}>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 42, color: "#c3ccd6" }}>🏠</div>
+      )}
+      {tag && <span style={{ position: "absolute", left: 10, top: 10, background: tag.bg, color: "#fff",
+        fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6 }}>{tag.txt}</span>}
+      {nPhotos > 1 && <span style={{ position: "absolute", right: 10, bottom: 10, background: "rgba(15,20,30,.72)",
+        color: "#fff", fontSize: 11.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6 }}>📷 {nPhotos}</span>}
+    </div>
+  );
+  return (
+    <div onClick={onSelect}
+      style={{ display: "flex", flexDirection: narrow ? "column" : "row", background: "#fff",
+        border: "1px solid #e4e9f0", borderRadius: 12, cursor: "pointer", overflow: "hidden",
+        boxShadow: "0 1px 4px rgba(15,25,40,.06)" }}
+      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 3px 14px rgba(15,25,40,.13)")}
+      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(15,25,40,.06)")}>
+      {img}
+      <div style={{ flex: 1, padding: narrow ? "12px 14px 13px" : "13px 18px 12px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: "#1a1f29", letterSpacing: "-0.3px" }}>{gbp(m.asking)}</span>
+          {delta != null && (
+            <span style={{ fontSize: 12.5, fontWeight: 700,
+              color: delta <= -3 ? "#0a7d28" : delta >= 3 ? "#c01616" : "#b06b00" }}>
+              {delta > 0 ? `+${delta}%` : `${delta}%`} vs comps
+            </span>
+          )}
+          <span style={{ marginLeft: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <LikeHeart on={liked} onClick={onLike} size={20} />
+          </span>
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1f29", marginTop: 3 }}>
+          {m.beds ? `${m.beds} bed ` : ""}{_typeWord(m)} for sale
+        </div>
+        <div style={{ fontSize: 13, color: "#5a6472", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {m.address}
+        </div>
+        <div style={{ display: "flex", gap: "4px 16px", flexWrap: "wrap", fontSize: 12.5, color: "#39424e", margin: "9px 0 0" }}>
+          {m.beds ? <span>🛏 {m.beds} beds</span> : null}
+          {m.floor_area_m2 ? <span>📏 {Math.round(m.floor_area_m2 * 10.764).toLocaleString()} sq ft</span> : null}
+          {plot ? <span title="measured off the aerial">📐 plot {Math.round(plot).toLocaleString()} m²</span> : null}
+          {ls ? <span style={{ color: landVerdict(ls.ppm2).color, fontWeight: 700 }}>{"£" + ls.ppm2.toLocaleString()}/m² land</span> : null}
+          {d != null && d < 90 ? <span>📍 {d.toFixed(1)} km</span> : null}
+          {m.crime_grade ? <span>{m.crime_grade === "Low" ? "🟢" : m.crime_grade === "Moderate" ? "🟡" : "🔴"} crime {m.crime_grade.toLowerCase()}</span> : null}
+        </div>
+        {!narrow && (
+          <div style={{ fontSize: 12.5, color: "#67707c", marginTop: 8, lineHeight: 1.45, display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {_stripHtml(m.description).slice(0, 260)}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9, fontSize: 11.5, color: "#8a94a0" }}>
+          <VerdictChip m={m} />
+          <span>fair {gbp(m.fair_ref ?? m.fair_value)}</span>
+          <span style={{ marginLeft: "auto" }}>{m.portal || ""}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PortalList({ rows, onSelect, liked, onLike, narrow, plotOf, sortKey, sortDir, onSortKey, onFlip }: {
+  rows: Prop[]; onSelect: (p: Prop) => void; liked: (m: Prop) => boolean; onLike: (m: Prop) => void;
+  narrow: boolean; plotOf: (m: Prop) => number | undefined;
+  sortKey: SortKey; sortDir: 1 | -1; onSortKey: (k: SortKey) => void; onFlip: () => void;
+}) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12.5, flexWrap: "wrap" }}>
+        <span style={{ color: "#778", fontWeight: 600 }}>Sort by</span>
+        <select value={sortKey === "delta" ? "ratio" : sortKey} onChange={(e) => onSortKey(e.target.value as SortKey)}
+          style={{ fontSize: 12.5, padding: "5px 8px", borderRadius: 8, border: "1px solid #cdd6e0", background: "#fff", color: "#334" }}>
+          <option value="ratio">Best value</option>
+          <option value="asking">Asking price</option>
+          <option value="fair_value">Fair value</option>
+          <option value="suggested_offer">Suggested offer</option>
+          <option value="size">Size (sq ft)</option>
+          <option value="plot">Plot size (measured)</option>
+          <option value="land">Land value (£/m²)</option>
+          <option value="newest">Newest listed</option>
+          <option value="dist">Distance from Haydon Wick</option>
+          <option value="crime">Crime level</option>
+        </select>
+        <button onClick={onFlip} title="Reverse order"
+          style={{ fontSize: 12.5, fontWeight: 700, padding: "5px 11px", borderRadius: 8, border: "1px solid #cdd6e0", background: "#fff", color: "#1455c0", cursor: "pointer" }}>
+          {sortDir === 1 ? "▲" : "▼"} Reverse
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {rows.map((m, i) => (
+          <PortalCard key={m.uid || i} m={m} onSelect={() => onSelect(m)}
+            liked={liked(m)} onLike={() => onLike(m)} narrow={narrow} plot={plotOf(m)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey, onFlip }: {
   rows: Prop[]; onSelect: (p: Prop) => void; liked: (m: Prop) => boolean; onLike: (m: Prop) => void;
   sortKey: SortKey; sortDir: 1 | -1; onSortKey: (k: SortKey) => void; onFlip: () => void;
