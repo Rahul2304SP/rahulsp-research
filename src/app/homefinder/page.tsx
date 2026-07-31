@@ -21,6 +21,7 @@ type Prop = {
   floor_area_source?: string; full_postcode?: string; first_seen?: string; last_seen?: string;
   has_garden?: boolean; has_parking?: boolean; south_garden?: boolean; busy_road?: boolean;
   council_tax_cost?: number; epc_potential?: string;
+  target_zone?: string | null; target_dist_km?: number | null;
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
                     index_implied_today?: number; index_growth_pct?: number };
   orientation?: { verdict?: string; north_method?: string; score?: number;
@@ -266,6 +267,7 @@ type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" |
 
 type Filters = {
   beds3: boolean; garden: boolean; parking: boolean; quiet: boolean;
+  zone: boolean;                   // 🎯 only listings inside a target zone (target_zones.py)
   // null = "Any". Kept separate from the boolean must-haves because these carry a
   // value, not an on/off state.
   minPrice: number | null; maxPrice: number | null;
@@ -278,7 +280,7 @@ type Filters = {
   reducedOnly: boolean;            // sellers who have already dropped = negotiable
 };
 const DEFAULT_FILTERS: Filters = {
-  beds3: true, garden: true, parking: true, quiet: true, minPrice: null, maxPrice: null,
+  beds3: true, garden: true, parking: true, quiet: true, zone: false, minPrice: null, maxPrice: null,
   minBeds: null, types: [], noNewBuild: false, maxKm: null, kw: "", reducedOnly: false,
 };
 
@@ -407,7 +409,7 @@ function Market({ report }: { report: Report }) {
   const nMore = (filters.minBeds != null ? 1 : 0) + (filters.types.length ? 1 : 0)
     + (filters.noNewBuild ? 1 : 0) + (filters.maxKm != null ? 1 : 0)
     + (filters.kw.trim() ? 1 : 0) + (filters.reducedOnly ? 1 : 0);
-  const flip = (k: "beds3" | "garden" | "parking" | "quiet") =>
+  const flip = (k: "beds3" | "garden" | "parking" | "quiet" | "zone") =>
     setFilters((f) => persist({ ...f, [k]: !f[k] }));
   const setPrice = (k: "minPrice" | "maxPrice", v: number | null) =>
     setFilters((f) => {
@@ -427,6 +429,9 @@ function Market({ report }: { report: Report }) {
     if (filters.garden && m.has_garden === false) return false;
     if (filters.parking && m.has_parking === false) return false;
     if (filters.quiet && m.busy_road === true) return false;
+    // 🎯 zone is a FOCUS lens, so unlike the must-haves it deliberately hides
+    // unknown-location listings too — that's what "focused" means here
+    if (filters.zone && !m.target_zone) return false;
     // price: an unknown asking is never hidden (same "don't punish gaps" rule)
     if (filters.minPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) < filters.minPrice) return false;
     if (filters.maxPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) > filters.maxPrice) return false;
@@ -469,6 +474,7 @@ function Market({ report }: { report: Report }) {
     if (filters.garden && m.has_garden === false) why.push("Garden");
     if (filters.parking && m.has_parking === false) why.push("Parking");
     if (filters.quiet && m.busy_road === true) why.push("Quiet road");
+    if (filters.zone && !m.target_zone) why.push("target zone");
     if (filters.minPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) < filters.minPrice) why.push("min price");
     if (filters.maxPrice != null && (m.asking ?? 0) > 0 && (m.asking as number) > filters.maxPrice) why.push("max price");
     if (filters.types.length) {
@@ -575,6 +581,7 @@ function Market({ report }: { report: Report }) {
         <FilterPill on={filters.garden} onClick={() => flip("garden")} label="🌳 Garden" />
         <FilterPill on={filters.parking} onClick={() => flip("parking")} label="🅿️ Parking" />
         <FilterPill on={filters.quiet} onClick={() => flip("quiet")} label="🔇 Quiet road" />
+        <FilterPill on={filters.zone} onClick={() => flip("zone")} label="🎯 Target zone" />
         <span style={{ fontSize: 11.5, color: "#aab" }}>
           {hidden > 0 ? `${hidden} hidden` : "all match"} · tap a pill to toggle
         </span>
@@ -843,6 +850,8 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot, hiddenWhy }: {
           {m.floor_area_m2 ? <span>📏 {Math.round(m.floor_area_m2 * 10.764).toLocaleString()} sq ft</span> : null}
           {plot ? <span title="measured off the aerial">📐 plot {Math.round(plot).toLocaleString()} m²</span> : null}
           {ls ? <span style={{ color: landVerdict(ls.ppm2).color, fontWeight: 700 }}>{"£" + ls.ppm2.toLocaleString()}/m² land</span> : null}
+          {m.target_zone ? <span title={m.target_zone} style={{ color: "#b3261e", fontWeight: 700 }}>
+            🎯 {((m.target_dist_km ?? 0) / 1.609).toFixed(1)} mi</span> : null}
           {d != null && d < 90 ? <span>📍 {d.toFixed(1)} km</span> : null}
           {m.crime_grade ? <span>{m.crime_grade === "Low" ? "🟢" : m.crime_grade === "Moderate" ? "🟡" : "🔴"} crime {m.crime_grade.toLowerCase()}</span> : null}
         </div>
