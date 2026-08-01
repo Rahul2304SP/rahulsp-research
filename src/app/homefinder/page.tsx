@@ -22,6 +22,8 @@ type Prop = {
   has_garden?: boolean; has_parking?: boolean; south_garden?: boolean; busy_road?: boolean;
   council_tax_cost?: number; epc_potential?: string;
   target_zone?: string | null; target_dist_km?: number | null;
+  rent_pcm?: number | null; rent_pv?: number | null; rent_yield?: number | null;
+  rent_n?: number | null; rent_note?: string | null;
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
                     index_implied_today?: number; index_growth_pct?: number };
   orientation?: { verdict?: string; north_method?: string; score?: number;
@@ -263,7 +265,7 @@ function PasteBar() {
   );
 }
 
-type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size" | "plot" | "land" | "newest" | "dist";
+type SortKey = "ratio" | "asking" | "fair_value" | "delta" | "suggested_offer" | "crime" | "size" | "plot" | "land" | "newest" | "dist" | "yield";
 
 type Filters = {
   beds3: boolean; garden: boolean; parking: boolean; quiet: boolean;
@@ -512,6 +514,7 @@ function Market({ report }: { report: Report }) {
       const pl = plotOf(m);
       return pl && m.asking ? m.asking / pl : (sortDir === 1 ? Infinity : -Infinity);
     }
+    if (k === "yield") return m.rent_yield ?? (sortDir === 1 ? Infinity : -Infinity);
     if (k === "newest") {   // most recently first seen; descending shows newest first
       const t = Date.parse(m.first_seen || "");
       return isFinite(t) ? t : (sortDir === 1 ? Infinity : -Infinity);
@@ -852,6 +855,9 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot, hiddenWhy }: {
           {ls ? <span style={{ color: landVerdict(ls.ppm2).color, fontWeight: 700 }}>{"£" + ls.ppm2.toLocaleString()}/m² land</span> : null}
           {m.target_zone ? <span title={m.target_zone} style={{ color: "#b3261e", fontWeight: 700 }}>
             🎯 {((m.target_dist_km ?? 0) / 1.609).toFixed(1)} mi</span> : null}
+          {m.rent_pcm ? <span title={`rental cross-check: ${m.rent_n} nearby lettings (${m.rent_note}); 40-yr PV @4.92% = ${gbp(m.rent_pv ?? undefined)}`}
+            style={(m.asking && m.rent_pv && m.asking <= m.rent_pv) ? { color: "#0a7d28", fontWeight: 700 } : undefined}>
+            💷 ~£{m.rent_pcm.toLocaleString()}/mo · {m.rent_yield?.toFixed(1)}%</span> : null}
           {d != null && d < 90 ? <span>📍 {d.toFixed(1)} km</span> : null}
           {m.crime_grade ? <span>{m.crime_grade === "Low" ? "🟢" : m.crime_grade === "Moderate" ? "🟡" : "🔴"} crime {m.crime_grade.toLowerCase()}</span> : null}
         </div>
@@ -890,6 +896,7 @@ function PortalList({ rows, onSelect, liked, onLike, narrow, plotOf, hiddenWhyOf
           <option value="size">Size (sq ft)</option>
           <option value="plot">Plot size (measured)</option>
           <option value="land">Land value (£/m²)</option>
+          <option value="yield">Rent yield (%)</option>
           <option value="newest">Newest listed</option>
           <option value="dist">Distance from Haydon Wick</option>
           <option value="crime">Crime level</option>
@@ -927,6 +934,7 @@ function MobileList({ rows, onSelect, liked, onLike, sortKey, sortDir, onSortKey
           <option value="size">Size (sq ft)</option>
           <option value="plot">Plot size (measured)</option>
           <option value="land">Land value (£/m²)</option>
+          <option value="yield">Rent yield (%)</option>
           <option value="newest">Newest listed</option>
           <option value="dist">Distance from Haydon Wick</option>
           <option value="crime">Crime level</option>
@@ -1354,6 +1362,27 @@ function Card({ p, allAsking, plot, onPlotSaved }: { p: Prop; allAsking?: number
           {p.epc_graph ? <span> · <a href={p.epc_graph} target="_blank" rel="noreferrer">EPC ↗</a></span> : null}
         </div>
       )}
+
+      {p.rent_pcm ? (
+        <div style={panel}>
+          <b style={{ fontSize: 13 }}>💷 Rental cross-check</b>
+          <div style={{ fontSize: 13, margin: "5px 0", lineHeight: 1.55 }}>
+            Nearby houses like this rent for about <b>£{p.rent_pcm.toLocaleString()}/month</b>
+            {" "}(median of {p.rent_n} lettings, {p.rent_note}) — a gross yield of <b>{p.rent_yield?.toFixed(1)}%</b>.
+            <br />
+            That rent stream over 40 years, discounted at 4.92% (your mortgage rate), is worth{" "}
+            <b>{gbp(p.rent_pv ?? undefined)}</b> today — the mortgage that rent would exactly service.{" "}
+            {p.asking && p.rent_pv ? (
+              p.asking <= p.rent_pv
+                ? <b style={{ color: "#0a7d28" }}>Asking {gbp(p.asking)} is BELOW its rental PV — cheaper to own than to rent forever.</b>
+                : <span>Asking {gbp(p.asking)} is {Math.round(100 * (p.asking / p.rent_pv - 1))}% above its rental PV — you are paying for ownership, space or growth beyond the rent it commands.</span>
+            ) : null}
+          </div>
+          <div style={{ fontSize: 11, color: "#8a94a0" }}>
+            Gross asking rents, held flat 40 years — no voids, maintenance or management. A cross-check on the comps valuation, not a replacement.
+          </div>
+        </div>
+      ) : null}
 
       {(p.has_garden != null || p.council_tax_cost || p.amenities?.road_rail?.road_rail_summary) && (
         <div style={panel}>
