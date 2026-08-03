@@ -23,6 +23,7 @@ type Prop = {
   council_tax_cost?: number; epc_potential?: string;
   target_zone?: string | null; target_dist_km?: number | null;
   rent_pcm?: number | null; rent_pv?: number | null; rent_fcf?: number | null;
+  rent_pv_g?: number | null; rent_fcf_g?: number | null;
   rent_yield?: number | null; rent_n?: number | null; rent_note?: string | null;
   own_last_sale?: { last_date?: string; last_price?: number; n_sales?: number; years_ago?: number;
                     index_implied_today?: number; index_growth_pct?: number };
@@ -993,9 +994,9 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot, hiddenWhy }: {
           {ls ? <span style={{ color: landVerdict(ls.ppm2).color, fontWeight: 700 }}>{"£" + ls.ppm2.toLocaleString()}/m² land</span> : null}
           {m.target_zone ? <span title={m.target_zone} style={{ color: "#b3261e", fontWeight: 700 }}>
             🎯 {((m.target_dist_km ?? 0) / 1.609).toFixed(1)} mi</span> : null}
-          {m.rent_pcm ? <span title={`rental cross-check (${m.rent_n} lettings, ${m.rent_note}): gross 40-yr PV @4.92% = ${gbp(m.rent_pv ?? undefined)}; net FCF value (74% after voids/maintenance/management) = ${gbp(m.rent_fcf ?? undefined)}`}
+          {m.rent_pcm ? <span title={`rental cross-check (${m.rent_n} lettings, ${m.rent_note}): 40-yr PV @4.92% with rents growing 2.5%/yr = ${gbp(m.rent_pv_g ?? undefined)} gross, ${gbp(m.rent_fcf_g ?? undefined)} net FCF (74% after voids/maintenance/management). Flat-rent conservative floor: ${gbp(m.rent_fcf ?? undefined)} net.`}
             style={(m.asking && m.rent_pv && m.asking <= m.rent_pv) ? { color: "#0a7d28", fontWeight: 700 } : undefined}>
-            💷 ~£{m.rent_pcm.toLocaleString()}/mo{m.rent_yield ? ` · yield ${m.rent_yield.toFixed(1)}%` : ""}{m.rent_fcf ? ` · FCF ${gbp(Math.round(m.rent_fcf / 1000) * 1000).replace(",000", "k")}` : ""}</span> : null}
+            💷 ~£{m.rent_pcm.toLocaleString()}/mo{m.rent_yield ? ` · yield ${m.rent_yield.toFixed(1)}%` : ""}{(m.rent_fcf_g || m.rent_fcf) ? ` · FCF ${gbp(Math.round((m.rent_fcf_g || m.rent_fcf)! / 1000) * 1000).replace(",000", "k")}` : ""}</span> : null}
           {d != null && d < 90 ? <span>📍 {d.toFixed(1)} km</span> : null}
           {m.crime_grade ? <span>{m.crime_grade === "Low" ? "🟢" : m.crime_grade === "Moderate" ? "🟡" : "🔴"} crime {m.crime_grade.toLowerCase()}</span> : null}
         </div>
@@ -1508,24 +1509,24 @@ function Card({ p, allAsking, plot, onPlotSaved }: { p: Prop; allAsking?: number
             Nearby houses like this rent for about <b>£{p.rent_pcm.toLocaleString()}/month</b>
             {" "}(median of {p.rent_n} lettings, {p.rent_note}) — a gross yield of <b>{p.rent_yield?.toFixed(1)}%</b>.
             <br />
-            That rent stream over 40 years, discounted at 4.92% (your mortgage rate), is worth{" "}
-            <b>{gbp(p.rent_pv ?? undefined)}</b> today gross — the mortgage that rent would exactly service.
-            {p.rent_fcf ? (
+            That rent stream over 40 years — growing 2.5%/yr, discounted at 4.92% (your mortgage rate) — is
+            worth <b>{gbp(p.rent_pv_g ?? p.rent_pv ?? undefined)}</b> today gross.
+            {(p.rent_fcf_g || p.rent_fcf) ? (
               <span>{" "}After realistic ownership costs (~26%: voids, maintenance, management, insurance)
-                the <b>net free-cash-flow value is {gbp(p.rent_fcf)}</b> — the conservative income
-                anchor used in our offer letters.</span>
+                the <b>net free-cash-flow value is {gbp((p.rent_fcf_g ?? p.rent_fcf)!)}</b>
+                {p.rent_fcf && p.rent_fcf_g ? <span> ({gbp(p.rent_fcf)} on flat rents — the conservative
+                floor quoted in our offer letters)</span> : null}.</span>
             ) : null}{" "}
-            {p.asking && p.rent_pv ? (
-              p.asking <= p.rent_pv
-                ? <b style={{ color: "#0a7d28" }}>Asking {gbp(p.asking)} is BELOW its rental PV — cheaper to own than to rent forever.</b>
-                : <span>Asking {gbp(p.asking)} is {Math.round(100 * (p.asking / p.rent_pv - 1))}% above its gross rental PV
-                    {p.rent_fcf ? <span> and {Math.round(100 * (p.asking / p.rent_fcf - 1))}% above its net FCF value</span> : null} — you
-                    are paying for ownership, space or growth beyond the rent it commands.</span>
+            {p.asking && (p.rent_fcf_g || p.rent_pv) ? (
+              p.asking <= (p.rent_fcf_g ?? p.rent_pv)!
+                ? <b style={{ color: "#0a7d28" }}>Asking {gbp(p.asking)} is BELOW its net growth-adjusted FCF value — the rent it commands justifies the price on income alone.</b>
+                : <span>Asking {gbp(p.asking)} is {Math.round(100 * (p.asking / (p.rent_fcf_g ?? p.rent_pv)! - 1))}% above its net growth-adjusted FCF value — you are paying for ownership, space or growth beyond the rent it commands.</span>
             ) : null}
           </div>
           <div style={{ fontSize: 11, color: "#8a94a0" }}>
-            Median of asking rents ({p.rent_note}), held flat 40 years. Gross PV ignores all costs; the FCF
-            figure nets off ~26%. A cross-check on the comps valuation, not a replacement.
+            Median of asking rents ({p.rent_note}), escalated 2.5%/yr for 40 years (long-run UK rent growth
+            has run higher). Gross PV ignores all costs; FCF nets off ~26%. A cross-check on the comps
+            valuation, not a replacement.
           </div>
         </div>
       ) : null}
