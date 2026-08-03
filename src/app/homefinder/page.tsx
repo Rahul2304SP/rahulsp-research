@@ -995,7 +995,7 @@ function PortalCard({ m, onSelect, liked, onLike, narrow, plot, hiddenWhy }: {
             🎯 {((m.target_dist_km ?? 0) / 1.609).toFixed(1)} mi</span> : null}
           {m.rent_pcm ? <span title={`rental cross-check (${m.rent_n} lettings, ${m.rent_note}): gross 40-yr PV @4.92% = ${gbp(m.rent_pv ?? undefined)}; net FCF value (74% after voids/maintenance/management) = ${gbp(m.rent_fcf ?? undefined)}`}
             style={(m.asking && m.rent_pv && m.asking <= m.rent_pv) ? { color: "#0a7d28", fontWeight: 700 } : undefined}>
-            💷 ~£{m.rent_pcm.toLocaleString()}/mo · {m.rent_yield?.toFixed(1)}%{m.rent_fcf ? ` · FCF ${gbp(Math.round(m.rent_fcf / 1000) * 1000).replace(",000", "k")}` : ""}</span> : null}
+            💷 ~£{m.rent_pcm.toLocaleString()}/mo{m.rent_yield ? ` · yield ${m.rent_yield.toFixed(1)}%` : ""}{m.rent_fcf ? ` · FCF ${gbp(Math.round(m.rent_fcf / 1000) * 1000).replace(",000", "k")}` : ""}</span> : null}
           {d != null && d < 90 ? <span>📍 {d.toFixed(1)} km</span> : null}
           {m.crime_grade ? <span>{m.crime_grade === "Low" ? "🟢" : m.crime_grade === "Moderate" ? "🟡" : "🔴"} crime {m.crime_grade.toLowerCase()}</span> : null}
         </div>
