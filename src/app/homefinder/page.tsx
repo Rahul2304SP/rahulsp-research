@@ -69,6 +69,7 @@ type LandRow = {
   plot_text?: string; lat?: number; lon?: number; full_postcode?: string;
   photos?: string[]; listing_update?: string; first_seen?: string; last_seen?: string;
   target_zone?: string | null; target_dist_km?: number | null;
+  dev_signals?: string[]; dev_blockers?: string[];
 };
 
 // --------------------------------------------------------------------------- //
@@ -259,6 +260,18 @@ function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: nu
                 <div style={{ fontSize: 12, color: "#98a" }}>plot size not stated — check the listing</div>
               )}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0" }}>
+                {r.dev_signals && r.dev_signals.length > 0 && (
+                  <span title={r.dev_signals.join(", ")}
+                        style={{ fontSize: 11, background: "#e6f4e6", color: "#0a7d28", border: "1px solid #bfe0bf",
+                                 borderRadius: 10, padding: "1px 8px", fontWeight: 600 }}>
+                    🏗️ {r.dev_signals.slice(0, 2).join(" · ")}</span>
+                )}
+                {r.dev_blockers && r.dev_blockers.length > 0 && (
+                  <span title={r.dev_blockers.join(", ")}
+                        style={{ fontSize: 11, background: "#f0f1f4", color: "#778", border: "1px solid #dde",
+                                 borderRadius: 10, padding: "1px 8px" }}>
+                    ⛔ {r.dev_blockers[0]}</span>
+                )}
                 {r.auction && (
                   <span style={{ fontSize: 11, background: "#fff3e0", color: "#b06b00", border: "1px solid #f0d9b0",
                                  borderRadius: 10, padding: "1px 8px" }}>⚠ auction / guide price</span>
