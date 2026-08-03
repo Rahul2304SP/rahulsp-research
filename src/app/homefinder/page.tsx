@@ -70,6 +70,14 @@ type LandRow = {
   photos?: string[]; listing_update?: string; first_seen?: string; last_seen?: string;
   target_zone?: string | null; target_dist_km?: number | null;
   dev_signals?: string[]; dev_blockers?: string[];
+  dev_score?: number; dev_band?: string; dev_reasons?: string[];
+  dev_gates_failed?: string[]; canopy_pct?: number | null;
+  buildings_100m?: number | null; title_status?: string; econ_headroom?: number;
+};
+const BAND_STYLE: Record<string, { bg: string; fg: string; bd: string }> = {
+  "Promising": { bg: "#e6f4e6", fg: "#0a7d28", bd: "#bfe0bf" },
+  "Speculative": { bg: "#fff7e6", fg: "#b06b00", bd: "#f0dcb0" },
+  "Amenity-only": { bg: "#f0f1f4", fg: "#778", bd: "#dde" },
 };
 
 // --------------------------------------------------------------------------- //
@@ -225,7 +233,9 @@ function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: nu
   const [open, setOpen] = useState(true);
   const cap = budget?.scan_cap || 60000;
   const bud = budget?.budget || 50000;
-  const sorted = [...rows].sort((a, b) => (a.price || 1e9) - (b.price || 1e9));
+  // development-opportunity first (that's what the land budget is FOR), then price
+  const sorted = [...rows].sort((a, b) =>
+    (b.dev_score ?? -1) - (a.dev_score ?? -1) || (a.price || 1e9) - (b.price || 1e9));
   return (
     <section style={{ marginTop: 26 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
@@ -258,6 +268,23 @@ function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: nu
                 </div>
               ) : (
                 <div style={{ fontSize: 12, color: "#98a" }}>plot size not stated — check the listing</div>
+              )}
+              {r.dev_band && (
+                <div style={{ margin: "6px 0 2px" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, borderRadius: 10, padding: "2px 10px",
+                                 background: (BAND_STYLE[r.dev_band] || BAND_STYLE["Amenity-only"]).bg,
+                                 color: (BAND_STYLE[r.dev_band] || BAND_STYLE["Amenity-only"]).fg,
+                                 border: `1px solid ${(BAND_STYLE[r.dev_band] || BAND_STYLE["Amenity-only"]).bd}` }}>
+                    🏗️ {r.dev_band} · {r.dev_score ?? "?"}/100
+                  </span>
+                  {r.dev_reasons && r.dev_reasons.length > 0 && (
+                    <ul style={{ margin: "5px 0 0", paddingLeft: 18, fontSize: 11.5, color: "#556" }}>
+                      {r.dev_reasons.slice(0, 4).map((why, i) => (
+                        <li key={i} style={{ marginBottom: 1 }}>{why}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0" }}>
                 {r.dev_signals && r.dev_signals.length > 0 && (
@@ -299,8 +326,12 @@ function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: nu
       )}
       {open && (
         <p style={{ color: "#9aa", fontSize: 11, marginTop: 8 }}>
-          Plot sizes are parsed from the listing text — always verify against the title plan.
-          Auction guide prices routinely finish 2–3× higher; legal packs may carry covenants or no services.
+          🏗️ Development score (0–100): settlement position (OSM dwelling density) + road frontage +
+          registered-title check (Land Registry INSPIRE) + tree canopy (satellite) + ancient-woodland &amp;
+          EA-flood lookups + self-build economics; failed gates (no access, too small, ancient woodland)
+          collapse the score. It ranks where to spend legal-pack time — even a &quot;Promising&quot; plot is
+          roughly a 20–30% planning shot. Plot sizes are parsed from the listing text — verify against the
+          title plan. Auction guide prices routinely finish 2–3× higher.
         </p>
       )}
     </section>
