@@ -58,6 +58,17 @@ type Report = {
   refresh_state?: string;
   // hand-measured total plot areas, keyed by uid — served live from KV
   plots?: Record<string, { plot_m2?: number; at?: string }>;
+  // bare-land listings (separate scraper track: land_monitor.py on the home PC)
+  land?: LandRow[];
+  land_budget?: { budget?: number; scan_cap?: number };
+};
+type LandRow = {
+  uid?: string; portal?: string; address?: string; price?: number; url?: string;
+  summary?: string; description?: string; auction?: boolean;
+  plot_m2?: number | null; plot_acres?: number | null; land_ppm2?: number | null;
+  plot_text?: string; lat?: number; lon?: number; full_postcode?: string;
+  photos?: string[]; listing_update?: string; first_seen?: string; last_seen?: string;
+  target_zone?: string | null; target_dist_km?: number | null;
 };
 
 // --------------------------------------------------------------------------- //
@@ -188,6 +199,10 @@ export default function HomeFinder() {
 
       {report.market && report.market.length > 0 && <Market report={report} />}
 
+      {report.land && report.land.length > 0 && (
+        <LandSection rows={report.land} budget={report.land_budget} />
+      )}
+
       <h2 style={{ fontSize: 18, margin: "26px 0 2px" }}>Your shortlist</h2>
       <p style={{ color: "#889", fontSize: 12.5, marginTop: 0 }}>Detailed valuation, sale history &amp; area for the properties you're tracking.</p>
       {props.length === 0 && <p style={{ color: "#889", fontSize: 13 }}>No shortlisted properties yet.</p>}
@@ -197,6 +212,85 @@ export default function HomeFinder() {
         plus police.uk crime. Guidance only, not a survey.
       </p>
     </main>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// Land — bare plots ≤ the land budget, from the separate land_monitor track.
+// Deliberately simple: land has no beds/condition/comps machinery; the decision
+// inputs are price, plot size, £/m² of land and whether it's an auction lot.
+// --------------------------------------------------------------------------- //
+function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: number; scan_cap?: number } }) {
+  const [open, setOpen] = useState(true);
+  const cap = budget?.scan_cap || 60000;
+  const bud = budget?.budget || 50000;
+  const sorted = [...rows].sort((a, b) => (a.price || 1e9) - (b.price || 1e9));
+  return (
+    <section style={{ marginTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 18, margin: 0 }}>🌱 Land</h2>
+        <span style={{ color: "#889", fontSize: 12.5 }}>
+          {rows.length} plot{rows.length !== 1 ? "s" : ""} ≤ {gbp(cap)} around Swindon · budget {gbp(bud)}
+        </span>
+        <button onClick={() => setOpen(!open)}
+                style={{ border: "1px solid #ccd", background: "#fff", borderRadius: 6,
+                         fontSize: 12, padding: "2px 10px", cursor: "pointer", color: "#556" }}>
+          {open ? "Hide" : "Show"}
+        </button>
+      </div>
+      {open && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 10, marginTop: 10 }}>
+          {sorted.map((r) => (
+            <div key={r.uid || r.url}
+                 style={{ border: "1px solid #e2e6ee", borderLeft: "4px solid #3d8b40", background: "#f7f9fc",
+                          borderRadius: 6, padding: "10px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                <span style={{ fontSize: 17, fontWeight: 700 }}>{r.price ? gbp(r.price) : "POA"}</span>
+                <span style={{ color: "#778", fontSize: 11.5 }}>{r.portal}</span>
+              </div>
+              <div style={{ fontSize: 13.5, color: "#223", margin: "3px 0" }}>{r.address || "(address on listing)"}</div>
+              {r.plot_m2 ? (
+                <div style={{ fontSize: 12.5, color: "#0a7d28", fontWeight: 600 }}>
+                  📐 {r.plot_acres && r.plot_acres >= 0.05 ? `${r.plot_acres} acres · ` : ""}
+                  {Math.round(r.plot_m2).toLocaleString("en-GB")} m²
+                  {r.land_ppm2 != null ? ` · £${r.land_ppm2 < 10 ? r.land_ppm2 : Math.round(r.land_ppm2).toLocaleString("en-GB")}/m²` : ""}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: "#98a" }}>plot size not stated — check the listing</div>
+              )}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0" }}>
+                {r.auction && (
+                  <span style={{ fontSize: 11, background: "#fff3e0", color: "#b06b00", border: "1px solid #f0d9b0",
+                                 borderRadius: 10, padding: "1px 8px" }}>⚠ auction / guide price</span>
+                )}
+                {r.target_zone && (
+                  <span style={{ fontSize: 11, background: "#fde8e8", color: "#b3261e", border: "1px solid #f2c4c4",
+                                 borderRadius: 10, padding: "1px 8px" }}>🎯 {r.target_zone}</span>
+                )}
+                {r.listing_update && (
+                  <span style={{ fontSize: 11, background: "#eef1f6", color: "#667", border: "1px solid #dde2ec",
+                                 borderRadius: 10, padding: "1px 8px" }}>{r.listing_update}</span>
+                )}
+              </div>
+              {r.photos && r.photos.length > 0 && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={r.photos[0]} alt="" loading="lazy"
+                     style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 4, margin: "2px 0 6px" }} />
+              )}
+              <a href={r.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#1455c0" }}>
+                View plot →
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+      {open && (
+        <p style={{ color: "#9aa", fontSize: 11, marginTop: 8 }}>
+          Plot sizes are parsed from the listing text — always verify against the title plan.
+          Auction guide prices routinely finish 2–3× higher; legal packs may carry covenants or no services.
+        </p>
+      )}
+    </section>
   );
 }
 
