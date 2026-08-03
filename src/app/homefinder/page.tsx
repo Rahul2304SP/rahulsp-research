@@ -231,7 +231,7 @@ function LandSection({ rows, budget }: { rows: LandRow[]; budget?: { budget?: nu
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{ fontSize: 18, margin: 0 }}>🌱 Land</h2>
         <span style={{ color: "#889", fontSize: 12.5 }}>
-          {rows.length} plot{rows.length !== 1 ? "s" : ""} ≤ {gbp(cap)} around Swindon · budget {gbp(bud)}
+          {rows.length} plot{rows.length !== 1 ? "s" : ""} ≤ {gbp(cap)} across Wiltshire · budget {gbp(bud)}
         </span>
         <button onClick={() => setOpen(!open)}
                 style={{ border: "1px solid #ccd", background: "#fff", borderRadius: 6,
