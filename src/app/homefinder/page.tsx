@@ -37,7 +37,7 @@ type Prop = {
                 confidence?: number; issues?: string[]; highlights?: string[] };
   amenities?: { flood?: { flood_summary?: string; flood_areas_nearby?: number };
                 schools?: { primary?: School; secondary?: School }; schools_link?: string;
-                crime?: { crime_count?: number; crime_month?: string; crime_top?: [string, number][] };
+                crime?: { crime_count?: number; crime_month?: string; crime_top?: [string, number][]; crime_radius_m?: number };
                 road_rail?: { busy_road?: boolean; major_road_m?: number; major_road_name?: string;
                               railway_m?: number; road_rail_summary?: string } };
   photos?: string[]; floorplan?: string[]; key_features?: string[];
@@ -1571,7 +1571,7 @@ function Card({ p, allAsking, plot, onPlotSaved }: { p: Prop; allAsking?: number
       {p.crime_grade && (
         <div style={{ ...panel, borderLeft: `3px solid ${crimeColor(p.crime_grade)}` }}>
           🚨 Crime: <b style={{ color: crimeColor(p.crime_grade) }}>{p.crime_grade}</b>
-          {p.crime_count != null ? <span style={{ fontSize: 12.5, color: "#556" }}> · {p.crime_count} crimes/month within ~1 mile (police.uk), vs the rest of the Swindon market</span> : null}
+          {p.crime_count != null ? <span style={{ fontSize: 12.5, color: "#556" }}> · {p.crime_count} crimes/month within {p.amenities?.crime?.crime_radius_m === 450 ? "~450 m of the house" : "~1 mile"} (police.uk), vs the rest of the Swindon market</span> : null}
           {(p.amenities?.crime?.crime_top && p.amenities.crime.crime_top.length > 0) && (
             <div style={{ fontSize: 12, color: "#778", marginTop: 3 }}>{p.amenities.crime.crime_top.map(([c, n]) => `${c.replace(/-/g, " ")} ×${n}`).join(" · ")}</div>
           )}
