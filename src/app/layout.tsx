@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 const personJsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Rahul Parmeshwar",
-  alternateName: "Rahul S. P.",
+  name: "Rahul Shaji Parmeshwar",
+  alternateName: ["Rahul Parmeshwar", "Rahul S. P."],
   url: "https://rahulsp.com",
   jobTitle: "Assistant Manager",
   worksFor: { "@type": "Organization", name: "Deloitte" },
