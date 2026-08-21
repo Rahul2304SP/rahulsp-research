@@ -20,7 +20,7 @@ export default function HomePage() {
     <div className="mx-auto max-w-4xl px-6">
       {/* ── Identity ── */}
       <section className="pt-20 pb-6">
-        <h1 className="font-serif text-3xl sm:text-4xl text-[#1a1a2e] mb-3">Rahul Parmeshwar</h1>
+        <h1 className="font-serif text-3xl sm:text-4xl text-[#1a1a2e] mb-3">Rahul S. P.</h1>
         <p className="text-[#374151] text-lg sm:text-xl leading-relaxed max-w-xl">
           Quantitative research on financial time series: what is real, what is a
           mirage, and how to tell the difference.

@@ -93,7 +93,7 @@ export default function RootLayout({
             <p className="text-xs text-[#9ca3af] leading-relaxed">
               <strong className="text-[#6b7280]">Disclaimer:</strong> The information on this site is for educational and research purposes only. It does not constitute financial advice, investment recommendations, or a solicitation to trade any financial instrument. All signals, model outputs, and performance metrics are provided on an informational basis and should not be relied upon for making investment decisions. Past performance is not indicative of future results. Trading financial instruments carries a high level of risk and may not be suitable for all investors. You should consider your financial situation and consult an independent financial adviser before trading. The author accepts no liability for any loss or damage arising from the use of information on this site. Trade at your own risk.
             </p>
-            <p className="text-sm text-[#6b7280]">&copy; 2026 Rahul Parmeshwar. All rights reserved.</p>
+            <p className="text-sm text-[#6b7280]">&copy; 2026 Rahul Shaji Parmeshwar. All rights reserved.</p>
           </div>
         </footer>
       </body>
