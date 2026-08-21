@@ -121,9 +121,9 @@ export const content = `
     <tr><td>12-1 momentum</td><td>+2.76</td><td>+2.65</td></tr>
     <tr><td>5-day reversal</td><td>+2.62</td><td>+3.04</td></tr>
     <tr><td>21-day reversal</td><td>+1.89</td><td>+2.37</td></tr>
-    <tr><td>Earnings yield (value)</td><td>&mdash;</td><td>-4.14</td></tr>
-    <tr><td>Book-to-price (value)</td><td>&mdash;</td><td>-2.40</td></tr>
-    <tr><td>Return on equity (quality)</td><td>&mdash;</td><td>-1.22</td></tr>
+    <tr><td>Earnings yield (value)</td><td>n/a</td><td>-4.14</td></tr>
+    <tr><td>Book-to-price (value)</td><td>n/a</td><td>-2.40</td></tr>
+    <tr><td>Return on equity (quality)</td><td>n/a</td><td>-1.22</td></tr>
   </tbody>
 </table>
 <p class="figure-caption">

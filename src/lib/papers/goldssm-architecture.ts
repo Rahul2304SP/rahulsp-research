@@ -511,9 +511,9 @@ $$z = \\text{LayerNorm}\\big(\\text{SiLU}(W_f [g_1 \\cdot h_1 \\; ; \\; g_2 \\cd
   that GoldSSM's advantage widens at longer sequence lengths where the Transformer's quadratic
   term eventually dominates. At $T = 10{,}000$ or beyond, the scaling difference becomes material.
   For the sequence lengths used in this work ($T \\leq 720$), the Transformer's practical speed
-  advantage is real and should be acknowledged. The architectural benefits of GoldSSM &mdash; in
-  particular dynamic feature selection, adaptive memory, and regime-conditioned stream gating
-  &mdash; remain independent of the timing comparison.
+  advantage is real and should be acknowledged. The architectural benefits of GoldSSM, in
+  particular dynamic feature selection, adaptive memory, and regime-conditioned stream gating,
+  remain independent of the timing comparison.
 </p>
 
 <h2>6. Training: Noise-Consistency Regularisation</h2>
@@ -737,8 +737,8 @@ $$\\mathcal{L}_{\\text{NC}} = \\mathbb{E}\\left[\\|f(x) - f(x + \\epsilon)\\|_2^
   selection, adaptive temporal weighting, adaptive memory horizon), more parameter-efficient (linear theoretical
   complexity, 2.1&times; fewer parameters), and better regularised (noise-consistency, causal normalisation) than
   the Transformer baseline it replaces. Empirical validation (Section 7) confirms the statistical claims
-  &mdash; regime-dependent feature selection, non-uniform stream gating, noise robustness, and effective causal
-  normalisation &mdash; while identifying areas for further work, including TAP query specialisation and
+  (regime-dependent feature selection, non-uniform stream gating, noise robustness, and effective causal
+  normalisation) while identifying areas for further work, including TAP query specialisation and
   closing the wall-clock gap with optimised Mamba kernels.
 </p>
 

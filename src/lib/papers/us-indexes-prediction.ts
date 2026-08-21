@@ -1,6 +1,6 @@
 export const content = `
 <div class="finding-box" style="border-left-color: #059669; background: #f0fdf4;">
-  <strong>Work in Progress</strong> &mdash; Phase 2 complete, Phase 3 in progress.
+  <strong>Work in Progress</strong>: Phase 2 complete, Phase 3 in progress.
   Dual-system architecture converged. <strong>Shorts:</strong> specialist model achieves +&dollar;127,633 (PF 1.90, 59.5% WR, Run 3L). <strong>Longs:</strong> dip-buying model achieves +&dollar;4,683 (PF 1.16, 40.2% WR, Run 3N), the first profitable long model. Runs 3j through 3O established that barrier labels are fundamentally wrong for equity longs (drift is invisible to barriers), while shorts exploit recognisable panic patterns. See Sections 7.5-7.14 for full progression.
 </div>
 
@@ -21,8 +21,8 @@ export const content = `
 <h2>1. Introduction</h2>
 
 <p>
-  The three dominant US equity indices &mdash; the Dow Jones Industrial Average (DJIA, traded as US30), the
-  S&amp;P 500 (US500), and the NASDAQ-100 (NAS100) &mdash; are often treated as interchangeable proxies for
+  The three dominant US equity indices (the Dow Jones Industrial Average (DJIA, traded as US30), the
+  S&amp;P 500 (US500), and the NASDAQ-100 (NAS100)) are often treated as interchangeable proxies for
   "the US stock market." In practice, they differ profoundly in construction methodology, sector composition,
   and constituent overlap. The DJIA is price-weighted across 30 blue-chip stocks; the S&amp;P 500 is
   float-adjusted market-cap-weighted across roughly 500 companies; the NAS100 is modified market-cap-weighted
@@ -33,8 +33,8 @@ export const content = `
 <p>
   Most published research on US equity index prediction treats each index in isolation: momentum strategies on
   the S&amp;P 500, mean-reversion on the DJIA, or machine learning forecasts for the NASDAQ. The cross-index
-  dimension &mdash; how information propagates between the three indices, how their spreads behave across market
-  regimes, and whether structural differences create exploitable signals &mdash; remains substantially
+  dimension (how information propagates between the three indices, how their spreads behave across market
+  regimes, and whether structural differences create exploitable signals) remains substantially
   understudied. This is surprising given that the futures on these three indices (ES, YM, NQ) are among the
   most liquid instruments in the world, and that relative-value trades between them are a staple of
   institutional desks (CME Group, "Stock Index Spread Opportunities").
@@ -43,8 +43,8 @@ export const content = `
 <p>
   This project aims to fill that gap. We begin with a comprehensive literature review covering cross-index
   dynamics, multi-index trading strategies, and structural differences that create tradeable opportunities.
-  We then identify specific research gaps &mdash; several of which appear to be entirely unstudied in the
-  academic literature &mdash; and outline a phased research plan to test them empirically. The data constraint
+  We then identify specific research gaps, several of which appear to be entirely unstudied in the
+  academic literature, and outline a phased research plan to test them empirically. The data constraint
   is deliberate: we restrict ourselves to OHLCV data at minute resolution from MetaTrader 5, ensuring that
   any findings are reproducible without proprietary data feeds.
 </p>
@@ -123,8 +123,8 @@ export const content = `
   DJIA and S&amp;P 500 was weakest during the Tech Bubble and the low-volatility period of 2017, and
   strongest during and after the 2008 Financial Crisis. In low-volatility environments, correlations decline
   naturally as there is no strong macroeconomic signal forcing co-movement. Fry-McKibbin and Hsiao (2018)
-  applied Markov-switching models to US indices and identified three regimes &mdash; tranquil, volatile, and
-  turbulent &mdash; with the tranquil regime being most frequent, the volatile regime dominating 2008, and
+  applied Markov-switching models to US indices and identified three regimes (tranquil, volatile, and
+  turbulent) with the tranquil regime being most frequent, the volatile regime dominating 2008, and
   the turbulent regime dominating the first four months of 2020.
 </p>
 
@@ -161,8 +161,8 @@ export const content = `
 
 <p>
   The dispersion trading literature, reviewed by Drechsler, Moreira, and Savov (2018), documents that implied
-  correlation among index constituents tends to exceed realised correlation. The core dispersion trade &mdash;
-  buying straddles on individual stocks and selling straddles on the index &mdash; exploits this wedge. A
+  correlation among index constituents tends to exceed realised correlation. The core dispersion trade
+  (buying straddles on individual stocks and selling straddles on the index) exploits this wedge. A
   study on S&amp;P 500 constituents from 2000 to 2017 found statistically significant returns of 14.5% to
   26.5% per annum after transaction costs. Dispersion trades are concave in correlation: they profit when
   individual stocks diverge and lose during stress periods when correlation spikes, making them inherently
@@ -171,8 +171,8 @@ export const content = `
 
 <p>
   While traditional dispersion trading operates at the single-stock versus index level, the concept extends
-  naturally to a three-index framework. If the three indices are temporarily dislocated &mdash; for example,
-  the NAS100 rallying while the DJIA falls &mdash; a convergence trade betting on mean-reversion of the
+  naturally to a three-index framework. If the three indices are temporarily dislocated (for example,
+  the NAS100 rallying while the DJIA falls) a convergence trade betting on mean-reversion of the
   spread exploits the same correlation premium at the index level.
 </p>
 
@@ -182,7 +182,7 @@ export const content = `
   The overlap structure between the three indices is asymmetric. All 30 DJIA stocks are constituents of the
   S&amp;P 500 (100% overlap). Approximately 79 of the 100 NAS100 stocks also appear in the S&amp;P 500.
   However, only six stocks appear in all three indices. Roughly 20% of DJIA weight maps to about 30% of
-  NAS100 weight. This partial overlap means that the indices are neither independent nor identical &mdash;
+  NAS100 weight. This partial overlap means that the indices are neither independent nor identical;
   they share enough common constituents to co-move, but differ enough to diverge meaningfully during
   sector-specific events.
 </p>
@@ -224,8 +224,8 @@ export const content = `
   Moskowitz, Ooi, and Pedersen (2012) documented significant time-series momentum across 58 liquid
   instruments including equity index futures. A diversified time-series momentum (TSMOM) portfolio delivers
   substantial abnormal returns and performs best during extreme market moves. Applied to a three-index
-  rotation framework &mdash; allocating to the index with the strongest trailing momentum at each
-  rebalancing point &mdash; this is one of the most robust findings in quantitative finance, yet its
+  rotation framework, allocating to the index with the strongest trailing momentum at each
+  rebalancing point, this is one of the most robust findings in quantitative finance, yet its
   specific application to DJIA/S&amp;P 500/NAS100 rotation is untested.
 </p>
 
@@ -263,7 +263,7 @@ export const content = `
 <p>
   Our literature review reveals several research gaps, ranging from entirely unstudied phenomena to
   well-known effects that have never been rigorously validated on this specific set of instruments.
-  We restrict attention to gaps that can be tested with OHLCV data at minute resolution &mdash; the data
+  We restrict attention to gaps that can be tested with OHLCV data at minute resolution, the data
   we have available from MetaTrader 5. The following four gaps carry the highest combination of novelty,
   feasibility, and practical value.
 </p>
@@ -280,7 +280,7 @@ export const content = `
 
 <p>
   <strong>No published study has systematically tested this divergence as a mean-reversion trading signal.</strong>
-  The weighting methodology difference is structural and permanent &mdash; it cannot be arbitraged away
+  The weighting methodology difference is structural and permanent; it cannot be arbitraged away
   because it stems from index construction rules, not from mispricing. The divergence is directly observable
   as the spread between normalised US30 and US500 (or NAS100) price series, making it testable with
   standard OHLCV data. The planned methodology involves constructing the normalised spread, testing
@@ -294,7 +294,7 @@ export const content = `
   Most cointegration studies in the pairs-trading literature test bivariate relationships (e.g., SPY/IWM).
   However, the Johansen (1991) multivariate vector error correction model (VECM) framework allows testing
   cointegration among all three indices simultaneously. Trivariate cointegration can reveal cointegrating
-  vectors that no bivariate test would detect &mdash; relationships where the three-way spread mean-reverts
+  vectors that no bivariate test would detect, relationships where the three-way spread mean-reverts
   even though no two-way spread does.
 </p>
 
@@ -338,16 +338,16 @@ export const content = `
 </p>
 
 <ul>
-  <li><strong>DJIA stock-split event arbitrage</strong> &mdash; when a DJIA constituent splits, its index weight
+  <li><strong>DJIA stock-split event arbitrage</strong>: when a DJIA constituent splits, its index weight
   drops mechanically while its weight in the S&amp;P 500 and NAS100 is unaffected, creating a multi-index
   relative-value window that has never been formally studied.</li>
-  <li><strong>Joint multi-index Hidden Markov Model</strong> &mdash; most HMMs in the financial literature use
+  <li><strong>Joint multi-index Hidden Markov Model</strong>: most HMMs in the financial literature use
   single-index returns; a joint HMM on all three indices could capture cross-index states such as
   "technology-led rally," "broad selloff," "sector rotation," or "convergence."</li>
-  <li><strong>Anomaly decay rates on the DJIA</strong> &mdash; calendar effects, Dogs of the Dow, and moving
+  <li><strong>Anomaly decay rates on the DJIA</strong>: calendar effects, Dogs of the Dow, and moving
   average crossover strategies have all weakened over time, but no meta-study quantifies the rate at which
   published anomalies lose their edge on this liquid blue-chip index.</li>
-  <li><strong>NAS100 concentration-conditional strategy selection</strong> &mdash; whether momentum versus
+  <li><strong>NAS100 concentration-conditional strategy selection</strong>: whether momentum versus
   mean-reversion performance varies as a function of mega-cap concentration levels (Magnificent 7 weight
   approximately 40%) is an open question with no peer-reviewed evidence.</li>
 </ul>
@@ -1444,7 +1444,7 @@ export const content = `
 
 <figure>
   <img src="/charts/us-indexes/granger_vs_vsn_US500.png" alt="US500 Granger F-statistic vs VSN attention weight scatter plot" />
-  <figcaption>Figure 24. US500: Granger F-statistic vs VSN attention weight. The same pattern holds &mdash; VSN attention tracks Granger causality.</figcaption>
+  <figcaption>Figure 24. US500: Granger F-statistic vs VSN attention weight. The same pattern holds; VSN attention tracks Granger causality.</figcaption>
 </figure>
 
 <figure>
@@ -1764,7 +1764,7 @@ export const content = `
 <h4>Why Normalisation Matters</h4>
 
 <p>
-  Raw features can drift across regimes &mdash; VIX level, channel width, and kurtosis all exhibit
+  Raw features can drift across regimes; VIX level, channel width, and kurtosis all exhibit
   non-stationary behaviour over months-long windows. Without normalisation, drifting features dominate
   the neural net's gradient updates, causing training instability or the model learning spurious
   regime-dependent patterns. But normalisation can also destroy information, particularly in features
@@ -1792,7 +1792,7 @@ export const content = `
 
 <p>
   Static normalisation (global mean/std computed over the full dataset) was excluded because it leaks
-  regime information and fails on drifting features &mdash; a model trained during a low-VIX period
+  regime information and fails on drifting features; a model trained during a low-VIX period
   would see systematically biased inputs during a high-VIX regime.
 </p>
 
@@ -1840,12 +1840,12 @@ export const content = `
 
 <p><strong>Scale-is-signal (8):</strong></p>
 <ul>
-  <li><strong>ret_60m</strong> &mdash; naturally mean-zero and stationary</li>
-  <li><strong>stdev60</strong> and <strong>vol_30m</strong> &mdash; realised volatility is stationary; raw level encodes regime</li>
-  <li><strong>vol_session_ratio</strong> and <strong>vol_surprise</strong> &mdash; self-normalising ratios</li>
-  <li><strong>gk_vol_21d</strong> &mdash; daily Garman-Klass vol, naturally bounded (avg gain $-0.0022$)</li>
-  <li><strong>cross_idx_dispersion</strong> &mdash; strongest negative (avg gain $-0.0037$)</li>
-  <li><strong>vix_level</strong> &mdash; highest drift (2.72) but rolling_z kills regime signal (avg gain $-0.0037$)</li>
+  <li><strong>ret_60m</strong>: naturally mean-zero and stationary</li>
+  <li><strong>stdev60</strong> and <strong>vol_30m</strong>: realised volatility is stationary; raw level encodes regime</li>
+  <li><strong>vol_session_ratio</strong> and <strong>vol_surprise</strong>: self-normalising ratios</li>
+  <li><strong>gk_vol_21d</strong>: daily Garman-Klass vol, naturally bounded (avg gain $-0.0022$)</li>
+  <li><strong>cross_idx_dispersion</strong>: strongest negative (avg gain $-0.0037$)</li>
+  <li><strong>vix_level</strong>: highest drift (2.72) but rolling_z kills regime signal (avg gain $-0.0037$)</li>
 </ul>
 
 <h4>Rolling Z-Score Features (28)</h4>
@@ -1860,7 +1860,7 @@ export const content = `
   </thead>
   <tbody>
     <tr><td>kurt_240m</td><td style="color: #059669; font-weight: 600;">+0.0020</td><td>High drift 1.67&ndash;1.75</td></tr>
-    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0020</td><td>&mdash;</td></tr>
+    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0020</td><td>n/a</td></tr>
     <tr><td>channel_width</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>High drift 4.5&ndash;4.8</td></tr>
     <tr><td>tsmom_idx3_21d</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>Consistently positive all 3 indices</td></tr>
     <tr><td>log_spread_us30_us500</td><td style="color: #059669; font-weight: 600;">+0.0013</td><td>Drifts by construction</td></tr>
@@ -1885,14 +1885,14 @@ export const content = `
     <tr><th>Feature</th><th>US30 $\\Delta$AUC</th><th>NAS100 $\\Delta$AUC</th><th>US500 $\\Delta$AUC</th><th>Drift Score</th></tr>
   </thead>
   <tbody>
-    <tr><td>kurt_240m</td><td style="color: #059669; font-weight: 600;">+0.0074</td><td>+0.0018</td><td>&mdash;</td><td>1.67 / 1.75</td></tr>
-    <tr><td>log_spread_us30_us500</td><td style="color: #059669; font-weight: 600;">+0.0063</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0045</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>aapl_ret_60m</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0043</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>constituent_dispersion</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0042</td><td>&mdash;</td></tr>
-    <tr><td>vix_chg_60m</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0036</td><td>&mdash;</td></tr>
-    <tr><td>tsmom_self_21d</td><td>&mdash;</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0026</td><td>&mdash;</td></tr>
-    <tr><td>amzn_ret_60m</td><td>&mdash;</td><td style="color: #059669; font-weight: 600;">+0.0025</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>kurt_240m</td><td style="color: #059669; font-weight: 600;">+0.0074</td><td>+0.0018</td><td>n/a</td><td>1.67 / 1.75</td></tr>
+    <tr><td>log_spread_us30_us500</td><td style="color: #059669; font-weight: 600;">+0.0063</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>skew_240m</td><td style="color: #059669; font-weight: 600;">+0.0045</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>aapl_ret_60m</td><td>n/a</td><td style="color: #059669; font-weight: 600;">+0.0043</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>constituent_dispersion</td><td>n/a</td><td>n/a</td><td style="color: #059669; font-weight: 600;">+0.0042</td><td>n/a</td></tr>
+    <tr><td>vix_chg_60m</td><td>n/a</td><td>n/a</td><td style="color: #059669; font-weight: 600;">+0.0036</td><td>n/a</td></tr>
+    <tr><td>tsmom_self_21d</td><td>n/a</td><td>n/a</td><td style="color: #059669; font-weight: 600;">+0.0026</td><td>n/a</td></tr>
+    <tr><td>amzn_ret_60m</td><td>n/a</td><td style="color: #059669; font-weight: 600;">+0.0025</td><td>n/a</td><td>n/a</td></tr>
   </tbody>
 </table>
 
@@ -1903,12 +1903,12 @@ export const content = `
     <tr><th>Feature</th><th>US30 $\\Delta$AUC</th><th>NAS100 $\\Delta$AUC</th><th>US500 $\\Delta$AUC</th></tr>
   </thead>
   <tbody>
-    <tr><td>cross_idx_dispersion</td><td style="color: #dc2626; font-weight: 600;">-0.0061</td><td style="color: #dc2626; font-weight: 600;">-0.0032</td><td>&mdash;</td></tr>
-    <tr><td>vix_level</td><td style="color: #dc2626; font-weight: 600;">-0.0059</td><td>&mdash;</td><td style="color: #dc2626; font-weight: 600;">-0.0063</td></tr>
-    <tr><td>vol_session_ratio</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>vol_surprise</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>vol_30m</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>stdev60</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>cross_idx_dispersion</td><td style="color: #dc2626; font-weight: 600;">-0.0061</td><td style="color: #dc2626; font-weight: 600;">-0.0032</td><td>n/a</td></tr>
+    <tr><td>vix_level</td><td style="color: #dc2626; font-weight: 600;">-0.0059</td><td>n/a</td><td style="color: #dc2626; font-weight: 600;">-0.0063</td></tr>
+    <tr><td>vol_session_ratio</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>vol_surprise</td><td style="color: #dc2626; font-weight: 600;">-0.0045</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>vol_30m</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>stdev60</td><td style="color: #dc2626; font-weight: 600;">-0.0033</td><td>n/a</td><td>n/a</td></tr>
   </tbody>
 </table>
 
@@ -2000,7 +2000,7 @@ export const content = `
   Scatter plots of feature drift score (x-axis, measured as the ratio of inter-month variance to
   intra-month variance) against AUC gain from rolling_z (y-axis). Features in the upper-right
   quadrant are high-drift features that benefit from normalisation. Features in the lower-right
-  are high-drift features where normalisation hurts &mdash; these are the scale-dependent features
+  are high-drift features where normalisation hurts; these are the scale-dependent features
   (VIX level, dispersion) where drift is real but informative.
 </p>
 
@@ -2029,7 +2029,7 @@ export const content = `
 
 <p>
   The target is the forward 60-minute return, labelled via symmetric double-barrier classification.
-  Every bar receives a directional prediction &mdash; there is no trade/no-trade gate at the model level.
+  Every bar receives a directional prediction; there is no trade/no-trade gate at the model level.
   The barrier is set per-index to account for different price levels:
 </p>
 
@@ -2318,29 +2318,29 @@ export const content = `
 <tbody>
 <tr><td>US30</td><td>Run 1</td><td>3</td><td>67.8%</td><td>0.933</td><td>6.0pp</td><td>3.1x</td><td>Superseded</td></tr>
 <tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 2</strong></td><td><strong>4</strong></td><td><strong>68.4%</strong></td><td><strong>0.891</strong></td><td><strong>1.6pp</strong></td><td><strong>2.0x</strong></td><td style="color:#059669;"><strong>Deploy candidate</strong></td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3a</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; aux loss dominance</td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3b</td><td>&mdash;</td><td style="color:#dc2626; font-weight:600;">55.4%</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; capacity bottleneck</td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3c</td><td>8</td><td style="color:#dc2626; font-weight:600;">55.3%</td><td>2.964</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; position-agnostic VSN</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3d</strong></td><td><strong>5</strong></td><td style="color:#059669; font-weight:600;"><strong>70.5%</strong></td><td><strong>1.029</strong></td><td><strong>4.7pp</strong></td><td>&mdash;</td><td style="color:#059669;"><strong>New best</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3a</td><td>3</td><td style="color:#dc2626; font-weight:600;">55.7%</td><td>1.562</td><td>16.7pp</td><td>n/a</td><td style="color:#dc2626;">Failed: aux loss dominance</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3b</td><td>n/a</td><td style="color:#dc2626; font-weight:600;">55.4%</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">Failed: capacity bottleneck</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3c</td><td>8</td><td style="color:#dc2626; font-weight:600;">55.3%</td><td>2.964</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">Failed: position-agnostic VSN</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3d</strong></td><td><strong>5</strong></td><td style="color:#059669; font-weight:600;"><strong>70.5%</strong></td><td><strong>1.029</strong></td><td><strong>4.7pp</strong></td><td>n/a</td><td style="color:#059669;"><strong>New best</strong></td></tr>
 <tr><td>US500</td><td>Run 1</td><td>7</td><td>63.1%</td><td>1.649</td><td>15.5pp</td><td>3.8x</td><td>Superseded</td></tr>
 <tr><td>US500</td><td>Run 2</td><td>5</td><td>62.0%</td><td>1.349</td><td>4.9pp</td><td>2.0x</td><td>Superseded</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 3d</strong></td><td><strong>2</strong></td><td style="color:#059669; font-weight:600;"><strong>68.1%</strong></td><td>&mdash;</td><td><strong>18.3pp</strong></td><td>&mdash;</td><td style="color:#059669;"><strong>New best (+6.1pp)</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US500</strong></td><td><strong>Run 3d</strong></td><td><strong>2</strong></td><td style="color:#059669; font-weight:600;"><strong>68.1%</strong></td><td>n/a</td><td><strong>18.3pp</strong></td><td>n/a</td><td style="color:#059669;"><strong>New best (+6.1pp)</strong></td></tr>
 <tr><td>NAS100</td><td>Run 1</td><td>5</td><td>68.9%</td><td>0.792</td><td>0.6pp</td><td>2.2x</td><td>Superseded</td></tr>
 <tr><td>NAS100</td><td>Run 2</td><td>3</td><td>68.9%</td><td>0.783</td><td>20.2pp*</td><td>1.8x</td><td>Superseded</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 3d</strong></td><td><strong>2</strong></td><td><strong>68.7%</strong></td><td>&mdash;</td><td><strong>11.2pp</strong></td><td>&mdash;</td><td style="color:#6b7280;"><strong>No improvement; 4-stream preferred</strong></td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3e</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; weighted fallback poisoned training</td></tr>
-<tr style="background:#fef2f2;"><td>US500</td><td>Run 3e</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Failed &mdash; weighted fallback poisoned training</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3f</strong></td><td><strong>1</strong></td><td><strong>67.6%</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>First profitable backtest: +&dollar;82,843</strong></td></tr>
-<tr style="background:#fef2f2;"><td>US500</td><td>Run 3f</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">Unprofitable &mdash; spread cost prohibitive</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3i</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;66,370; asymmetric barriers; UP 44.7% / DOWN 29.6%</strong></td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3j</strong></td><td><strong>3</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;79,938; MAE smoothing eliminated epoch cliff; short WR 59.3%</strong></td></tr>
-<tr style="background:#fef2f2;"><td><strong>US30</strong></td><td><strong>Run 3k</strong></td><td><strong>1</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;"><strong>+&dollar;28,931; symmetric barriers hurt shorts; softmax zero-sum confirmed</strong></td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3L Short</strong></td><td><strong>7</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;127,633; PF 1.90; short specialist; best result in study</strong></td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3L Long</td><td>1</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">-&dollar;13,690; barrier labels fundamentally wrong for longs</td></tr>
-<tr style="background:#fef2f2;"><td>US30</td><td>Run 3M</td><td>333</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#dc2626;">-&dollar;47,413; return labels; dip-buy signal discovered</td></tr>
-<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3N</strong></td><td><strong>30</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;"><strong>+&dollar;4,683; first profitable longs; dip-buy model</strong></td></tr>
-<tr><td>US30</td><td>Run 3O</td><td>43</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td style="color:#059669;">+&dollar;4,157; wider TP/SL; similar PnL, fewer trades</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>NAS100</strong></td><td><strong>Run 3d</strong></td><td><strong>2</strong></td><td><strong>68.7%</strong></td><td>n/a</td><td><strong>11.2pp</strong></td><td>n/a</td><td style="color:#6b7280;"><strong>No improvement; 4-stream preferred</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3e</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">Failed: weighted fallback poisoned training</td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>Run 3e</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">Failed: weighted fallback poisoned training</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3f</strong></td><td><strong>1</strong></td><td><strong>67.6%</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>First profitable backtest: +&dollar;82,843</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US500</td><td>Run 3f</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">Unprofitable: spread cost prohibitive</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3h</strong></td><td><strong>1</strong></td><td><strong>64.7% (tradeable)</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>+&dollar;37,266; 3-class HOLD; edge in 00-06 UTC</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3i</strong></td><td><strong>1</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>+&dollar;66,370; asymmetric barriers; UP 44.7% / DOWN 29.6%</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3j</strong></td><td><strong>3</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>+&dollar;79,938; MAE smoothing eliminated epoch cliff; short WR 59.3%</strong></td></tr>
+<tr style="background:#fef2f2;"><td><strong>US30</strong></td><td><strong>Run 3k</strong></td><td><strong>1</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;"><strong>+&dollar;28,931; symmetric barriers hurt shorts; softmax zero-sum confirmed</strong></td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3L Short</strong></td><td><strong>7</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>+&dollar;127,633; PF 1.90; short specialist; best result in study</strong></td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3L Long</td><td>1</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">-&dollar;13,690; barrier labels fundamentally wrong for longs</td></tr>
+<tr style="background:#fef2f2;"><td>US30</td><td>Run 3M</td><td>333</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#dc2626;">-&dollar;47,413; return labels; dip-buy signal discovered</td></tr>
+<tr style="background:#f0fdf4;"><td><strong>US30</strong></td><td><strong>Run 3N</strong></td><td><strong>30</strong></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;"><strong>+&dollar;4,683; first profitable longs; dip-buy model</strong></td></tr>
+<tr><td>US30</td><td>Run 3O</td><td>43</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td style="color:#059669;">+&dollar;4,157; wider TP/SL; similar PnL, fewer trades</td></tr>
 </tbody>
 </table>
 <p class="text-sm text-[#6b7280]">*NAS100 Run 2 epoch 3 has a transient bullish bias (20.2pp gap) that resolves to 0.7pp by epoch 5. For balanced deployment, use epoch 5 (68.3% accuracy).</p>
@@ -2350,10 +2350,10 @@ export const content = `
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US30: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
-<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 1 (Diagnostic)</h4>
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30: Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -2543,10 +2543,10 @@ export const content = `
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">US500: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
-<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US500 &mdash; Run 1 (Diagnostic)</h4>
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US500: Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -2595,7 +2595,7 @@ export const content = `
 
 <p>
   <strong>Lower accuracy ceiling than US30.</strong> Best validation accuracy reached 63.1% versus
-  US30's 67.8% &mdash; a 4.7 percentage-point gap. The accuracy plateau at 62&ndash;63% from epoch 3
+  US30's 67.8%, a 4.7 percentage-point gap. The accuracy plateau at 62&ndash;63% from epoch 3
   onwards suggests a structural ceiling for this feature set on US500. The S&amp;P 500's higher
   diversification (500 constituents vs 30) may dilute the signal carried by individual-stock features
   in the feature set.
@@ -2614,7 +2614,7 @@ export const content = `
   throughout training. UP accuracy (70&ndash;77%) far exceeded DOWN accuracy (32&ndash;55%). This is
   the mirror image of US30's bearish bias. Label distribution is nearly balanced (UP 51.2%,
   DOWN 48.8%), so the bias is learned, not inherited from the data. The model finds it easier to
-  predict upward moves in the validation window &mdash; consistent with the post-2024 bull trend
+  predict upward moves in the validation window, consistent with the post-2024 bull trend
   in large-cap equities.
 </p>
 
@@ -2622,20 +2622,20 @@ export const content = `
   <strong>VSN feature preferences consistent with US30.</strong> Top features across both indices:
   cross_idx_dispersion (#1 in both), ret_60m (#2), dist_ma120 (#3). Bottom in both:
   log_spread_us30_us500. This consistency suggests genuine signal rather than noise fitting. The
-  cross-index dispersion feature &mdash; designed from Gap Study #2 &mdash; is the most informative
+  cross-index dispersion feature, designed from Gap Study #2, is the most informative
   single feature for both indices, validating the Phase 2 empirical work.
 </p>
 
 <p>
   <strong>MID stream over-concentrated.</strong> The MID stream (120-bar, 2-hour context) has an
-  18.8x max/min attention ratio &mdash; nearly ignoring most features in favour of
+  18.8x max/min attention ratio, nearly ignoring most features in favour of
   cross_idx_dispersion and ret_60m. While some specialisation is desirable, this level of
   concentration risks fragility. This is a candidate for higher per-stream entropy regularisation
   in Run 2.
 </p>
 
 <p>
-  <strong>&dollar;30 barrier too tight.</strong> The barrier produced 0% HOLD labels &mdash; every
+  <strong>&dollar;30 barrier too tight.</strong> The barrier produced 0% HOLD labels; every
   single bar hit the &dollar;30 barrier within 60 minutes. US500's typical hourly range is
   &dollar;15&ndash;&dollar;25, so &dollar;30 is only 1.2&ndash;2x the typical move. A wider barrier
   (&dollar;50) would create HOLD labels for ambiguous bars, improving label quality by excluding
@@ -2725,10 +2725,10 @@ export const content = `
   </tbody>
 </table>
 
-<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US500 &mdash; Run 2</h4>
+<h4 style="margin-top: 1.5rem; padding: 0.5rem 0.75rem; background: #f0f9ff; border-left: 4px solid #2563eb; font-size: 1.1em;">US500: Run 2</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -2870,10 +2870,10 @@ export const content = `
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 0.5rem 0.5rem 0 0;">NAS100: Run 1 &amp; Run 2 Detail</summary>
 <div style="padding: 1rem;">
 
-<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 1 (Diagnostic)</h4>
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100: Run 1 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -3039,10 +3039,10 @@ export const content = `
 
 <hr style="margin: 2rem 0; border-top: 2px solid #e5e7eb;" />
 
-<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100 &mdash; Run 2 (Diagnostic)</h4>
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">NAS100: Run 2 (Diagnostic)</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -3182,7 +3182,7 @@ export const content = `
   acts on the softmax attention weights only and does not interfere with the direction loss.
 </p>
 
-<h4>Change 3: Feature Pruning &mdash; 45 to 43</h4>
+<h4>Change 3: Feature Pruning (45 to 43)</h4>
 
 <p>
   Two features were removed: <em>log_spread_us30_us500</em> and <em>log_spread_us30_nas100</em>. Two
@@ -3213,7 +3213,7 @@ export const content = `
   balanced training labels. The &dollar;30 barrier was too tight relative to the index's hourly range,
   causing the model to overfit to one direction. Applying NAS100's successful barrier-to-range ratio
   (approximately 1.5 times the average hourly range) to US500's &dollar;60 average hourly range yields
-  &dollar;90. US30 (&dollar;100) and NAS100 (&dollar;200) barriers are unchanged &mdash; both were
+  &dollar;90. US30 (&dollar;100) and NAS100 (&dollar;200) barriers are unchanged; both were
   already well-calibrated in Run 1.
 </p>
 
@@ -3224,7 +3224,7 @@ export const content = `
   unchanged. The overfitting observed in Run 1 is in <em>calibration</em> (overconfident predictions),
   not <em>capacity</em>. Train accuracy at the best validation epoch was only 71&ndash;74%, not 99%,
   confirming that the model has not exhausted its capacity. The lower learning rate is the correct
-  lever &mdash; not stronger regularisation.
+  lever, not stronger regularisation.
 </p>
 
 <h4>Run 2 Configuration Summary</h4>
@@ -3246,10 +3246,10 @@ export const content = `
 <summary style="cursor: pointer; padding: 0.75rem 1rem; font-weight: 600; font-size: 1.05em; color: #1a1a2e; background: #f0fdf4; border-left: 4px solid #059669; border-radius: 0.5rem 0.5rem 0 0;">US30: Run 2 (Latest)</summary>
 <div style="padding: 1rem;">
 
-<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30 &mdash; Run 2</h4>
+<h4 style="margin-top: 0.5rem; font-size: 1.05em;">US30: Run 2</h4>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Simulated Results</strong> &mdash; All results in this section are from simulated training
+  <strong>Simulated Results</strong>: All results in this section are from simulated training
   and validation on historical data. They do not represent live trading performance. Validation
   accuracy measures directional prediction on held-out bars (2025-07 to 2026-03) that were not
   seen during training.
@@ -3285,7 +3285,7 @@ export const content = `
 <p>
   <strong>1. Class balance is the headline improvement.</strong> The per-class accuracy gap shrank from
   6.0pp to 1.6pp. UP accuracy rose from 64.5% to 69.3% while DOWN remained at 67.7%. The bearish
-  bias from Run 1 is eliminated &mdash; $p_{\\text{up}}$ mean now centres around 0.49&ndash;0.50
+  bias from Run 1 is eliminated; $p_{\\text{up}}$ mean now centres around 0.49&ndash;0.50
   instead of drifting to 0.45.
 </p>
 
@@ -3360,7 +3360,7 @@ export const content = `
 
 <figure>
   <img src="/charts/us-indexes/us30_run2_03_overfitting_gap.png" alt="US30 Run 2 generalisation gap" style="max-width: 100%; border-radius: 8px;" />
-  <figcaption>Generalisation gap: identical overfitting rate in both runs &mdash; lower LR delays but does not prevent memorisation.</figcaption>
+  <figcaption>Generalisation gap: identical overfitting rate in both runs; lower LR delays but does not prevent memorisation.</figcaption>
 </figure>
 
 </div>
@@ -3369,7 +3369,7 @@ export const content = `
 <h3>7.6 Run 3: Single-Stream Architecture Redesign</h3>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>Complete</strong> &mdash; Run 3 implemented four structural changes based on Run 1 and Run 2 findings.
+  <strong>Complete</strong>: Run 3 implemented four structural changes based on Run 1 and Run 2 findings.
   Results are a significant regression (55.7% val accuracy). See Sections 7.7-7.9 for failure analysis,
   root cause diagnosis, and proposed fixes. See Section 7.10 for the 7-stream resolution.
 </div>
@@ -3904,7 +3904,7 @@ export const content = `
 </p>
 
 <div class="finding-box" style="border-left-color: #2563eb; background: #eff6ff;">
-  <strong>Complete</strong> &mdash; Run 3b confirmed that dynamic auxiliary scaling fixes the loss balance problem
+  <strong>Complete</strong>: Run 3b confirmed that dynamic auxiliary scaling fixes the loss balance problem
   (43% non-direction vs 71% in Run 3a) but does not recover accuracy. The failure is architectural, not
   loss-related. See Sections 7.8-7.9.
 </div>

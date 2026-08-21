@@ -13,8 +13,8 @@ export const content = `
 
 <p>
   The challenge with Kalman filtering in finance is that the state-space model must be specified <em>a priori</em>.
-  For a gold price series, what is the "state" being estimated? The most natural choice is the drift rate
-  &mdash; the instantaneous expected return. If we model gold's minute-by-minute returns as a random walk
+  For a gold price series, what is the "state" being estimated? The most natural choice is the drift rate,
+  the instantaneous expected return. If we model gold's minute-by-minute returns as a random walk
   with time-varying drift, the Kalman filter extracts a smoothed estimate of that drift, filtering out
   observation noise to reveal the underlying trend. When the filtered drift diverges from the observed price,
   a mean-reversion opportunity may exist.
@@ -26,7 +26,7 @@ export const content = `
   (e.g., "trending" and "mean-reverting"), each with its own return distribution. The HMM estimates which
   state is active at each point in time, enabling regime-conditional trading strategies. Combining Kalman
   filtering with HMM regime detection offers a principled framework: use the Kalman filter for signal
-  generation and the HMM for signal filtration &mdash; only trading mean-reversion signals when the HMM
+  generation and the HMM for signal filtration, only trading mean-reversion signals when the HMM
   indicates a mean-reverting regime.
 </p>
 
@@ -84,7 +84,7 @@ $$\\hat{\\mu}_t = \\hat{\\mu}_{t|t-1} + K_t(r_t - \\hat{\\mu}_{t|t-1})$$
 $$P_t = (1 - K_t)P_{t|t-1}$$
 
 <p>
-  where $K_t$ is the Kalman gain &mdash; the fraction of the "surprise" ($r_t - \\hat{\\mu}_{t|t-1}$)
+  where $K_t$ is the Kalman gain, the fraction of the "surprise" ($r_t - \\hat{\\mu}_{t|t-1}$)
   that is incorporated into the new drift estimate. The gain converges to a steady-state value
   $K^* = \\frac{-R + \\sqrt{R^2 + 4QR}}{2R}$ after a burn-in period, at which point the filter
   behaves as an exponentially weighted moving average of returns with a decay rate determined by
@@ -95,7 +95,7 @@ $$P_t = (1 - K_t)P_{t|t-1}$$
 
 <p>
   We set $Q = 10^{-8}$ and $R = 10^{-5}$, giving a ratio $Q/R = 10^{-3}$. This produces a
-  heavily smoothed drift estimate that changes slowly &mdash; the filter assigns 99.9% of each
+  heavily smoothed drift estimate that changes slowly; the filter assigns 99.9% of each
   return's variance to observation noise rather than genuine drift changes. The resulting
   steady-state Kalman gain is approximately $K^* \\approx 0.0316$, meaning only 3.16% of each
   bar's "surprise" return is incorporated into the drift estimate.
@@ -368,7 +368,7 @@ $$\\text{signal}_t = \\frac{d_t}{\\bar{d}_{60}}$$
 <p>
   The HMM-filtered strategy applies a simple rule: <strong>only enter mean-reversion trades when the
   HMM indicates State 0 (mean-reverting)</strong>. Signals generated during State 1 (trending) are
-  suppressed entirely. The logic is straightforward &mdash; mean-reversion signals during trending
+  suppressed entirely. The logic is straightforward: mean-reversion signals during trending
   regimes are likely to be counter-trend entries that will be stopped out as the trend continues.
 </p>
 
@@ -452,7 +452,7 @@ $$\\text{signal}_t = \\frac{d_t}{\\bar{d}_{60}}$$
 <div class="finding-box">
   <strong>Key Finding:</strong> The HMM filter improves per-trade quality metrics (win rate +1.8pp,
   profit factor 1.34 &rarr; 1.42, Sharpe 0.92 &rarr; 1.08) but reduces total P&L by 16% due to
-  the 35% reduction in trade count. The HMM acts as a precision filter &mdash; it removes the
+  the 35% reduction in trade count. The HMM acts as a precision filter; it removes the
   worst trades but also removes some winning trades that happen to occur near regime boundaries.
 </div>
 
@@ -468,7 +468,7 @@ $$\\text{signal}_t = \\frac{d_t}{\\bar{d}_{60}}$$
     been losers. This is slightly better than the overall losing rate (46.2%), confirming that the
     HMM preferentially removes low-quality signals.</li>
   <li><strong>Suppressed winning trades:</strong> 107 of the 226 suppressed trades (47.3%) would have
-    been winners. This is the cost of regime filtering &mdash; some genuine mean-reversion signals
+    been winners. This is the cost of regime filtering, some genuine mean-reversion signals
     occur during what the HMM classifies as trending regimes, particularly at regime transition
     points where the HMM is uncertain.</li>
   <li><strong>Net effect of suppressed trades:</strong> The 226 suppressed trades have an average
@@ -488,7 +488,7 @@ $$\\text{signal}_t = \\frac{d_t}{\\bar{d}_{60}}$$
   The most informative analysis stratifies trade outcomes by their proximity to regime transitions.
   Trades entered during "stable" mean-reverting regimes (more than 30 bars from any transition)
   show a win rate of 58.2% and profit factor of 1.61. Trades entered within 10 bars of a transition
-  show a win rate of 49.1% and profit factor of 0.96 &mdash; essentially no edge. This suggests
+  show a win rate of 49.1% and profit factor of 0.96, essentially no edge. This suggests
   that the HMM's primary value is identifying <em>stable</em> mean-reverting periods, not merely
   classifying the current regime.
 </p>
@@ -557,7 +557,7 @@ $$\\text{signal}_t = \\frac{d_t}{\\bar{d}_{60}}$$
 <p>
   For <strong>absolute returns</strong>, the HMM hurts: total P&L drops from $265 to $223
   (&minus;16%) because the filter removes 35% of trades, and even the removed trades had a
-  slight positive expectancy. This is the classic precision-recall trade-off &mdash; higher
+  slight positive expectancy. This is the classic precision-recall trade-off, higher
   precision (better per-trade quality) at the cost of lower recall (fewer total trades).
 </p>
 

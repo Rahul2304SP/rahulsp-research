@@ -5,8 +5,8 @@ export const content = `
 
 <p>
   Mean-reversion at the intraday scale is one of the most extensively documented microstructure phenomena
-  in equity and FX markets. The core observation &mdash; that a sequence of same-direction bars is
-  followed by a statistically significant counter-move &mdash; appears in virtually every liquid
+  in equity and FX markets. The core observation, that a sequence of same-direction bars is
+  followed by a statistically significant counter-move, appears in virtually every liquid
   instrument and has been exploited by market makers and proprietary traders since electronic trading began.
   In precious metals markets, the effect is particularly pronounced on XAUUSD M1 bars, where the combination
   of high volatility (~15% annualised), tight spreads ($0.20&ndash;$0.30 during London/NY sessions), and
@@ -14,8 +14,8 @@ export const content = `
 </p>
 
 <p>
-  The academic literature on mean-reversion scalping has focused primarily on <em>signal detection</em>
-  &mdash; identifying which patterns predict reversals &mdash; while treating execution as a secondary
+  The academic literature on mean-reversion scalping has focused primarily on <em>signal detection</em>,
+  identifying which patterns predict reversals, while treating execution as a secondary
   concern. Hasbrouck (2007) documents the importance of latency in equity market making, and Budish et al.
   (2015) quantify the arms race in HFT speed, but neither addresses the specific question faced by retail
   and semi-institutional traders: given a valid retracement signal, how much edge is lost per unit of
@@ -27,8 +27,8 @@ export const content = `
 <p>
   We hypothesize that the retracement scalping edge on XAUUSD M1 is a <strong>transient microstructure
   phenomenon</strong> that exists at the exact instant price crosses the break level and decays monotonically
-  thereafter. This hypothesis implies that any execution method introducing delay &mdash; including waiting
-  for price confirmation, sustain filters, or client-side polling loops &mdash; will underperform a
+  thereafter. This hypothesis implies that any execution method introducing delay (including waiting
+  for price confirmation, sustain filters, or client-side polling loops) will underperform a
   zero-latency pending order placed at the break level before the break occurs.
 </p>
 
@@ -55,7 +55,7 @@ export const content = `
 </ol>
 
 <div class="finding-box" style="border-left-color: #d97706; background: #fffbeb;">
-  <strong>Disclaimer &mdash; Simulated Results:</strong> All PnL figures, profit factors, and win rates
+  <strong>Disclaimer, Simulated Results:</strong> All PnL figures, profit factors, and win rates
   reported in this paper are derived from <strong>historical tick replay simulation</strong>, not live
   trading. The simulation replays 42.9 million recorded ticks across 90 trading days, applies the
   strategy logic to each signal, and computes hypothetical fills at the prevailing bid/ask with a
@@ -68,7 +68,7 @@ export const content = `
 
 <h2>2. Signal Detection</h2>
 
-<h3>2.1 Forming Run Detection (Path 1 &mdash; Mid-bar Entry)</h3>
+<h3>2.1 Forming Run Detection (Path 1: Mid-bar Entry)</h3>
 
 <p>
   The primary signal detection algorithm examines the <em>currently forming</em> bar (bars[-1]) to identify
@@ -119,7 +119,7 @@ export const content = `
   mid-bar entries from confirmation entries in performance analysis.
 </p>
 
-<h3>2.2 Confirmation Run Detection (Path 2 &mdash; Fallback)</h3>
+<h3>2.2 Confirmation Run Detection (Path 2: Fallback)</h3>
 
 <p>
   The secondary detection path fires on <em>closed</em> bars only. It examines the second-to-last bar
@@ -178,7 +178,7 @@ export const content = `
 <p>
   The critical advantage of the STOP order is that it delegates fill execution to the MT5 server, which
   monitors ticks continuously and fills the order at the exact moment price crosses the stop level. This
-  achieves <strong>zero polling latency</strong> &mdash; the fill occurs at tick granularity regardless
+  achieves <strong>zero polling latency</strong>: the fill occurs at tick granularity regardless
   of the client-side polling interval.
 </p>
 
@@ -231,7 +231,7 @@ export const content = `
   Seven distinct configurations are tested, varying the body threshold, minimum consecutive bars, exit
   mode, and lot sizing. Each configuration runs as a separate magic number in MT5, allowing simultaneous
   live execution and independent performance tracking. The config names (0.03, 0.05) refer to body
-  percentage thresholds, <strong>not lot sizes</strong> &mdash; actual MT5 lots are dynamically sized
+  percentage thresholds, <strong>not lot sizes</strong>: actual MT5 lots are dynamically sized
   between 0.01 and 0.10 based on account equity and tier multipliers.
 </p>
 
@@ -284,9 +284,9 @@ export const content = `
     <td>0.05, 3+, RB</td>
     <td>0.05%</td>
     <td>3</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
+    <td>n/a</td>
+    <td>n/a</td>
+    <td>n/a</td>
     <td>0.05</td>
     <td>993</td>
     <td>RevBE</td>
@@ -295,9 +295,9 @@ export const content = `
     <td>0.03, 3+, RB</td>
     <td>0.03%</td>
     <td>3</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
+    <td>n/a</td>
+    <td>n/a</td>
+    <td>n/a</td>
     <td>0.04</td>
     <td>994</td>
     <td>RevBE</td>
@@ -306,9 +306,9 @@ export const content = `
     <td>0.03, 2+, RB</td>
     <td>0.03%</td>
     <td>2</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
-    <td>&mdash;</td>
+    <td>n/a</td>
+    <td>n/a</td>
+    <td>n/a</td>
     <td>0.03</td>
     <td>995</td>
     <td>RevBE</td>
@@ -359,7 +359,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   The TP fraction parameter controls what percentage of the run body the TP captures.
-  A value of 0.25 means the TP targets 25% of the total run body &mdash; a conservative target reflecting
+  A value of 0.25 means the TP targets 25% of the total run body, a conservative target reflecting
   the empirical finding that most reversals retrace only a fraction of the preceding run. The
   SL multiplier sets the SL as a multiple of the TP distance, creating asymmetric risk/reward
   ratios (e.g., 2.0x means the SL is twice the TP distance).
@@ -855,7 +855,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   To understand why confirmation underperforms, we isolate the PnL contribution of the confirmation
-  bar itself &mdash; the period between the break and the confirmation entry. The confirmation bar is
+  bar itself, the period between the break and the confirmation entry. The confirmation bar is
   the M1 bar that immediately follows the last run bar. If this bar closes in the reversal direction,
   the confirmation entry triggers. If it closes in the run direction (continuation), no entry occurs.
 </p>
@@ -885,7 +885,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 
 <p>
   The confirmation bar has a <strong>negative expected value</strong>. Waiting for it does not improve
-  signal quality &mdash; it simply allows price to move against the intended entry, resulting in worse
+  signal quality; it simply allows price to move against the intended entry, resulting in worse
   fills on every trade. The confirmation bar accounts for 78.5% of the total PnL gap between break and
   confirmation entries. The remaining 21.5% is attributable to the adverse selection effect: confirmation
   entries preferentially enter trades where the reversal was already well underway, skewing toward
@@ -999,7 +999,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
   <strong>Key Finding:</strong> All 40 window &times; threshold combinations produce <strong>negative
   total PnL</strong>. There is no sustain parameter combination that improves on the break entry.
   The pattern is monotonic: longer windows and stricter thresholds produce worse results. The worst
-  combination (30s window, &ge;90% threshold) loses $14,671 &mdash; a $53,948 underperformance
+  combination (30s window, &ge;90% threshold) loses $14,671, a $53,948 underperformance
   relative to the break entry.
 </div>
 
@@ -1220,7 +1220,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 </p>
 
 <blockquote>
-  The edge is not in knowing <em>which</em> breaks will succeed &mdash; it is in being at the exact
+  The edge is not in knowing <em>which</em> breaks will succeed; it is in being at the exact
   break price when they do.
 </blockquote>
 

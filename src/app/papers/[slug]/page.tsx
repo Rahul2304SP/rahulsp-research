@@ -15,7 +15,7 @@ export async function generateMetadata({
   const paper = getPaperBySlug(slug);
   if (!paper) return { title: "Paper Not Found" };
   return {
-    title: `${paper.title} | Rahul S. P.`,
+    title: `${paper.title} | Rahul Parmeshwar`,
     description: paper.abstract,
   };
 }

@@ -11,8 +11,8 @@ export const content = `
 
 <p>
   The transferability hypothesis is appealing on its surface. If alpha factors encode universal market microstructure
-  patterns &mdash; mean reversion after overextension, momentum persistence in trending conditions, volume-price
-  divergences signaling exhaustion &mdash; then they should work on any liquid instrument at any frequency.
+  patterns (mean reversion after overextension, momentum persistence in trending conditions, volume-price
+  divergences signaling exhaustion), then they should work on any liquid instrument at any frequency.
   This reasoning has led many practitioners to import Alpha101 factors wholesale into commodity, FX, and
   crypto trading systems without systematic validation. We test this hypothesis rigorously.
 </p>
@@ -30,7 +30,7 @@ export const content = `
 <p>
   Our contribution is not the implementation of Alpha101 (which has been reproduced in numerous open-source
   libraries) but the <strong>systematic, out-of-sample evaluation</strong> on a domain where these factors
-  are frequently assumed to work but rarely tested. The result &mdash; a 98% failure rate &mdash; has
+  are frequently assumed to work but rarely tested. The result, a 98% failure rate, has
   direct implications for feature engineering in single-instrument trading systems.
 </p>
 
@@ -50,7 +50,7 @@ export const content = `
   to a single-instrument time-series context: rank operations were replaced with rolling
   percentile ranks over a 500-bar lookback window, which maps each value to its position within the
   recent distribution [0, 1]. Industry neutralization operations were
-  dropped entirely, as they require a universe of stocks classified by sector &mdash; a meaningless
+  dropped entirely, as they require a universe of stocks classified by sector, a meaningless
   operation for a single instrument. Volume-weighted average price (VWAP) was computed from M1 OHLCV
   data using the standard $(H + L + C) / 3 \\times V$ approximation, noting that
   M1 "volume" in the gold OTC market is tick volume (count of price updates), not traded notional.
@@ -65,7 +65,7 @@ export const content = `
     paper is ambiguous about simple vs. log returns, but log returns are standard for M1 data).</li>
   <li><strong>Alphas using market capitalization:</strong> Set to a constant, since
     gold has no meaningful capitalization equivalent. This effectively neutralizes any alpha that
-    discriminates on market cap &mdash; approximately 8 alphas are affected.</li>
+    discriminates on market cap; approximately 8 alphas are affected.</li>
   <li><strong>Alphas using average daily volume:</strong> Replaced with rolling
     mean tick volume over d bars (not d days, since we operate on M1 frequency).</li>
   <li><strong>Lookback parameters:</strong> Used as-is (in bars). A lookback of 20 bars means 20 minutes
@@ -115,7 +115,7 @@ export const content = `
 </ul>
 
 <p>
-  A survival threshold of <strong>AUC &gt; 0.515</strong> was applied &mdash; deliberately lenient,
+  A survival threshold of <strong>AUC &gt; 0.515</strong> was applied, deliberately lenient,
   requiring only a marginal edge above random (0.500). The threshold is set above 0.500 rather than at
   0.500 to account for estimation noise: with finite data, even a purely random feature will occasionally
   achieve AUC values of 0.505&ndash;0.510 due to sampling variance. The 0.515 threshold is calibrated
@@ -130,8 +130,8 @@ export const content = `
   107-feature pipeline, allowing the downstream model (a Transformer or SSM-based architecture) to learn nonlinear
   interactions with other feature groups. Features are stored in the feature cache as
   alpha024 and alpha083 (with the appropriate instrument prefix), where the prefix depends on the
-  instrument context. Computation of all 101 alphas is controlled by a configuration flag
-  &mdash; when disabled, the two surviving alphas are excluded from the official feature list and
+  instrument context. Computation of all 101 alphas is controlled by a configuration flag,
+  when disabled, the two surviving alphas are excluded from the official feature list and
   the feature count drops from 107 to 105. Both surviving alphas are added to the feature cache
   alongside all other features and participate in the standard cache invalidation protocol.
 </p>
@@ -187,7 +187,7 @@ export const content = `
 <p>
   The distribution is remarkably symmetric around 0.500 with a very tight standard deviation (&sigma; &asymp; 0.008),
   consistent with the hypothesis that most alphas are pure noise on this dataset. The mean AUC across all
-  101 factors is 0.5004 &mdash; statistically indistinguishable from 0.500. The median is 0.5001. The
+  101 factors is 0.5004, statistically indistinguishable from 0.500. The median is 0.5001. The
   minimum AUC observed was 0.481 (alpha041) and the maximum was 0.521 (alpha024). The interquartile
   range [0.495, 0.506] sits squarely within the noise band.
 </p>
@@ -338,8 +338,8 @@ export const content = `
 
 <p>
   Only <strong>4 of 101 factors</strong> (3.96%) exceeded the AUC &gt; 0.515 threshold. After forward feature
-  selection within the full 107-feature pipeline &mdash; which tests whether each candidate alpha provides
-  <em>incremental</em> AUC beyond the existing feature set &mdash; only <strong>2 factors</strong>
+  selection within the full 107-feature pipeline, which tests whether each candidate alpha provides
+  <em>incremental</em> AUC beyond the existing feature set, only <strong>2 factors</strong>
   (alpha024 and alpha083) contributed non-redundant information and were retained. Alpha047 and alpha068
   were dropped because their signal was largely captured by existing features in the pipeline
   (specifically, the volume ratio and price-volume interaction features in the OG Extended group).
@@ -395,7 +395,7 @@ export const content = `
 
 <h2>4. Surviving Alphas</h2>
 
-<h3>4.1 Alpha024 &mdash; SMA Slope Indicator (AUC: 0.521)</h3>
+<h3>4.1 Alpha024: SMA Slope Indicator (AUC: 0.521)</h3>
 
 <p>
   Alpha024 is a conditional momentum/reversion factor that switches behavior based on the growth rate of
@@ -433,7 +433,7 @@ $$\\alpha_{024} = \\begin{cases} -1 \\cdot (\\text{close} - \\min(\\text{close},
   provides a useful contrarian signal during sharp moves that tend to overshoot.
 </p>
 
-<h3>4.2 Alpha083 &mdash; Order Imbalance Ratio (AUC: 0.518)</h3>
+<h3>4.2 Alpha083: Order Imbalance Ratio (AUC: 0.518)</h3>
 
 <p>
   Alpha083 captures volume-weighted price deviation. The adapted formula for single-instrument use:
@@ -453,7 +453,7 @@ but for single-instrument use we use the raw continuous value.</p>
   from the bar's volume-weighted fair value. When close is below VWAP, the numerator is positive,
   indicating that selling pressure pushed price below the session's average trade price. The
   denominator (vwap + close) normalizes by price level. The volume_ratio amplifier means the signal
-  is strongest when the deviation occurs on elevated volume &mdash; a high-volume bar with close
+  is strongest when the deviation occurs on elevated volume, a high-volume bar with close
   well below VWAP is a stronger signal than a low-volume bar with the same deviation.
 </p>
 
@@ -477,7 +477,7 @@ but for single-instrument use we use the raw continuous value.</p>
 <h2>5. Failure Mode Analysis</h2>
 
 <p>
-  The near-total failure of Alpha101 on intraday gold is not random &mdash; it is structural. We identify
+  The near-total failure of Alpha101 on intraday gold is not random; it is structural. We identify
   five primary failure modes, each explaining why a subset of the 101 factors collapses when applied
   outside its designed context.
 </p>
@@ -523,7 +523,7 @@ but for single-instrument use we use the raw continuous value.</p>
 
 <p>
   Lookback parameters calibrated for 20&ndash;250 trading days (1&ndash;12 months) correspond to
-  20&ndash;250 minutes at M1 &mdash; a fundamentally different temporal scale. A 20-day momentum
+  20&ndash;250 minutes at M1, a fundamentally different temporal scale. A 20-day momentum
   signal captures a medium-term trend; a 20-minute momentum signal captures intrabar noise. Factors
   that use large lookbacks (alpha042 uses a 200-bar lookback for instance) are computing statistics
   over approximately 3 hours of M1 data, which might span a single trading session or straddle a
@@ -559,8 +559,8 @@ but for single-instrument use we use the raw continuous value.</p>
 <p>
   Factors that rely on volume-price relationships (volume-weighted average price, volume surprise,
   volume-weighted returns) are operating on a fundamentally different quantity than intended. The
-  microstructure information that makes these factors effective on equities &mdash; true order flow
-  imbalance &mdash; is not directly observable in the gold OTC market through tick volume alone.
+  microstructure information that makes these factors effective on equities, true order flow
+  imbalance, is not directly observable in the gold OTC market through tick volume alone.
 </p>
 
 <h3>5.4 Autoregressive Structure</h3>
@@ -569,8 +569,8 @@ but for single-instrument use we use the raw continuous value.</p>
   Gold M1 returns exhibit significant autoregressive structure at short lags (1&ndash;5 bars), unlike
   daily equity returns which are closer to a random walk. The AR(1) coefficient for XAUUSD M1 returns
   is statistically significant (Ljung-Box test rejects the null of no autocorrelation at p &lt; 0.001
-  for lags 1&ndash;5). This means that the simplest possible feature &mdash; the previous bar's return
-  &mdash; already captures substantial predictive information.
+  for lags 1&ndash;5). This means that the simplest possible feature, the previous bar's return,
+  already captures substantial predictive information.
 </p>
 
 <p>
@@ -595,7 +595,7 @@ but for single-instrument use we use the raw continuous value.</p>
 
 <p>
   An alpha factor that generates signal during one session may be pure noise during another. Alpha101
-  factors have no concept of session conditioning &mdash; they apply the same formula uniformly across
+  factors have no concept of session conditioning; they apply the same formula uniformly across
   all bars. A factor that captures mean reversion might work during the Asian session but fail during
   London trending periods, averaging to AUC &asymp; 0.500 when evaluated over the full 23-hour trading
   day. Session-aware features (which constitute 5 of our 107 features) capture this heterogeneity
@@ -633,7 +633,7 @@ but for single-instrument use we use the raw continuous value.</p>
 </p>
 
 <p>
-  The failure is not due to implementation error or data quality &mdash; it is a structural consequence of
+  The failure is not due to implementation error or data quality; it is a structural consequence of
   applying cross-sectional equity factors to a time-series commodity context. Five distinct failure modes
   explain the collapse: cross-sectional dependence (40+ factors lose their ranking signal), frequency
   mismatch (lookback parameters calibrated for daily bars are meaningless at M1), volume semantics (tick
@@ -654,7 +654,7 @@ but for single-instrument use we use the raw continuous value.</p>
   lesson is unambiguous: feature engineering must be domain-specific. The 107-feature pipeline described
   in our companion paper achieves its predictive power not from imported equity factors, but from
   purpose-built features that exploit gold's unique microstructure, cross-asset relationships, and
-  regime dynamics. The time spent implementing and evaluating all 101 alphas was not wasted &mdash; it
+  regime dynamics. The time spent implementing and evaluating all 101 alphas was not wasted; it
   produced a rigorous negative result that justifies the investment in domain-specific feature engineering
   and prevents the temptation to rely on off-the-shelf factor libraries.
 </p>
@@ -662,7 +662,7 @@ but for single-instrument use we use the raw continuous value.</p>
 <div class="finding-box">
   <p>
     <strong>Practical Recommendation:</strong> Do not import Alpha101 factors wholesale into commodity
-    or FX trading systems. If resources permit, screen the full set &mdash; but expect a &lt;5% survival
+    or FX trading systems. If resources permit, screen the full set, but expect a &lt;5% survival
     rate. Allocate engineering effort to domain-specific features instead. The two surviving factors
     (alpha024 and alpha083) contribute approximately 0.3% incremental AUC to the full 107-feature pipeline,
     meaningful but modest compared to domain-specific features like the Hurst exponent, efficiency ratio,

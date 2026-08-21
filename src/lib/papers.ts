@@ -26,7 +26,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "We set out to forecast the direction of the Dow (US30) and, after trying every model, target, and horizon, kept landing on the same flat result: a profit factor of 1.0. Instead of re-tuning, we set the trade engine aside and ran an engine-independent battery to separate the five distinct causes of a flat equity curve. Across 438,619 out-of-sample bars and 16 walk-forward folds, our features (all public, mostly price-derived) predict 60-minute realised volatility with a rank correlation of 0.70 (36 sigma above a shuffled-label null) and predict direction no better than a coin (IC 0.009, accuracy 50.8%, 0 of 106 features surviving false-discovery control). The result holds from 60 minutes to 20 days, survives a linear and a neural alternative, and is confirmed by a label-shuffle retrain null. The conclusion was not a weak model but a wrong target: size by predicted volatility, and stop forecasting direction from price.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: priceVolatilityContent,
   },
   {
@@ -37,7 +37,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "We replicate three of the most-cited OHLCV-only mean-reversion edges on the instruments people actually trade (US30, US500 and NASDAQ CFDs), with a realistic spread on every entry and exit and a frozen-parameter walk-forward. Overnight gap-fade does not replicate: its famous ~90% fill rate is an artefact of tiny gaps, and gaps large enough to fade fill under half the time (only 16% for large NASDAQ gaps). The IBS effect's reported ~70% win rate collapses to ~50%, a coin flip. Connors RSI(2) is the one partial survivor, with real 57-67% win rates, but it trades too rarely to beat a trending index. After costs and out-of-sample, none of the three beats buy-and-hold. The point is not that mean reversion is fake, but that venue, costs, and out-of-sample decay separate a backtest in a paper from a position in a live account.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: meanReversionReplicationContent,
   },
   {
@@ -48,7 +48,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "A literature review and research framework for predicting US equity index movements using cross-index dynamics. We identify several unstudied research gaps including price-weighted vs cap-weighted divergence signals and trivariate cointegration regime models. Empirical phases are in progress.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: usIndexesContent,
   },
   {
@@ -58,7 +58,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "Using the Caldara-Iacoviello Geopolitical Risk Index matched to XAUUSD M1 data (2018-2026 overlap, ~94 monthly observations), we test whether GPR predicts gold returns. GPR level regimes condition return distributions (higher volatility and positive skew in high-GPR months), but directional predictive power is weak. The signal operates at monthly frequency, too slow for intraday trading but potentially useful as a regime filter.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: gprContent,
   },
   {
@@ -69,7 +69,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "We show that directional disagreement between XAUUSD and XAGUSD over a 20-bar window is the strongest single predictor of scalping signal quality, with Spearman rho between -0.23 and -0.29 (p approximately 0). Lower disagreement implies stronger co-movement and higher reversal reliability. We design a four-tier lot scaling system based on this metric, with the top tier (disagreement <= 8 plus XAG bar reversal) receiving 1.5x allocation.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: xagDisagreementContent,
   },
   {
@@ -79,7 +79,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "We test for linear lead-lag relationships across major asset pairs over 5.5 years of minute-level data. For gold (XAUUSD), no robust lead-lag signal exists from DXY, silver, or equity indices at any horizon. For equities, only MSFT-to-NAS100 and GS-to-US30 at the 5-minute horizon survive out-of-sample validation. The results challenge common assumptions about cross-asset predictability in systematic trading.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: crossAssetContent,
   },
   {
@@ -90,7 +90,7 @@ export const papers: Paper[] = [
     category: "Empirical Studies",
     abstract:
       "After a separate study found the direction of a single index to be a coin flip, we asked whether the cross-section of stocks holds the information the level does not. On 1,021 US names from 2005 to 2026, with point-in-time SEC EDGAR fundamentals and an embargoed, expanding, cost-aware walk-forward, the cross-sectional signal is genuinely real: twelve-month momentum at t = 2.76, five-day reversal at t = 2.62, and the value premium showing its two-decade drought (earnings yield t = -4.14). Yet the combined long/short book earns a net Sharpe of just 0.38, below the 0.46 deflated-Sharpe hurdle that corrects for multiple testing, and its sector-neutral refinement is worse at 0.20. The naive momentum-only sleeve lost 71% in a single month in 2009 and 96% peak-to-trough. The signal is real and, for a retail account that cannot short hundreds of names against an institutional borrow desk on survivorship-free data, untradeable. The distance between a significant t-statistic and a dollar in a real account is the subject of the paper.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: realEdgeRetailContent,
   },
   {
@@ -100,7 +100,7 @@ export const papers: Paper[] = [
     category: "Architecture & Models",
     abstract:
       "We present GoldSSM, a selective state space model for intraday gold price direction forecasting. The architecture combines a Variable Selection Network, a stack of Mamba blocks with selective scan, and temporal attention pooling. At 2.0M parameters, GoldSSM serves as a drop-in replacement for Transformer-based models with identical forward signatures, while offering linear-time sequence processing and improved handling of long-range dependencies in financial time series.",
-    author: "Rahul S. P.",
+    author: "Rahul Parmeshwar",
     content: goldssmContent,
   },
 ];

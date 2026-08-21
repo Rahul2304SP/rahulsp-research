@@ -22,7 +22,7 @@ export const content = `
   the main feature builder function, which accepts M1
   OHLCV DataFrames for all six instruments and returns a fully aligned feature matrix. The features are
   registered in an official feature column registry (105 core entries as of February 2026, plus 2 Alpha101
-  features &mdash; alpha024 and alpha083 &mdash; added conditionally when ENABLE_ALPHA101=True, totaling 107), which serves
+  features, alpha024 and alpha083, added conditionally when ENABLE_ALPHA101=True, totaling 107), which serves
   as both the canonical feature set and the cache invalidation key.
 </p>
 
@@ -200,7 +200,7 @@ export const content = `
   <li><strong>Cross-asset betas (7):</strong> Rolling regression beta of XAUUSD returns against XAG at four horizons
     (5, 30, 60, 120 bars) and DXY at three horizons (30, 60, 120 bars). The beta measures gold's sensitivity to each instrument. <strong>Note: the
     three XAG beta features (beta_xag_to_xau_30, beta_xag_to_xau_60, beta_xag_to_xau_120) required
-    inversion</strong> &mdash; their natural orientation had AUC below 0.500, meaning that higher beta
+    inversion</strong>: their natural orientation had AUC below 0.500, meaning that higher beta
     (more sensitivity to cross-assets) actually predicted <em>opposite</em> gold direction. After
     inversion, AUC values improved to 0.519&ndash;0.525 (1 &minus; original AUC).
     Features: beta_xag_to_xau_5, beta_xag_to_xau_30, beta_xag_to_xau_60, beta_xag_to_xau_120, beta_xau_to_dxy_30, beta_xau_to_dxy_60, beta_xau_to_dxy_120.</li>
@@ -299,7 +299,7 @@ export const content = `
 
 <p>
   <strong>Removed feature:</strong> london_open (binary flag for the first 15 minutes of London
-  session) was tested and removed with AUC = 0.503 &mdash; indistinguishable from noise. The session boundaries
+  session) was tested and removed with AUC = 0.503, indistinguishable from noise. The session boundaries
   themselves provide sufficient temporal context without precise-minute indicators.
 </p>
 
@@ -333,7 +333,7 @@ export const content = `
     <td><strong>Multi-TF Momentum</strong></td>
     <td>3</td>
     <td>rsi_14, mom_divergence, mom_60</td>
-    <td>RSI computed via the rolling RSI function (window=14) captures overbought/oversold conditions. Momentum at the 60-bar horizon and momentum divergence ($	ext{mom}_5 - 	ext{mom}_{60}$) flags when short-term momentum opposes long-term &mdash; often a reversal precursor.</td>
+    <td>RSI computed via the rolling RSI function (window=14) captures overbought/oversold conditions. Momentum at the 60-bar horizon and momentum divergence ($	ext{mom}_5 - 	ext{mom}_{60}$) flags when short-term momentum opposes long-term, often a reversal precursor.</td>
   </tr>
   <tr>
     <td><strong>Regime Indicators</strong></td>
@@ -433,7 +433,7 @@ export const content = `
 
 <p>
   Features with AUC consistently below 0.500 are <strong>inverted</strong> (multiplied by &minus;1) rather
-  than discarded. A feature with AUC = 0.480 is just as informative as one with AUC = 0.520 &mdash; it simply
+  than discarded. A feature with AUC = 0.480 is just as informative as one with AUC = 0.520; it simply
   has the opposite sign convention. The inversion is applied in the feature pipeline before caching,
   ensuring that the model always sees the correctly oriented version. Four features required inversion:
 </p>
@@ -484,14 +484,14 @@ export const content = `
 </p>
 
 <ul>
-  <li>sign_agree &mdash; cross-asset sign agreement (fraction of cross-asset instruments moving
+  <li>sign_agree: cross-asset sign agreement (fraction of cross-asset instruments moving
     in the same direction as gold). AUC: 0.501. This feature measures contemporaneous agreement, which
     has no predictive value for the next bar.</li>
-  <li>kalman_state, kalman_gain &mdash; outputs from a Kalman filter applied to
+  <li>kalman_state, kalman_gain: outputs from a Kalman filter applied to
     close prices. AUC: 0.499, 0.502. The Kalman filter's state estimate is essentially a smoothed price,
     and the gain measures how much the filter trusts new observations. Neither provides directional signal
     beyond what the existing MA distance and residual z-score features capture.</li>
-  <li>london_open &mdash; binary flag for the first 15 minutes of the London session.
+  <li>london_open: binary flag for the first 15 minutes of the London session.
     AUC: 0.503. The session indicators (session_london) already capture the London session boundary;
     a precise 15-minute window adds no incremental information.</li>
 </ul>
@@ -648,7 +648,7 @@ export const content = `
 </ul>
 
 <p>
-  On cache hit, feature loading takes approximately 0.3 seconds (vs. 90 seconds for full recomputation) &mdash;
+  On cache hit, feature loading takes approximately 0.3 seconds (vs. 90 seconds for full recomputation),
   a 300&times; speedup. Cache rebuild events are logged with the reason for invalidation (which component of the
   signature changed), facilitating debugging when unexpected rebuilds occur. This makes iterative model development
   practical without risking stale feature data.
@@ -684,7 +684,7 @@ export const content = `
   <tr>
     <td>Wavelet energy ratio</td>
     <td>2</td>
-    <td>Wavelet decomposition at the minimum level (1) requires at least 2 data points. This is a very low bar &mdash; the wavelet feature is available from the 2nd bar onward.</td>
+    <td>Wavelet decomposition at the minimum level (1) requires at least 2 data points. This is a very low bar; the wavelet feature is available from the 2nd bar onward.</td>
     <td>Output is 0.5 (equal energy at all scales)</td>
   </tr>
   <tr>
@@ -921,7 +921,7 @@ export const content = `
 
 <p>
   A structured feature pipeline with rigorous quality control is essential for robust quantitative trading.
-  Our 107-feature set balances breadth &mdash; spanning 6 instruments, 4 groups, and 14 feature families &mdash; with
+  Our 107-feature set balances breadth (spanning 6 instruments, 4 groups, and 14 feature families) with
   discipline: every feature passes AUC validation, features with inverted polarity are corrected rather than
   discarded, and a hash-based caching system ensures reproducibility without stale data.
 </p>
@@ -949,14 +949,14 @@ export const content = `
     share of marginal AUC, with volatility proxies, regime indicators, and multi-scale analysis being the
     highest-value families. Cross-asset features provide critical regime context but limited direct predictive
     power. The Alpha101 screening (101 candidates, 2 survivors) demonstrates that feature sourcing from
-    adjacent domains has extremely low yield &mdash; domain-specific engineering is irreplaceable.
+    adjacent domains has extremely low yield; domain-specific engineering is irreplaceable.
   </p>
 </div>
 
 <p>
   The pipeline is maintained via the the official feature list registry, which serves as both the
   canonical feature list and the cache invalidation key. Adding or removing a feature requires only updating
-  this list &mdash; the caching system, model input layer, and validation suite adapt automatically. The
+  this list; the caching system, model input layer, and validation suite adapt automatically. The
   minimum bar floors enforced by the bar-floor scaling helper ensure that statistical features are never computed on
   insufficient data, and the forward-fill strategy for sub-floor bars preserves row alignment without
   introducing garbage estimates into the training data.

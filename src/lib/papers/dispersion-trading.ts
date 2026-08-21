@@ -2,8 +2,8 @@ export const content = `
 <h2>1. Introduction</h2>
 
 <p>
-  Cross-sectional dispersion &mdash; the standard deviation of individual stock returns within an index
-  &mdash; has long been studied as a measure of market disagreement. When the components of an index
+  Cross-sectional dispersion, the standard deviation of individual stock returns within an index,
+  has long been studied as a measure of market disagreement. When the components of an index
   diverge sharply from each other, it signals heterogeneous information flow, sector rotation, or
   idiosyncratic shocks that have not yet been absorbed into index-level pricing. The classical dispersion
   trade, popularised in options markets, sells index volatility and buys single-stock volatility to exploit
@@ -14,8 +14,8 @@ export const content = `
 <p>
   This distinction matters enormously for systematic traders. If dispersion predicts volatility but not
   direction, the appropriate strategy is vol-targeting or position sizing, not directional trading. If
-  dispersion predicts convergence &mdash; meaning that after stocks diverge from their index, they tend
-  to snap back &mdash; then a convergence trade on the index itself becomes viable.
+  dispersion predicts convergence, meaning that after stocks diverge from their index, they tend
+  to snap back, then a convergence trade on the index itself becomes viable.
 </p>
 
 <p>
@@ -139,7 +139,7 @@ $$D_t = \\sqrt{\\frac{1}{N-1} \\sum_{i=1}^{N} (r_{i,t} - \\bar{r}_t)^2}$$
 <p>
   In contrast, the directional correlation is effectively zero. At 5 and 15 minutes, the correlations
   (0.003) are not statistically significant ($p > 0.35$). At 30 minutes, the correlation (0.007)
-  approaches marginal significance ($p = 0.06$) but remains economically negligible &mdash; an $r$ of
+  approaches marginal significance ($p = 0.06$) but remains economically negligible, an $r$ of
   0.007 implies an $R^2$ of 0.005%, explaining essentially none of the directional variance.
 </p>
 
@@ -154,15 +154,15 @@ $$D_t = \\sqrt{\\frac{1}{N-1} \\sum_{i=1}^{N} (r_{i,t} - \\bar{r}_t)^2}$$
   The separation between volatility and direction has a direct consequence for strategy selection. A
   directional predictor would justify threshold-based entry signals: "when dispersion exceeds $X$, buy
   (or sell) the index." The absence of directional power rules this out. Instead, the volatility signal
-  suggests two applications: (1) vol-targeting &mdash; reducing position size when dispersion is high
-  to maintain constant risk exposure, and (2) convergence trading &mdash; betting that when stocks
+  suggests two applications: (1) vol-targeting: reducing position size when dispersion is high
+  to maintain constant risk exposure, and (2) convergence trading: betting that when stocks
   diverge from the index, the <em>relative</em> relationship will revert, even though the absolute
   direction of the index is unpredictable.
 </p>
 
 <p>
   The convergence trade does not require dispersion to predict direction. It requires only that periods
-  of high dispersion are followed by convergence &mdash; meaning that the spread between individual
+  of high dispersion are followed by convergence, meaning that the spread between individual
   stocks and the index narrows. This can be profitable even if the index itself moves in either direction,
   provided the convergence effect generates a systematic positive expected value.
 </p>
@@ -564,7 +564,7 @@ $$z_t = \\frac{D_t - \\mu_{D,w}}{\\sigma_{D,w}}$$
 <p>
   The year-by-year breakdown reveals a clear pattern: the convergence trade performs best in
   high-volatility, high-dispersion regimes (2021, 2022, 2025) and poorly in low-volatility,
-  concentrated-leadership regimes (2023, 2024). This is intuitive &mdash; the strategy requires
+  concentrated-leadership regimes (2023, 2024). This is intuitive; the strategy requires
   stocks to diverge from each other before convergence can occur. In 2023&ndash;2024, the
   "Magnificent 7" tech stocks dominated index returns, suppressing cross-sectional dispersion
   and starving the strategy of signals.
@@ -599,7 +599,7 @@ $$z_t = \\frac{D_t - \\mu_{D,w}}{\\sigma_{D,w}}$$
   massive sector-level dispersion as industrial, consumer, and tech stocks reacted differently
   to trade policy uncertainty. This is exactly the type of heterogeneous shock that powers the
   convergence trade. The 62.4% win rate and 2.42 profit factor in 2025 represent the strategy
-  at its strongest &mdash; but this performance cannot be expected to persist into a low-volatility
+  at its strongest, but this performance cannot be expected to persist into a low-volatility
   environment.
 </p>
 
@@ -652,7 +652,7 @@ $$z_t = \\frac{D_t - \\mu_{D,w}}{\\sigma_{D,w}}$$
 
 <ul>
   <li><strong>Data requirements:</strong> The strategy requires real-time M5 data for 21 individual
-    stocks plus the US30 index &mdash; 22 simultaneous data feeds. This is a non-trivial
+    stocks plus the US30 index, 22 simultaneous data feeds. This is a non-trivial
     infrastructure requirement, particularly for retail traders. Data costs, latency, and
     synchronisation challenges increase linearly with the number of instruments.</li>
   <li><strong>Regime dependence:</strong> The 18-month underwater period (2023&ndash;2024) is
@@ -696,8 +696,8 @@ $$z_t = \\frac{D_t - \\mu_{D,w}}{\\sigma_{D,w}}$$
 </p>
 
 <p>
-  A convergence trade &mdash; buying the US30 index when component stocks diverge (z-score > 2.5) and
-  holding for up to 5 hours &mdash; produces a walk-forward OOS profit factor of 1.41 across 362 trades
+  A convergence trade, buying the US30 index when component stocks diverge (z-score > 2.5) and
+  holding for up to 5 hours, produces a walk-forward OOS profit factor of 1.41 across 362 trades
   over 58 monthly test windows. All 9 tested parameter configurations remain OOS positive, supporting
   the structural nature of the convergence effect.
 </p>

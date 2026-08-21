@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About | Rahul S. P.",
-  description: "Assistant Manager at Deloitte. Independent quantitative researcher in market microstructure, neural architectures, and systematic trading.",
+  title: "About Rahul Parmeshwar",
+  description: "Rahul Parmeshwar (Rahul S. P.) is an Assistant Manager at Deloitte and an independent quantitative researcher in market microstructure, neural architectures, and systematic trading.",
 };
 
 export default function AboutPage() {
@@ -12,9 +12,10 @@ export default function AboutPage() {
 
       <div className="max-w-2xl space-y-6 text-[#374151] leading-relaxed">
         <p className="text-lg text-[#1a1a2e]">
-          Assistant Manager at <strong>Deloitte</strong>. Independent quantitative researcher
-          focused on market microstructure, neural architectures for financial time series,
-          and systematic trading.
+          I&apos;m <strong>Rahul Parmeshwar</strong>, an Assistant Manager at{" "}
+          <strong>Deloitte</strong> and an independent quantitative researcher focused on
+          market microstructure, neural architectures for financial time series, and
+          systematic trading. I publish here under the name Rahul S. P.
         </p>
 
         <p>
