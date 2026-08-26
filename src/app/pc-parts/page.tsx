@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 type Offer = {
   site: string; shop: string; price: number; in_stock: boolean | null;
   name?: string; url?: string; ts?: string; marketplace?: boolean; stale?: boolean;
+  out_of_stock_only?: boolean;
 };
 type Point = { ts: string; site: string; price: number };
 type Stats = {
@@ -222,8 +223,16 @@ function ItemCard({ it, open, onToggle, showMarket }:
           </div>
         </div>
         <div style={{ textAlign: "right", minWidth: 120 }}>
-          <div style={{ fontSize: 19, fontWeight: 700 }}>{gbp(best?.price)}</div>
+          <div style={{ fontSize: 19, fontWeight: 700,
+                        color: best?.out_of_stock_only ? "#b06b00" : undefined }}>
+            {gbp(best?.price)}
+          </div>
           <div style={{ fontSize: 11, color: "#99a" }}>{best?.shop || "no retail price"}</div>
+          {best?.out_of_stock_only ? (
+            <div style={{ fontSize: 10, color: "#b06b00", fontWeight: 600 }}>
+              out of stock everywhere
+            </div>
+          ) : null}
         </div>
         <div style={{ minWidth: 108, textAlign: "right" }}>
           <div style={{ fontSize: 12, color: "#778" }}>
@@ -405,7 +414,7 @@ export default function PcParts() {
           </div>
           <div style={{ fontSize: 11, color: "#99a" }}>
             {b.priced}/{b.total} parts priced
-            {!b.complete ? " · total needs every part priced" : ""}
+            {!b.complete ? " · total needs every part in stock somewhere" : ""}
           </div>
         </div>
         {b.complete && b.market_total ? (
