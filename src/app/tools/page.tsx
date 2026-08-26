@@ -47,6 +47,15 @@ const tools: {
     note: "🔒 Passkey required — not public.",
     cta: "Enter passkey",
   },
+  {
+    href: "/pc-parts",
+    badge: "Private",
+    badgeColor: "#6b7280",
+    title: "PC Build Price Tracker",
+    desc: "A private price tracker for a personal PC build, polling UK component retailers every hour. Each part shows the cheapest retail price and shop, every stocked alternative, the spread between shops, and a price history chart per retailer. Marketplace listings are tracked but kept separate from retail. Verdicts are percentile calls against the tracker's own observed history, and say so plainly when there is not yet enough of it.",
+    note: "🔒 Passkey required — not public.",
+    cta: "Enter passkey",
+  },
 ];
 
 export default function ToolsPage() {

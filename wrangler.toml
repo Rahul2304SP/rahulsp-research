@@ -42,3 +42,13 @@ id = "85bd59695b30431589b0dce215f3da0f"
 [[kv_namespaces]]
 binding = "HOMEFINDER"
 id = "85bd59695b30431589b0dce215f3da0f"
+
+# Private PC component price report (GET/POST /api/pcparts). Reuses the SAME KV
+# namespace under its own key ("pcparts_report") — the alerter polls hourly, so
+# ~24 writes/day against KV's 1,000/day free cap. Two secrets gate it and are NOT
+# declared here (set via `wrangler pages secret put`, never committed):
+#   PCPARTS_KEY        — the passkey users type (gates the GET)
+#   PCPARTS_WRITE_KEY  — random; the local alerter sends it to publish (POST)
+[[kv_namespaces]]
+binding = "PCPARTS"
+id = "85bd59695b30431589b0dce215f3da0f"
