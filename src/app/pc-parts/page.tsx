@@ -27,6 +27,13 @@ type Source = {
   site: string; shop: string; mode?: string; enabled?: boolean; marketplace?: boolean;
   last_ok_hours?: number | null; healthy?: boolean; note?: string;
 };
+type Find = {
+  item_id: string; label: string; category: string;
+  shop: string; site: string; price: number; name?: string; url?: string;
+  in_stock: boolean | null;
+  retail_price: number; retail_shop: string;
+  saving: number; saving_pct: number; condition: string;
+};
 type Report = {
   generated?: string; currency?: string;
   build?: { retail_total?: number | null; market_total?: number | null;
@@ -34,6 +41,7 @@ type Report = {
   season?: { now?: { name: string; why: string } | null;
              next?: { name: string; days: number; why: string } };
   sources?: Source[];
+  ebay?: { finds?: Find[]; count?: number; parts_covered?: number; total_saving?: number };
   items?: Item[];
   min_days_for_verdict?: number;
   refresh_state?: string;
@@ -481,6 +489,69 @@ export default function PcParts() {
                   open={!!openIds[it.id]}
                   onToggle={() => setOpenIds((s) => ({ ...s, [it.id]: !s[it.id] }))} />
       ))}
+
+      {/* eBay finds — marketplace listings priced against the best retail price */}
+      <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 4 }}>
+        eBay finds
+        {report.ebay?.total_saving ? (
+          <span style={{ fontWeight: 400, color: "#0a7d28", marginLeft: 10, fontSize: 13 }}>
+            up to {gbp(report.ebay.total_saving, 0)} off across{" "}
+            {report.ebay.parts_covered} part{report.ebay.parts_covered === 1 ? "" : "s"}
+          </span>
+        ) : null}
+      </h2>
+      <p style={{ fontSize: 12, color: "#99a", margin: "0 0 10px" }}>
+        Every listing is quoted as a saving against the best <b>retail</b> price for that part —
+        an eBay price on its own says nothing. Anything that does not beat retail is left out.
+        No returns policy, no retail warranty, and the seller is the risk.
+      </p>
+      {report.ebay?.finds?.length ? (
+        <div style={{ ...card, padding: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={th}>Part</th><th style={th}>eBay</th><th style={th}>Condition</th>
+                <th style={th}>Best retail</th><th style={th}>Saving</th><th style={th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.ebay.finds.map((f, i) => (
+                <tr key={f.item_id + f.site + i}>
+                  <td style={td}>
+                    <b>{f.label}</b>
+                    <div style={{ fontSize: 11, color: "#99a", maxWidth: 340, overflow: "hidden",
+                                  textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                         title={f.name || ""}>{f.name || ""}</div>
+                  </td>
+                  <td style={{ ...td, fontWeight: 700, whiteSpace: "nowrap" }}>{gbp(f.price)}</td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
+                    <span style={{
+                      fontSize: 10, borderRadius: 4, padding: "1px 6px",
+                      border: "1px solid " + (f.condition === "new" ? "#c3d3f2" : "#f0dcb0"),
+                      background: f.condition === "new" ? "#e8eefb" : "#fff7e6",
+                      color: f.condition === "new" ? "#0a5ad6" : "#b06b00",
+                    }}>{f.condition}</span>
+                  </td>
+                  <td style={{ ...td, color: "#778", whiteSpace: "nowrap" }}>
+                    {gbp(f.retail_price)} <span style={{ color: "#aab" }}>{f.retail_shop}</span>
+                  </td>
+                  <td style={{ ...td, whiteSpace: "nowrap", color: "#0a7d28", fontWeight: 700 }}>
+                    {gbp(f.saving)} <span style={{ fontWeight: 400 }}>({f.saving_pct}%)</span>
+                  </td>
+                  <td style={td}>
+                    {f.url ? <a href={f.url} target="_blank" rel="noreferrer"
+                                style={{ color: "#0a5ad6", textDecoration: "none" }}>open ↗</a> : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style={{ ...card, padding: "14px 16px", fontSize: 13, color: "#99a" }}>
+          Nothing on eBay currently beats retail for these parts.
+        </div>
+      )}
 
       {/* Source health — say plainly which shops are not reporting */}
       <h2 style={{ fontSize: 15, marginTop: 28, marginBottom: 8 }}>Shops</h2>
