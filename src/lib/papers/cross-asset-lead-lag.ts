@@ -239,7 +239,7 @@ $$r_{\\text{gold},t} = \\alpha + \\beta \\cdot r_{\\text{cross},t-1} + \\varepsi
 </div>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/gold/intraday_profile.png" alt="XAUUSD intraday return profile by hour" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/gold/intraday_profile.png" alt="XAUUSD intraday return profile by hour" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 2: XAUUSD intraday return profile by hour, revealing the session-dependent structure that drives the cross-asset correlation patterns.</p>
 </div>
 

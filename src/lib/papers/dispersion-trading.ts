@@ -144,7 +144,7 @@ $$D_t = \\sqrt{\\frac{1}{N-1} \\sum_{i=1}^{N} (r_{i,t} - \\bar{r}_t)^2}$$
 </p>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/dispersion/fig1_dispersion_correlation.png" alt="Dispersion correlation analysis: volatility vs direction" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/dispersion/fig1_dispersion_correlation.png" alt="Dispersion correlation analysis: volatility vs direction" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 1: Dispersion correlation with forward US30 returns. Left panel shows the strong relationship with forward absolute returns (volatility); right panel shows the absence of any directional relationship. The volatility correlation decays with horizon but remains significant; the directional correlation is indistinguishable from zero at all horizons.</p>
 </div>
 

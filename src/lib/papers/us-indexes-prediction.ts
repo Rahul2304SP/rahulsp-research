@@ -503,7 +503,7 @@ export const content = `
 <h4>Charts</h4>
 
 <figure>
-  <img src="/charts/us-indexes/summary_comparison_20260316_232903.png" alt="Summary comparison across all strategies and indices" style="max-width: 100%; margin: 1rem 0;" />
+  <img src="/charts/us-indexes/summary_comparison_20260316_232903.png" alt="Summary comparison across all strategies and indices" fetchpriority="high" style="max-width: 100%; margin: 1rem 0;" />
   <figcaption>Figure 1. Summary comparison of IBS and RSI(2) strategies across US30, US500, and NAS100. Neither strategy matches buy-and-hold returns.</figcaption>
 </figure>
 

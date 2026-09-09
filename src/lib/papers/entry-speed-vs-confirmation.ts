@@ -702,7 +702,7 @@ $$\\text{TP}_{\\text{price}} = \\text{entry} \\times (1 - \\text{TP}_{\\text{pct
 </div>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/scalper/rolling_winrate.png" alt="Rolling win rate over the study period" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/scalper/rolling_winrate.png" alt="Rolling win rate over the study period" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 6: Rolling win rate over the study period, demonstrating the stability of the break entry edge across different market conditions.</p>
 </div>
 

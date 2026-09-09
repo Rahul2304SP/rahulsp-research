@@ -609,7 +609,7 @@ $$\\mathcal{L}_{\\text{NC}} = \\mathbb{E}\\left[\\|f(x) - f(x + \\epsilon)\\|_2^
 </p>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/goldssm/fig_param_comparison.png" alt="Parameter count comparison between GoldSSM and Transformer at d_embed=128" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/goldssm/fig_param_comparison.png" alt="Parameter count comparison between GoldSSM and Transformer at d_embed=128" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 1: Parameter count comparison between GoldSSM and equivalent Transformer at $d_{\\text{embed}} = 128$. GoldSSM achieves a 2.1&times; reduction, primarily from replacing self-attention projections with compact Mamba blocks.</p>
 </div>
 

@@ -97,7 +97,7 @@ export const content = `
   ranking correlates with next month's returns. Two of them stand out clearly and in the textbook direction.
 </p>
 
-<img src="/charts/xs-factor/factor_tstats.png" alt="Bar chart of factor IC t-statistics; 12-1 momentum and 5-day reversal exceed t=2, low-beta is negative." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/xs-factor/factor_tstats.png" alt="Bar chart of factor IC t-statistics; 12-1 momentum and 5-day reversal exceed t=2, low-beta is negative." fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   Figure 1: Information-coefficient t-statistics for the seven price factors, 2005 to 2026 (price-only
   specification). Twelve-month momentum (t = 2.76) and five-day reversal (t = 2.62) clear the conventional

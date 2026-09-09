@@ -898,7 +898,7 @@ export const content = `
 </div>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/features/feature_auc_stability_heatmap.png" alt="Feature AUC stability across time periods" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/features/feature_auc_stability_heatmap.png" alt="Feature AUC stability across time periods" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 3: Feature AUC stability heatmap across different time periods. Features with consistent AUC values across periods (uniform colour) are the most reliable; those with high variance (mixed colours) may be regime-dependent.</p>
 </div>
 

@@ -363,7 +363,7 @@ $$\\text{dd}_{20} = \\sum_{i=1}^{20} \\mathbb{1}[\\text{dir}^{\\text{XAU}}_i \\n
 </div>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/scalper/study_09_adverse_selection.png" alt="Adverse selection analysis by signal quality" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/scalper/study_09_adverse_selection.png" alt="Adverse selection analysis by signal quality" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 2: Adverse selection analysis by signal quality. Higher directional disagreement between gold and silver is associated with worse adverse selection costs.</p>
 </div>
 

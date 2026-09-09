@@ -219,7 +219,7 @@ export const content = `
 
 <h2>5. Results: GPR Level and Gold Returns</h2>
 
-<img src="/charts/gpr/fig01_gpr_gold_overview_v2.png" alt="GPR index and gold price normalised, 2018-2026" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/gpr/fig01_gpr_gold_overview_v2.png" alt="GPR index and gold price normalised, 2018-2026" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   <strong>Figure 1.</strong> Caldara-Iacoviello GPR Index (blue) and XAUUSD price (gold, normalised to 100) over the
   2018-2026 overlap period. Grey shading shows GPR history prior to the gold data window. Notable GPR spikes

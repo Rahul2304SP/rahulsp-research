@@ -110,7 +110,7 @@ $$P_t = (1 - K_t)P_{t|t-1}$$
 </p>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/kalman/kalman_drift_gold_24h.png" alt="Kalman drift filter applied to 24 hours of XAUUSD M1 data" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/kalman/kalman_drift_gold_24h.png" alt="Kalman drift filter applied to 24 hours of XAUUSD M1 data" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 1: Kalman drift filter applied to 24 hours of XAUUSD M1 data. The top panel shows the close price and Kalman-filtered price (cumulative sum of filtered drift); the bottom panel shows the raw M1 returns and the Kalman drift estimate. The filter smooths through microstructure noise to reveal the underlying trend direction.</p>
 </div>
 

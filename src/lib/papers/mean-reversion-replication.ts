@@ -92,7 +92,7 @@ export const content = `
   conclusion.
 </p>
 
-<img src="/charts/replication/fig1_gap_fill_collapse.png" alt="Fill rate by gap size for the three indices; near 97% for tiny gaps, collapsing below 50% for gaps large enough to fade." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/replication/fig1_gap_fill_collapse.png" alt="Fill rate by gap size for the three indices; near 97% for tiny gaps, collapsing below 50% for gaps large enough to fade." fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   Figure 1: Gap-fill rate by gap size. Gaps under 0.1% fill about 97% of the time and make up the bulk of all
   gaps, which is what produces the ~90% headline. The gaps actually worth fading fill far less often: a

@@ -177,7 +177,7 @@ export const content = `
   floor of a very large, very clean test."
 </p>
 
-<img src="/charts/signal-diagnosis/study_targets_and_null.png" alt="Left: out-of-sample IC by target, with direction targets near zero and the volatility target far above. Right: the observed 60-minute direction IC sitting in the centre of its permutation null." style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+<img src="/charts/signal-diagnosis/study_targets_and_null.png" alt="Left: out-of-sample IC by target, with direction targets near zero and the volatility target far above. Right: the observed 60-minute direction IC sitting in the centre of its permutation null." fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
 <p class="figure-caption">
   Figure 1: (Left) Out-of-sample Spearman IC by prediction target. The four directional return targets are
   pinned to the zero line; the volatility and absolute-move targets stand far above the dashed noise floor.

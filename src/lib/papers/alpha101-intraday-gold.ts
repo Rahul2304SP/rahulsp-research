@@ -245,7 +245,7 @@ export const content = `
 </div>
 
 <div style="margin: 2rem 0;">
-  <img src="/charts/features/feature_auc_2d.png" alt="Feature predictive power (AUC) distribution" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
+  <img src="/charts/features/feature_auc_2d.png" alt="Feature predictive power (AUC) distribution" fetchpriority="high" style="width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" />
   <p class="figure-caption">Figure 2: Feature predictive power (AUC) distribution across all tested features, including the Alpha101 factors. The tight clustering around 0.500 for most Alpha101 factors contrasts with the wider spread of domain-specific features.</p>
 </div>
 
