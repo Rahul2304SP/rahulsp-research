@@ -52,3 +52,11 @@ id = "85bd59695b30431589b0dce215f3da0f"
 [[kv_namespaces]]
 binding = "PCPARTS"
 id = "85bd59695b30431589b0dce215f3da0f"
+
+# eBay marketplace account deletion endpoint (GET/POST /api/ebay-deletion).
+# No KV or R2 binding: it stores nothing. eBay disables a PRODUCTION keyset until
+# this endpoint validates (or an exemption is granted), and a disabled keyset is
+# what makes the OAuth token request answer 401 invalid_client with correct keys.
+# One secret, NOT declared here (set via `wrangler pages secret put`):
+#   EBAY_VERIFICATION_TOKEN — must equal the "Verification token" typed into the
+#                             eBay portal, 32-80 chars of [A-Za-z0-9_-]
