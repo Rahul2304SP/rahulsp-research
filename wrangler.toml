@@ -60,3 +60,15 @@ id = "85bd59695b30431589b0dce215f3da0f"
 # One secret, NOT declared here (set via `wrangler pages secret put`):
 #   EBAY_VERIFICATION_TOKEN — must equal the "Verification token" typed into the
 #                             eBay portal, 32-80 chars of [A-Za-z0-9_-]
+
+# Private resale deals report (GET/POST /api/resale, shown at the locked /deals page).
+# Reuses the SAME KV namespace under its own key ("resale_report"); the home PC posts
+# about every 90 minutes, well under KV's 1,000/day free cap. One secret gates the GET
+# and is NOT declared here (set by the owner via `wrangler pages secret put`, or the
+# Cloudflare dashboard; never committed):
+#   RESALE_KEY  - the passkey users type (gates the GET); may be a comma-separated list
+# Writes reuse the existing PCPARTS_WRITE_KEY secret (no new write secret). An optional
+# RESALE_WRITE_KEY, if ever set, takes precedence for writes.
+[[kv_namespaces]]
+binding = "RESALE"
+id = "85bd59695b30431589b0dce215f3da0f"
