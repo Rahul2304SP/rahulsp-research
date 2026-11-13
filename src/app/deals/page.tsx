@@ -19,7 +19,7 @@ type Listing = {
   roi?: number | null; bid_up_to?: number | null; ends?: string | null; hours?: number | null;
   bids?: number | null; condition?: string; feedback?: number | null; returns?: boolean | null;
   where?: string; photos?: number | null; notes?: string[]; desc?: string; seller_notes?: string;
-  found_ts?: string; read?: boolean;
+  found_ts?: string; read?: boolean; image?: string; images?: string[];
 };
 type MarketRow = {
   key?: string; product?: string; peers?: number; p25?: number | null;
@@ -42,6 +42,7 @@ type Result =
 
 const STORE_KEY = "resale_key";
 const EBAY_PREFIX = "https://www.ebay.co.uk/itm/";
+const EBAY_IMG_PREFIX = "https://i.ebayimg.com/";
 const STALE_MS = 4 * 3600 * 1000;
 const MSG_UNREACHABLE = "Could not reach the server. Try again.";
 const MSG_NOT_SET_UP = "The page is not set up yet.";
@@ -183,6 +184,43 @@ const linkBtn: React.CSSProperties = {
 };
 
 // ---- one listing ----
+// eBay serves each photo at several sizes: a small one for the strip, the largest when tapped.
+const sized = (u: string, px: number) => u.replace(/\/s-l\d+\.(jpe?g|png|webp)$/i, `/s-l${px}.$1`);
+
+/** The listing's photos: all of them once it has been read, else the search result's one. */
+function Photos({ l }: { l: Listing }) {
+  const all = (Array.isArray(l.images) ? l.images : []).concat(text(l.image) ? [text(l.image)] : []);
+  const seen = new Set<string>();
+  const pics: string[] = [];
+  for (const u of all) {
+    if (typeof u !== "string" || !u.startsWith(EBAY_IMG_PREFIX)) continue;
+    const k = sized(u, 0);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    pics.push(u);
+  }
+  if (pics.length === 0) return null;
+  return (
+    <div style={{
+      display: "flex", gap: 8, overflowX: "auto", margin: "0 0 10px", paddingBottom: 4,
+      scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch",
+    }}>
+      {pics.map((u, i) => (
+        <a key={u} href={sized(u, 1600)} target="_blank" rel="noopener noreferrer"
+           aria-label={`Photo ${i + 1} of ${pics.length}, opens full size`}
+           style={{ flex: "0 0 auto", scrollSnapAlign: "start", lineHeight: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={sized(u, 500)} alt="" loading="lazy" referrerPolicy="no-referrer" width={200} height={200}
+               style={{
+                 width: 200, height: 200, objectFit: "cover", borderRadius: 8,
+                 border: "1px solid #e6e6ec", background: "#f4f4f7", display: "block",
+               }} />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function ListingCard({ l, mode, now }: { l: Listing; mode: "bin" | "auction"; now: number }) {
   const [open, setOpen] = useState(false);
   const cost = gbp(l.cost);
@@ -205,6 +243,7 @@ function ListingCard({ l, mode, now }: { l: Listing; mode: "bin" | "auction"; no
 
   return (
     <div style={card}>
+      <Photos l={l} />
       {text(l.product) ? <div style={{ fontWeight: 700, fontSize: 16 }}>{text(l.product)}</div> : null}
       {text(l.title) ? (
         <div style={{
