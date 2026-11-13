@@ -74,7 +74,9 @@ check("exports the three handlers", [onRequestGet, onRequestPost, onRequestOptio
   check("GET key one character short: 401", shorter.status === 401, String(shorter.status));
   const ok = await onRequestGet({ request: get({ "x-resale-key": PASS }), env });
   check("GET right key, nothing stored: 200", ok.status === 200, String(ok.status));
-  check("GET right key, nothing stored: no-report-yet", (await body(ok)) === '{"error":"no-report-yet"}');
+  const nothing = JSON.parse(await body(ok));
+  check("GET right key, nothing stored: no-report-yet", nothing.error === "no-report-yet");
+  check("GET right key, nothing stored: scan fields are null", nothing.scan_req === null && nothing.scan_status === null);
   check("GET answers carry cache-control no-store", ok.headers.get("cache-control") === "no-store");
   const viaQuery = await onRequestGet({ request: new Request(URL_ + "?key=" + PASS), env });
   check("GET with the key in the URL instead of the header: 401", viaQuery.status === 401, String(viaQuery.status));
@@ -135,9 +137,11 @@ const REPORT = JSON.stringify({ schema: 1, generated: "2026-11-14T12:00:00+00:00
   check("stored under the key resale_report", kv._m.get("resale_report") === REPORT);
   const back = await onRequestGet({ request: get({ "x-resale-key": PASS }), env });
   const text = await body(back);
-  check("round trip: GET returns the same JSON, byte for byte", back.status === 200 && text === REPORT, String(back.status));
+  const strip = (t) => { const o = JSON.parse(t); delete o.scan_req; delete o.scan_status; return JSON.stringify(o); };
+  check("round trip: GET returns the stored report", back.status === 200 && strip(text) === JSON.stringify(JSON.parse(REPORT)), String(back.status));
+  check("round trip: the answer also carries the scan fields", "scan_req" in JSON.parse(text) && "scan_status" in JSON.parse(text));
   check("round trip: content-type json and no-store", back.headers.get("content-type") === "application/json" && back.headers.get("cache-control") === "no-store");
-  check("round trip: parsed content matches", JSON.stringify(JSON.parse(text)) === JSON.stringify(JSON.parse(REPORT)));
+  check("round trip: parsed content matches", strip(text) === JSON.stringify(JSON.parse(REPORT)));
   const wrongAfter = await onRequestGet({ request: get({ "x-resale-key": "test-wrong" }), env });
   check("with a report stored, a wrong key still gets nothing but 401", wrongAfter.status === 401 && (await body(wrongAfter)) === '{"error":"unauthorized"}');
 }
@@ -162,11 +166,84 @@ const REPORT = JSON.stringify({ schema: 1, generated: "2026-11-14T12:00:00+00:00
   const env = { PCPARTS: pc, RESALE_KEY: PASS, PCPARTS_WRITE_KEY: WRITE };
   const p = await onRequestPost({ request: post(REPORT, { "x-write-key": WRITE }), env });
   const g = await onRequestGet({ request: get({ "x-resale-key": PASS }), env });
-  check("only the PCPARTS binding: POST and GET both work", p.status === 200 && g.status === 200 && (await body(g)) === REPORT, `${p.status} ${g.status}`);
+  check("only the PCPARTS binding: POST and GET both work", p.status === 200 && g.status === 200 && JSON.parse(await body(g)).generated === JSON.parse(REPORT).generated, `${p.status} ${g.status}`);
   check("PCPARTS binding: stored under resale_report, not pcparts_report", pc._m.has("resale_report") && !pc._m.has("pcparts_report"));
   const both = { RESALE: fakeKV(), PCPARTS: fakeKV(), RESALE_KEY: PASS, PCPARTS_WRITE_KEY: WRITE };
   await onRequestPost({ request: post(REPORT, { "x-write-key": WRITE }), env: both });
   check("both bindings declared: RESALE is the one used", both.RESALE._m.size === 1 && both.PCPARTS._m.size === 0);
+}
+
+// ---- scan button: request, poll, status ----
+{
+  const kv = fakeKV();
+  const env = { RESALE: kv, RESALE_KEY: PASS, PCPARTS_WRITE_KEY: WRITE };
+  const J = { "content-type": "application/json" };
+  const ask = (headers) => onRequestPost({ request: post('{"action":"request_scan"}', { ...J, ...headers }), env });
+
+  const noKey = await ask({});
+  check("request_scan without the password: 401", noKey.status === 401, String(noKey.status));
+  const wrong = await ask({ "x-resale-key": "test-wrong" });
+  check("request_scan with a wrong password: 401", wrong.status === 401, String(wrong.status));
+  const withWrite = await ask({ "x-write-key": WRITE });
+  check("request_scan with only the write key: 401", withWrite.status === 401, String(withWrite.status));
+  check("refused presses store nothing", kv._m.size === 0);
+  const unset = await onRequestPost({ request: post('{"action":"request_scan"}', { ...J, "x-resale-key": PASS }), env: { RESALE: fakeKV(), PCPARTS_WRITE_KEY: WRITE } });
+  check("request_scan with RESALE_KEY unset: 503", unset.status === 503, String(unset.status));
+
+  const first = await ask({ "x-resale-key": PASS });
+  const fb = JSON.parse(await body(first));
+  check("request_scan with the password: 200 and a stamp", first.status === 200 && fb.requested === true && !Number.isNaN(Date.parse(fb.scan_req)), String(first.status));
+  check("the press is stored under resale_scan_req only", kv._m.size === 1 && kv._m.get("resale_scan_req") === fb.scan_req);
+  const again = await ask({ "x-resale-key": PASS });
+  const ab = JSON.parse(await body(again));
+  check("a second press inside the 3 minute cooldown is folded into the first", again.status === 200 && ab.requested === false && ab.scan_req === fb.scan_req);
+  kv._m.set("resale_scan_req", new Date(Date.now() - 170000).toISOString());
+  const early = JSON.parse(await body(await ask({ "x-resale-key": PASS })));
+  check("a press 170 seconds later is still folded", early.requested === false);
+  const old = new Date(Date.now() - 190000).toISOString();
+  kv._m.set("resale_scan_req", old);
+  const later = await ask({ "x-resale-key": PASS });
+  const lb = JSON.parse(await body(later));
+  check("a press 190 seconds later is a new request", lb.requested === true && lb.scan_req !== old && kv._m.get("resale_scan_req") === lb.scan_req);
+
+  const pollUrl = URL_ + "?poll=1";
+  const pollNo = await onRequestGet({ request: new Request(pollUrl), env });
+  check("poll without the write key: 403", pollNo.status === 403, String(pollNo.status));
+  const pollPass = await onRequestGet({ request: new Request(pollUrl, { headers: { "x-resale-key": PASS } }), env });
+  check("poll with the password instead of the write key: 403", pollPass.status === 403, String(pollPass.status));
+  const pollOk = await onRequestGet({ request: new Request(pollUrl, { headers: { "x-write-key": WRITE } }), env });
+  const pb = JSON.parse(await body(pollOk));
+  check("poll with the write key: only the stamp", pollOk.status === 200 && pb.scan_req === lb.scan_req && Object.keys(pb).length === 1);
+  const pollEmpty = await onRequestGet({ request: new Request(pollUrl, { headers: { "x-write-key": WRITE } }), env: { RESALE: fakeKV(), PCPARTS_WRITE_KEY: WRITE } });
+  check("poll with nothing pressed yet: null", JSON.parse(await body(pollEmpty)).scan_req === null);
+  const pollUnset = await onRequestGet({ request: new Request(pollUrl, { headers: { "x-write-key": "" } }), env: { RESALE: fakeKV() } });
+  check("poll with no write key configured and an empty header: 403", pollUnset.status === 403, String(pollUnset.status));
+
+  const status = (obj, headers) => onRequestPost({ request: post(JSON.stringify({ action: "scan_status", ...obj }), { ...J, ...headers }), env });
+  const stNo = await status({ state: "running", req: lb.scan_req }, { "x-resale-key": PASS });
+  check("scan_status with the password instead of the write key: 403", stNo.status === 403, String(stNo.status));
+  const stBad = await status({ state: "exploded", req: lb.scan_req }, { "x-write-key": WRITE });
+  check("scan_status with an unknown state: 400", stBad.status === 400, String(stBad.status));
+  check("neither wrote a status", !kv._m.has("resale_scan_status"));
+  const stOk = await status({ state: "done", req: lb.scan_req, note: "x".repeat(900) }, { "x-write-key": WRITE });
+  check("scan_status from the home PC: 200", stOk.status === 200, String(stOk.status));
+  const saved = JSON.parse(kv._m.get("resale_scan_status"));
+  check("status keeps state and req, stamps the time, trims the note", saved.state === "done" && saved.req === lb.scan_req && saved.note.length === 300 && !Number.isNaN(Date.parse(saved.ts)));
+  check("a status never overwrites the report", !kv._m.has("resale_report"));
+
+  await onRequestPost({ request: post(REPORT, { "x-write-key": WRITE }), env });
+  const page = await onRequestGet({ request: get({ "x-resale-key": PASS }), env });
+  const pg = JSON.parse(await body(page));
+  check("the page's GET carries the press and the status with the report", pg.scan_req === lb.scan_req && pg.scan_status.state === "done" && pg.generated === JSON.parse(REPORT).generated);
+  kv._m.set("resale_scan_status", "not json");
+  const page2 = JSON.parse(await body(await onRequestGet({ request: get({ "x-resale-key": PASS }), env })));
+  check("a corrupt status is served as null, not an error", page2.scan_status === null && page2.generated === JSON.parse(REPORT).generated);
+
+  const rep2 = '{"generated":"2026-11-13T18:00:00Z","action":"something-else"}';
+  const odd = await onRequestPost({ request: post(rep2, { "x-write-key": WRITE }), env });
+  check("a report whose action is not a known one is still stored as the report", odd.status === 200 && kv._m.get("resale_report") === rep2);
+  const big = await onRequestPost({ request: post("x".repeat(500001), { "x-resale-key": PASS }), env });
+  check("an oversized body is refused before anything else: 413", big.status === 413, String(big.status));
 }
 
 // ---- OPTIONS ----
